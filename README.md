@@ -78,3 +78,11 @@ npm install
 
 # Launch the Engine
 npm run start:prod
+
+🏁 Roadmap: The 4-Week Cycle
+​PHASE 1: IPO Launch - Fixed 4-week duration starting at Gregorian month commencement.  
+​PHASE 2: Anti-Whale Settlement - Identifying excess holdings (>10%) and processing refunds.  
+​PHASE 3: LP Open Trading - Commencing at the start of the following month with 10% monthly vesting.  
+​<div align="center">
+​Developed with Passion for the Pi Network Ecosystem. Full-Stack Developer | AppDev @Map-of-Pi | Web3 & AI Specialist
+​</div>
