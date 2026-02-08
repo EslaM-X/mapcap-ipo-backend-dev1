@@ -132,9 +132,11 @@ Designed for clarity, speed, and trust.
 PHASE 1 — IPO Launch
 • Fixed 4-week duration
 • Equal pricing for all pioneers
+
 PHASE 2 — Anti-Whale Settlement
 • Automatic >10% enforcement
 • Excess refunds processed
+
 PHASE 3 — LP Activation
 • Begins at next Gregorian month
 • 10-month vesting schedule
