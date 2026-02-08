@@ -76,7 +76,7 @@ npm install
 # Launch the Engine
 npm run start:prod
 
- Roadmap: The 4-Week Cycle
+Roadmap: The 4-Week Cycle
 ​PHASE 1: IPO Launch (4 Weeks Fixed Duration).  
 ​PHASE 2: Anti-Whale Settlement & A2UaaS Refund Batch.  
 ​PHASE 3: LP Open Trading & 10-Month Linear Vesting.  
