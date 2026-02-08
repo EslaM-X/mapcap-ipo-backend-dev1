@@ -128,25 +128,7 @@ Designed for clarity, speed, and trust.
 
 ---
 
-## 🚀 Deployment
-
-```bash
-# Clone repository
-git clone https://github.com/Map-of-Pi/MapCap-Engine.git
-
-# Install dependencies
-npm install
-
-# Configure environment
-cp .env.example .env
-# MONGO_URI
-# PI_API_KEY
-# WALLET_PRIVATE_KEY
-
-# Launch production
-npm run start:prod
-
-🗓️ IPO Lifecycle
+🗓️IPO Lifecycle
 PHASE 1 — IPO Launch
 • Fixed 4-week duration
 • Equal pricing for all pioneers
@@ -169,3 +151,23 @@ purpose-built for the Pi Network era.
 Built with conviction for the Pi ecosystem 
 Full-Stack Developer • Web3 Architect • Map-of-Pi Core 
 ```
+
+
+
+## 🚀 Deployment
+
+```bash
+# Clone repository
+git clone https://github.com/Map-of-Pi/MapCap-Engine.git
+
+# Install dependencies
+npm install
+
+# Configure environment
+cp .env.example .env
+# MONGO_URI
+# PI_API_KEY
+# WALLET_PRIVATE_KEY
+
+# Launch production
+npm run start:prod 
