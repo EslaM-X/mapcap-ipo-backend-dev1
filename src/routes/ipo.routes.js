@@ -1,48 +1,29 @@
 /**
  * IPO Routes - Dashboard & Pulse Data
- * This route provides the real-time statistics for the IPO Pulse Dashboard.
- * Optimized for the 4-week high-intensity IPO cycles.
+ * ---------------------------------------------------------
+ * Centralized routing for public IPO statistics.
+ * This file connects the frontend dashboard to the IPO Controller,
+ * ensuring real-time delivery of Philip's 4 core valuation metrics.
+ * Optimized for the 4-week high-intensity dashboard refresh.
  */
+
 const express = require('express');
 const router = express.Router();
-const PriceService = require('../services/price.service');
+
+// Importing the controller that handles the real DB logic and 20% gain calculation
+const IpoController = require('../controllers/ipo.controller');
 
 /**
  * @route   GET /api/ipo/dashboard-stats
- * @desc    Fetch real-time IPO performance, price, and investor metrics.
- * @access  Public (for the IPO duration)
+ * @desc    Fetch Value 1 (Investors), Value 2 (Total Pi), Value 3 (User Pi), and Value 4 (20% Gain)
+ * @access  Public (Strategic for the 4-week IPO transparency)
  */
-router.get('/dashboard-stats', async (req, res) => {
-    try {
-        /**
-         * For the Demo phase, we use static values. 
-         * These will be replaced by real-time database queries once DB is connected.
-         */
-        const totalPiInvested = 500000; // Simulated investment total
-        const totalInvestors = 1250;    // Simulated investor count
+router.get('/dashboard-stats', IpoController.getScreenStats);
 
-        // Calculate the current Spot Price based on Philip's simple formula
-        const currentPrice = PriceService.calculateDailySpotPrice(totalPiInvested);
-        const formattedPrice = PriceService.formatPriceForDisplay(currentPrice);
-
-        res.json({
-            success: true,
-            dashboardName: "IPO Pulse Dashboard", // The engaging title approved by Philip
-            stats: {
-                totalPi: totalPiInvested,
-                investorsCount: totalInvestors,
-                spotPrice: formattedPrice,
-                // Calculate remaining MapCap supply for the white-label configuration
-                mapCapRemaining: PriceService.TOTAL_MAPCAP_SUPPLY - (totalPiInvested * currentPrice)
-            }
-        });
-    } catch (error) {
-        // Simple and direct error response as requested by Daniel
-        res.status(500).json({ 
-            success: false, 
-            message: "Error fetching IPO pulse data: " + error.message 
-        });
-    }
-});
+/**
+ * NOTE: The logic for calculating the 'Spot Price' and 'Capital Gain' 
+ * is now fully encapsulated within the IpoController and PriceService 
+ * to maintain clean architecture standards.
+ */
 
 module.exports = router;
