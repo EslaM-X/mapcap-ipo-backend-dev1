@@ -1,50 +1,84 @@
 /**
- * Admin Controller - Project Management
- * ---------------------------------------------------------
- * This controller allows administrators (Philip/Daniel) to trigger 
- * critical manual actions like Whale Refunds or System Audits.
- * * Location: src/controllers/admin/admin.controller.js
+ * AdminController - Management & Settlement Operations
+ * -------------------------------------------------------------------------
+ * This controller provides administrative overrides for the MapCap IPO ecosystem.
+ * Its primary responsibility is managing the end-of-cycle settlement process
+ * and enforcing the "10% Whale Cap" rule manually after the 4-week period.
+ * * @author Full-Stack Developer | Map-of-Pi
+ * @version 1.0.0
  */
 
-// لاحظ تعديل المسارات (أضفنا .. زيادة لأننا دخلنا جوه مجلد admin)
+// Importing core modules with adjusted relative paths for the sub-directory structure
 const SettlementJob = require('../../jobs/settlement'); 
 const Investor = require('../../models/Investor');
 
 class AdminController {
     /**
-     * Trigger Manual Settlement
-     * This endpoint is called when the 4-week IPO period officially ends.
-     * It enforces the 10% Whale Cap rule globally.
+     * triggerFinalSettlement
+     * -----------------------
+     * Finalizes the IPO by calculating the total Pi pool and triggering
+     * automatic refunds for any investor exceeding the 10% stake limit.
+     * * @param {Object} req - Express request object.
+     * @param {Object} res - Express response object.
+     * @returns {Promise<Response>} JSON response confirming settlement report.
      */
     static async triggerFinalSettlement(req, res) {
         try {
-            console.log("[ADMIN] Manual Settlement Triggered by Philip/Daniel");
+            // Audit log for internal tracking (Essential for transparency)
+            console.log("[SYSTEM AUDIT] Manual IPO Settlement triggered by Administrator.");
 
-            // 1. Fetch all participants from MongoDB
+            // 1. Retrieve all investment records from the database
             const investors = await Investor.find();
             
-            // 2. Calculate the final total pool size
+            // 2. Aggregate the total Pi collected across the entire ecosystem
             const aggregation = await Investor.aggregate([
-                { $group: { _id: null, total: { $sum: "$totalPiContributed" } } }
+                { 
+                    $group: { 
+                        _id: null, 
+                        total: { $sum: "$totalPiContributed" } 
+                    } 
+                }
             ]);
             
             const totalPiPool = aggregation.length > 0 ? aggregation[0].total : 0;
 
+            // Integrity check: Ensure settlement doesn't run on an empty pool
             if (totalPiPool === 0) {
-                return res.status(400).json({ success: false, message: "No investments found to settle." });
+                return res.status(400).json({ 
+                    success: false, 
+                    message: "Settlement aborted: No active investments found in the pool." 
+                });
             }
 
-            // 3. Execute the Anti-Whale Refund Job via A2UaaS
+            /**
+             * 3. Execute the Anti-Whale Refund Engine.
+             * This calls the SettlementJob to perform the A2UaaS transfers.
+             * It ensures the 'Water-level' logic is applied to maintain fair distribution.
+             */
             const report = await SettlementJob.executeWhaleTrimBack(investors, totalPiPool);
 
+            // Return professional report for the Admin Dashboard
             res.status(200).json({
                 success: true,
-                message: "Final IPO settlement executed successfully.",
-                report
+                message: "IPO settlement and Whale trim-back completed successfully.",
+                timestamp: new Date().toISOString(),
+                report: {
+                    totalPoolProcessed: totalPiPool,
+                    investorsAudited: investors.length,
+                    refundsIssued: report.totalRefunded,
+                    whalesDetected: report.whalesImpacted
+                }
             });
+
         } catch (error) {
-            console.error("[ADMIN ERROR] Settlement failed:", error.message);
-            res.status(500).json({ success: false, message: "Settlement failed", error: error.message });
+            // Critical error logging
+            console.error("[CRITICAL ERROR] Admin Settlement Failure:", error.message);
+            
+            res.status(500).json({ 
+                success: false, 
+                message: "An internal error occurred during the settlement process.", 
+                error: error.message 
+            });
         }
     }
 }
