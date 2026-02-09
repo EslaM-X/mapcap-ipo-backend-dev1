@@ -1,26 +1,30 @@
 /**
  * Cron Scheduler - MapCap IPO Automation Engine (Production Ready)
  * -------------------------------------------------------------------------
- * This orchestrator automates the MapCap lifecycle based on Philip Jennings' 
- * Use Case. It ensures all global financial operations align with the 
- * Gregorian calendar and UTC time standards.
+ * Lead Architect: Eslam Kora | AppDev @Map-of-Pi
+ * Project: MapCap Ecosystem | Spec: Philip Jennings & Daniel
+ * * PURPOSE: 
+ * This orchestrator automates the MapCap lifecycle (Daily Pricing, 
+ * 4-Week Whale Settlement, and 10-Month Vesting) as per Spec Page 4-6.
+ * -------------------------------------------------------------------------
  */
 
-const cron = require('node-cron');
-const Investor = require('../models/Investor');
-const SettlementJob = require('./settlement');
-const auditLogStream = require('../config/logger');
+import cron from 'node-cron';
+import Investor from '../models/investor.model.js';
+import SettlementJob from './settlement.job.js'; // Ensure .js extension
+import { auditLogStream } from '../config/logger.js';
 
 class CronScheduler {
     /**
      * Initializes all automated tasks for the IPO ecosystem.
-     * All tasks are strictly bound to the 'UTC' timezone.
+     * All tasks are strictly bound to the 'UTC' timezone for global consistency.
      */
     static init() {
         console.log("--- [SYSTEM] Cron Scheduler Initialized (UTC Mode) ---");
 
         /**
-         * TASK 1: Daily Spot Price Calculation (Midnight UTC Every Day)
+         * TASK 1: Daily Spot Price Snapshot (Midnight UTC Every Day)
+         * Requirement: Real-time 'Water-Level' tracking [Page 4, 73-74].
          */
         cron.schedule('0 0 * * *', async () => {
             console.log("[CRON] Executing End-of-Day Spot Price Calculation...");
@@ -45,7 +49,8 @@ class CronScheduler {
         });
 
         /**
-         * TASK 2: Final Whale Settlement (End of 4-Week Cycle)
+         * TASK 2: Final Whale Settlement (End of 4-Week IPO Cycle)
+         * Requirement: Triggering the Anti-Whale 10% Trim-Back [Page 6, 92-94].
          */
         cron.schedule('0 23 28 * *', async () => {
             console.log("[CRON] 🚨 IPO PHASE END: Triggering Anti-Whale Settlement...");
@@ -71,10 +76,12 @@ class CronScheduler {
 
         /**
          * TASK 3: Monthly Vesting Release (1st of Month, UTC)
+         * Requirement: Linear 10% release over 10 months [Page 5, 87-88].
          */
         cron.schedule('0 0 1 * *', async () => {
             console.log("[CRON] Executing Monthly 10% Vesting Distribution...");
             try {
+                // Future Hook: This will call the VestingService.releaseNextTranche()
                 auditLogStream.write(`[VESTING_CYCLE] Started for ${new Date().toLocaleString('default', { month: 'long' })}\n`);
             } catch (error) {
                 console.error("[CRON ERROR] Vesting Process Interrupted:", error.message);
@@ -86,4 +93,4 @@ class CronScheduler {
     }
 }
 
-module.exports = CronScheduler;
+export default CronScheduler;
