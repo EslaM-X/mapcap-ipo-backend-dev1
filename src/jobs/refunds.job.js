@@ -1,5 +1,5 @@
 /**
- * Whale Refund Job - Anti-Whale Enforcement Protocol v1.4
+ * Whale Refund Job - Anti-Whale Enforcement Protocol v1.5
  * ---------------------------------------------------------
  * Lead Architect: Eslam Kora | AppDev @Map-of-Pi
  * Project: MapCap Ecosystem | Spec: Philip Jennings & Daniel
@@ -10,6 +10,7 @@
  */
 
 import PaymentService from '../services/payment.service.js';
+import { writeAuditLog } from '../config/logger.js';
 
 /**
  * @function runWhaleRefunds
@@ -18,45 +19,60 @@ import PaymentService from '../services/payment.service.js';
  * @param {Array} investors - Dataset of IPO pioneers (Address, Contribution).
  */
 export const runWhaleRefunds = async (totalPiPool, investors) => {
-    // REQUIREMENT [90]: Cap set at 10% of the total balance in the MapCapIPO wallet.
+    /**
+     * REQUIREMENT [90]: Cap set at 10% of the total liquidity.
+     * This is the "Ceiling" that maintains ecosystem health.
+     */
     const WHALE_CAP_LIMIT = totalPiPool * 0.10; 
 
     console.log(`--- [AUDIT] Initiating Anti-Whale Refund Sequence ---`);
-    console.log(`--- [POOL_STATS] Total: ${totalPiPool} Pi | Cap: ${WHALE_CAP_LIMIT} Pi ---`);
+    writeAuditLog('INFO', `Anti-Whale sequence started. Pool: ${totalPiPool} Pi | Cap: ${WHALE_CAP_LIMIT} Pi`);
+
+    let refundCount = 0;
+    let totalRefundedPi = 0;
 
     for (let investor of investors) {
-        /**
-         * EVALUATION:
-         * We compare the contribution against the 10% threshold. 
-         * Note: 'amountPi' corresponds to 'totalPiContributed' in our model.
-         */
-        const contribution = investor.amountPi || investor.totalPiContributed;
+        // Normalizing data fields from the Investor model
+        const contribution = investor.totalPiContributed || investor.amountPi || 0;
 
         if (contribution > WHALE_CAP_LIMIT) {
             const excessAmount = contribution - WHALE_CAP_LIMIT;
             
-            console.warn(`[WHALE_DETECTED] Pioneer: ${investor.piAddress} | Excess: ${excessAmount} Pi`);
+            console.warn(`[WHALE_DETECTED] Pioneer: ${investor.piAddress} | Excess: ${excessAmount.toFixed(4)} Pi`);
             
             try {
                 /**
                  * EXECUTION:
-                 * Using the unified A2UaaS (App-to-User) service.
-                 * SPEC COMPLIANCE [Page 5, Line 84]: 
-                 * "Transaction/gas fees are deducted from the amount transferred."
+                 * Triggering the A2UaaS (App-to-User) transfer protocol.
+                 * SPEC COMPLIANCE: Fees are handled within PaymentService.
                  */
                 await PaymentService.transferPi(investor.piAddress, excessAmount);
                 
-                console.log(`[SUCCESS] Refund processed for ${investor.piAddress}. Ledger updated.`);
+                refundCount++;
+                totalRefundedPi += excessAmount;
+
+                writeAuditLog('INFO', `Refund Successful: ${excessAmount} Pi returned to ${investor.piAddress}`);
+                
+                // Future Hook: Update the investor's document in DB to reflect the new balance
+                investor.totalPiContributed = WHALE_CAP_LIMIT;
+                investor.isWhale = true; // Flag for Daniel's final audit report
+                await investor.save();
+
             } catch (error) {
                 /**
                  * DANIEL'S AUDIT REQUIREMENT:
-                 * Failed refunds are logged for manual reconciliation before 
-                 * the 10-month vesting cycle begins.
+                 * Failed refunds are logged as CRITICAL for manual admin intervention.
                  */
-                console.error(`[CRITICAL_AUDIT_FAILURE] Refund failed for ${investor.piAddress}:`, error.message);
+                writeAuditLog('CRITICAL', `Refund FAILED for ${investor.piAddress}: ${error.message}`);
+                console.error(`[CRITICAL_AUDIT_FAILURE] Payment Pipeline Error:`, error.message);
             }
         }
     }
+
     
-    console.log("--- [SYSTEM] Anti-Whale Refund Process Completed Successfully ---");
+
+    writeAuditLog('INFO', `Anti-Whale Refund Completed. Total Refunded: ${totalRefundedPi} Pi across ${refundCount} accounts.`);
+    console.log(`--- [SYSTEM] Process Finished. ${refundCount} Refunds issued. ---`);
+    
+    return { refundCount, totalRefundedPi };
 };
