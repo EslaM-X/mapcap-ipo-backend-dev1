@@ -1,16 +1,44 @@
-# Dependency directories
+# --- [DEPENDENCY DIRECTORIES] ---
 node_modules/
 jspm_packages/
+package-lock.json
+yarn.lock
 
-# Environment variables
+# --- [ENVIRONMENT VARIABLES] ---
+# Very critical: Never commit the actual .env to version control
 .env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 
-# Logs
+# --- [LOGS & DIAGNOSTICS] ---
+# Excluding the MapCap audit logs to keep the repo clean
+logs/
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
 
-# OS metadata
+# --- [SYSTEM & OS METADATA] ---
 .DS_Store
+.DS_Store?
+._*
 Thumbs.db
+desktop.ini
 
+# --- [EDITOR & IDE CONFIG] ---
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# --- [BUILD & TEMP] ---
+dist/
+build/
+.cache/
+.npm/
