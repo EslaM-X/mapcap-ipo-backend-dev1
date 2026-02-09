@@ -1,5 +1,5 @@
 /**
- * MapCap IPO - Integrated Server Engine (Final Production Build)
+ * MapCap IPO - Integrated Server Engine (Final Production Build v1.1)
  * -------------------------------------------------------------------------
  * Lead Architect: Eslam Kora | AppDev @Map-of-Pi
  * Project: MapCap Ecosystem | Spec: Philip Jennings & Daniel
@@ -13,12 +13,12 @@ import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
 import morgan from 'morgan';
-import cron from 'node-cron'; // Task scheduler for financial distributions
+import cron from 'node-cron';
 
 // Infrastructure & Logic Imports
-import { auditLogStream } from './src/config/logger.js';
+import { auditLogStream, writeAuditLog } from './src/config/logger.js';
 import CronScheduler from './src/jobs/cron.scheduler.js';
-import DividendJob from './src/jobs/dividend.job.js'; // Distributed per Page 5 & 6
+import DividendJob from './src/jobs/dividend.job.js'; 
 import Investor from './src/models/investor.model.js';
 import ResponseHelper from './src/utils/response.helper.js';
 
@@ -33,8 +33,7 @@ const app = express();
 
 /**
  * 1. GLOBAL MIDDLEWARE & SECURITY
- * Implementing Daniel's transparency standard via persistent audit logging.
- * Logs all traffic to /logs/audit.log for compliance and troubleshooting.
+ * Logs all traffic to audit.log via Morgan for compliance. [Spec Page 5]
  */
 app.use(morgan('combined', { stream: auditLogStream }));
 app.use(express.json());
@@ -42,40 +41,40 @@ app.use(cors());
 
 /**
  * 2. DATABASE PERSISTENCE & AUTOMATION
- * High-availability connection to the MapCap IPO MongoDB cluster.
  * Background jobs are triggered only after a confirmed ledger handshake.
  */
 mongoose.connect(process.env.MONGO_URI)
   .then(() => {
       console.log('✅ [DATABASE] Financial Ledger: Connection Established');
-      
-      // Initialize daily pricing and vesting schedules
+      writeAuditLog('INFO', 'Database Connection Established.');
+
+      // Initialize automated tasks (Snapshots, Whale-Shield, Vesting)
       CronScheduler.init();
 
       /**
        * 3. DIVIDEND SCHEDULE (Philip's Requirement [Page 5, 87-88])
-       * Frequency is configurable. Default: Monthly (1st of every month at midnight).
-       * Note: This schedule triggers the Anti-Whale Dividend Cap [Page 6, 92-94].
+       * Default: Monthly (1st of every month at midnight UTC).
        */
       const DIVIDEND_POT = process.env.DIVIDEND_POT_AMOUNT || 0;
       cron.schedule('0 0 1 * *', async () => {
-          console.log('--- [CRON] Starting Automated Profit Distribution ---');
+          writeAuditLog('INFO', '--- [CRON] Starting Automated Profit Distribution ---');
           try {
               await DividendJob.distributeDividends(DIVIDEND_POT);
-              console.log('--- [CRON] Dividend Distribution Cycle Completed ---');
+              writeAuditLog('INFO', '--- [CRON] Dividend Distribution Cycle Completed ---');
           } catch (err) {
-              console.error('[CRITICAL] Dividend Job Aborted:', err.message);
+              writeAuditLog('CRITICAL', `Dividend Job Aborted: ${err.message}`);
           }
-      });
+      }, { scheduled: true, timezone: "UTC" });
   })
   .catch(err => {
       console.error('❌ [CRITICAL] Database Connection Failed:', err.message);
+      writeAuditLog('CRITICAL', `DB Connection Error: ${err.message}`);
       process.exit(1); 
   });
 
 /**
  * 4. ROOT PULSE CHECK (Real-Time Metrics)
- * Serves the primary "Water-Level" stats for the Map of Pi dashboard [Page 4, 73-75].
+ * Serves primary "Water-Level" stats for the dashboard [Page 4, 73-75].
  */
 app.get('/', async (req, res) => {
     try {
@@ -94,7 +93,6 @@ app.get('/', async (req, res) => {
         const IPO_MAX_CAPACITY = 2181818; // Fixed IPO MapCap Pool [Page 2, 26]
 
         return ResponseHelper.success(res, "MapCap IPO Pulse Engine - Operational", {
-            project: "MapCap IPO",
             live_metrics: {
                 total_investors: pioneers,       // Value 1
                 total_pi_invested: waterLevel,   // Value 2
@@ -110,18 +108,18 @@ app.get('/', async (req, res) => {
 
 /**
  * 5. ROUTE ORCHESTRATION
- * Endpoints for the Single-Screen Pi Browser application.
+ * Ensuring routes align with the modular src/routes structure.
  */
 app.use('/api/ipo', ipoRoutes);
 app.use('/api/admin', adminRoutes);
 
+
+
 /**
  * 6. GLOBAL ERROR INTERCEPTOR
- * Final safety pillar to prevent server crashes and log fatal anomalies.
  */
 app.use((err, req, res, next) => {
-    console.error(`[FATAL_ERROR]: ${err.message}`);
-    auditLogStream.write(`${new Date().toISOString()} - FATAL: ${err.stack}\n`);
+    writeAuditLog('CRITICAL', `FATAL ERROR: ${err.stack}`);
     return ResponseHelper.error(res, "Internal System Anomaly - Audit Log Generated", 500);
 });
 
@@ -129,7 +127,7 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`🚀 [ENGINE] MapCap IPO Pulse deployed on port ${PORT}`);
-    console.log(`📜 [AUDIT] Recording transactions to /logs/audit.log`);
+    console.log(`📜 [AUDIT] Recording transactions via morgan/winston audit logs`);
 });
 
 export default app;
