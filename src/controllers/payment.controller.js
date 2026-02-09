@@ -1,59 +1,89 @@
 /**
- * Payment Controller - Financial Operations
+ * Payment Controller - Financial Operations v1.5
  * ---------------------------------------------------------
- * This controller handles incoming investment payments and 
- * verifies Pi Network transactions.
+ * Lead Architect: Eslam Kora | AppDev @Map-of-Pi
+ * Project: MapCap Ecosystem | Spec: Daniel's Financial Audit Standards
+ * * PURPOSE:
+ * Processes incoming investment payments, synchronizes the Ledger, 
+ * and maintains the immutable transaction history for the IPO.
+ * ---------------------------------------------------------
  */
 
-const Investor = require('../models/Investor');
-const Transaction = require('../models/Transaction');
-const PaymentService = require('../services/payment.service');
+import Investor from '../models/investor.model.js';
+import Transaction from '../models/transaction.model.js';
+import ResponseHelper from '../utils/response.helper.js';
 
 class PaymentController {
     /**
-     * Handle New Investment
-     * This is called after the user completes the Pi payment in the frontend.
+     * @method processInvestment
+     * @desc Records the transaction and updates the Pioneer's equity stake.
+     * Called post-transaction via the Pi Network Frontend SDK callback.
      */
     static async processInvestment(req, res) {
         const { piAddress, amount, piTxId } = req.body;
 
+        // 1. INPUT VALIDATION: Basic integrity check before DB operations
+        if (!piAddress || !amount || !piTxId) {
+            return ResponseHelper.error(res, "Missing transaction metadata (Wallet, Amount, or TXID).", 400);
+        }
+
         try {
-            // 1. Record the transaction in the Audit Log
+            /**
+             * 2. AUDIT LOGGING:
+             * Daniel's Requirement: Record the movement *before* updating balances.
+             * This ensures we have a trace even if the investor update fails.
+             */
             const newTransaction = await Transaction.create({
                 piAddress,
                 amount,
                 type: 'INVESTMENT',
                 status: 'COMPLETED',
-                piTxId
+                piTxId,
+                memo: `IPO Contribution - Week ${Math.ceil((new Date().getDate()) / 7)}`
             });
 
-            // 2. Update or Create the Investor record
+            /**
+             * 3. LEDGER SYNCHRONIZATION:
+             * Updates or initializes the Investor's profile in the MapCap Ecosystem.
+             */
             let investor = await Investor.findOne({ piAddress });
 
             if (investor) {
-                investor.totalPiContributed += amount;
+                investor.totalPiContributed += Number(amount);
                 investor.lastContributionDate = Date.now();
             } else {
                 investor = new Investor({
                     piAddress,
-                    totalPiContributed: amount
+                    totalPiContributed: Number(amount)
                 });
             }
 
-            // 3. Save investor data and recalculate share (Logic handled in background jobs)
+            // Save the updated state to MongoDB
             await investor.save();
 
-            res.status(200).json({
-                success: true,
-                message: "Investment processed successfully",
-                transaction: newTransaction
+            
+
+            // 4. SUCCESS RESPONSE: Informing the UI to refresh the 'Water-Level'
+            return ResponseHelper.success(res, "Investment successfully synchronized with MapCap Ledger.", {
+                transactionId: newTransaction._id,
+                piTxId: piTxId,
+                newTotalBalance: investor.totalPiContributed,
+                timestamp: new Date().toISOString()
             });
 
         } catch (error) {
-            console.error("Payment Processing Error:", error.message);
-            res.status(500).json({ success: false, message: "Internal Server Error" });
+            /**
+             * 5. ERROR HANDLING:
+             * Specifically catch duplicate piTxId to prevent double-spending attacks.
+             */
+            if (error.code === 11000) {
+                return ResponseHelper.error(res, "Duplicate Transaction: This PiTxId has already been processed.", 409);
+            }
+
+            console.error(`[PAYMENT_FAILURE]: ${error.message}`);
+            return ResponseHelper.error(res, "Financial Pipeline Interrupted. Please contact support.", 500);
         }
     }
 }
 
-module.exports = PaymentController;
+export default PaymentController;
