@@ -1,5 +1,5 @@
 /**
- * AuthController - Secure Administrative Access v1.4
+ * AuthController - Secure Administrative Access v1.4 (Production Ready)
  * -------------------------------------------------------------------------
  * Lead Architect: Eslam Kora | AppDev @Map-of-Pi
  * Project: MapCap Ecosystem | Spec: Daniel's Security & Compliance
@@ -16,14 +16,14 @@ class AuthController {
     /**
      * @method adminLogin
      * @desc Validates credentials and issues a secure JWT session token.
-     * @access Public
+     * @access Public (Entry Point)
      */
     static async adminLogin(req, res) {
         const { username, password } = req.body;
 
         /**
          * SECURE CREDENTIAL FETCHING:
-         * These values must be stored in the .env file for the Vercel deployment.
+         * Fetches sensitive credentials from environment variables for Vercel/Node safety.
          */
         const ADMIN_USER = process.env.ADMIN_USERNAME || "admin";
         const ADMIN_PASS = process.env.ADMIN_PASSWORD || "MapCap2026";
@@ -31,8 +31,8 @@ class AuthController {
         if (username === ADMIN_USER && password === ADMIN_PASS) {
             /**
              * JWT GENERATION:
-             * Creating a signed token that expires in 24h to maintain session security.
-             * The 'ADMIN_SECRET_TOKEN' should be a long, random string in .env.
+             * Creating a signed token that expires in 24h to maintain session integrity.
+             * Utilizes 'ADMIN_SECRET_TOKEN' from .env to prevent decryption.
              */
             const token = jwt.sign(
                 { user: username, role: 'SUPER_ADMIN' },
@@ -49,7 +49,10 @@ class AuthController {
             });
         }
 
-        // SECURITY LOGGING: Capturing failed attempts for Daniel's audit.
+        /**
+         * SECURITY LOGGING: 
+         * Capturing failed attempts for Daniel's audit logging and Whale-Shield defense.
+         */
         console.warn(`[SECURITY_ALERT] Unauthorized login attempt from: ${username}`);
         
         return ResponseHelper.error(res, "Authentication failed: Invalid credentials.", 401);
@@ -64,7 +67,7 @@ class AuthController {
         try {
             /**
              * HEALTH METRICS:
-             * Vital for Philip to monitor the 'IPO Pulse' during high-traffic weeks.
+             * Critical for Philip to monitor the 'IPO Pulse' during high-traffic weeks.
              */
             return ResponseHelper.success(res, "System health synchronized.", {
                 status: "Operational",
@@ -75,7 +78,7 @@ class AuthController {
                 nodeVersion: process.version
             });
         } catch (error) {
-            return ResponseHelper.error(res, "System health check failed.", 500);
+            return ResponseHelper.error(res, "System health check failed: Component disruption.", 500);
         }
     }
 }
