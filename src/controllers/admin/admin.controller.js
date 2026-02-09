@@ -1,86 +1,90 @@
 /**
- * AdminController - Management & Settlement Operations
+ * AdminController - Management & Settlement Operations v1.3
  * -------------------------------------------------------------------------
- * This controller provides administrative overrides for the MapCap IPO ecosystem.
- * Its primary responsibility is managing the end-of-cycle settlement process
- * and enforcing the "10% Whale Cap" rule manually after the 4-week period.
- * * @author Full-Stack Developer | Map-of-Pi
- * @version 1.0.0
+ * Lead Architect: Eslam Kora | AppDev @Map-of-Pi
+ * Project: MapCap Ecosystem | Spec: Philip's Anti-Whale Enforcement
+ * * PURPOSE:
+ * Provides administrative overrides for the MapCap IPO ecosystem.
+ * Primary responsibility: Managing the end-of-cycle settlement and 
+ * enforcing the "10% Whale Cap" rule manually after the 4-week period.
+ * -------------------------------------------------------------------------
  */
 
-// Importing core modules with adjusted relative paths for the sub-directory structure
-const SettlementJob = require('../../jobs/settlement'); 
-const Investor = require('../../models/Investor');
+import Investor from '../../models/investor.model.js';
+import SettlementJob from '../../jobs/settlement.job.js';
 
 class AdminController {
     /**
-     * triggerFinalSettlement
-     * -----------------------
-     * Finalizes the IPO by calculating the total Pi pool and triggering
-     * automatic refunds for any investor exceeding the 10% stake limit.
-     * * @param {Object} req - Express request object.
-     * @param {Object} res - Express response object.
-     * @returns {Promise<Response>} JSON response confirming settlement report.
+     * @method triggerFinalSettlement
+     * @desc Finalizes the IPO by calculating total liquidity and triggering
+     * automatic refunds for any pioneer exceeding the 10% stake ceiling.
+     * @access Private (Admin Only)
      */
     static async triggerFinalSettlement(req, res) {
         try {
-            // Audit log for internal tracking (Essential for transparency)
-            console.log("[SYSTEM AUDIT] Manual IPO Settlement triggered by Administrator.");
+            // AUDIT LOG: Essential for transparency standards requested by Daniel.
+            console.log(`[ADMIN_ACTION] Manual IPO Settlement triggered at ${new Date().toISOString()}`);
 
-            // 1. Retrieve all investment records from the database
-            const investors = await Investor.find();
-            
-            // 2. Aggregate the total Pi collected across the entire ecosystem
+            // 1. DATA AGGREGATION: Calculate the total Pi pool with high precision
             const aggregation = await Investor.aggregate([
                 { 
                     $group: { 
                         _id: null, 
-                        total: { $sum: "$totalPiContributed" } 
+                        total: { $sum: "$totalPiContributed" },
+                        count: { $sum: 1 }
                     } 
                 }
             ]);
             
             const totalPiPool = aggregation.length > 0 ? aggregation[0].total : 0;
+            const investorCount = aggregation.length > 0 ? aggregation[0].count : 0;
 
-            // Integrity check: Ensure settlement doesn't run on an empty pool
+            // 2. INTEGRITY CHECK: Ensure settlement doesn't run on an empty or uninitialized pool
             if (totalPiPool === 0) {
                 return res.status(400).json({ 
                     success: false, 
-                    message: "Settlement aborted: No active investments found in the pool." 
+                    message: "Settlement Aborted: No active investment liquidity detected." 
                 });
             }
 
             /**
-             * 3. Execute the Anti-Whale Refund Engine.
-             * This calls the SettlementJob to perform the A2UaaS transfers.
-             * It ensures the 'Water-level' logic is applied to maintain fair distribution.
+             * 3. EXECUTION: Anti-Whale Refund Engine.
+             * Triggers the SettlementJob to perform the A2UaaS transfers.
+             * This enforces the 'Water-level' logic to maintain decentralization.
              */
+            const investors = await Investor.find(); // Fetching full documents for the Job
             const report = await SettlementJob.executeWhaleTrimBack(investors, totalPiPool);
 
-            // Return professional report for the Admin Dashboard
-            res.status(200).json({
+            // 4. PROFESSIONAL REPORTING: Data structure for the Admin Dashboard UI
+            return res.status(200).json({
                 success: true,
-                message: "IPO settlement and Whale trim-back completed successfully.",
-                timestamp: new Date().toISOString(),
-                report: {
-                    totalPoolProcessed: totalPiPool,
-                    investorsAudited: investors.length,
-                    refundsIssued: report.totalRefunded,
-                    whalesDetected: report.whalesImpacted
+                message: "IPO settlement and Whale trim-back protocol executed.",
+                data: {
+                    executionTimestamp: new Date().toISOString(),
+                    metrics: {
+                        totalPoolProcessed: totalPiPool,
+                        investorsAudited: investorCount,
+                        refundsIssued: report.totalRefunded,
+                        whalesImpacted: report.whalesImpacted
+                    },
+                    status: "COMPLETED"
                 }
             });
 
         } catch (error) {
-            // Critical error logging
-            console.error("[CRITICAL ERROR] Admin Settlement Failure:", error.message);
+            /**
+             * CRITICAL ERROR HANDLING:
+             * Ensures that any failure in the A2UaaS pipeline is caught and logged.
+             */
+            console.error("[CRITICAL_SETTLEMENT_FAILURE]:", error.message);
             
-            res.status(500).json({ 
+            return res.status(500).json({ 
                 success: false, 
-                message: "An internal error occurred during the settlement process.", 
+                message: "Internal settlement engine failure. Check A2UaaS connectivity.", 
                 error: error.message 
             });
         }
     }
 }
 
-module.exports = AdminController;
+export default AdminController;
