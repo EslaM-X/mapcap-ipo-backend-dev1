@@ -1,11 +1,11 @@
 /**
- * Logger Configuration - Audit Trail Engine v1.3
+ * Logger Configuration - Audit Trail Engine v1.4
  * ---------------------------------------------------------
  * Lead Architect: Eslam Kora | AppDev @Map-of-Pi
  * Project: MapCap Ecosystem | Spec: Daniel's Transparency Standard
  * * PURPOSE:
  * Implements a permanent, immutable record of financial movements.
- * Monitors: Whale-Shield alerts, A2UaaS failures, and SDK handshakes.
+ * Essential for monitoring Whale-Shield alerts and A2UaaS integrity.
  * ---------------------------------------------------------
  */
 
@@ -13,27 +13,27 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-// Handling __dirname in ES Modules (Vercel/Node.js compliant)
+// ESM-compliant __dirname resolution for Node.js 18+ and Vercel
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Define log paths
+// Define persistent log directory and file path
 const logDir = path.join(__dirname, '../../logs');
 const logFile = path.join(logDir, 'financial_audit.log');
 
 /**
  * DIRECTORY INTEGRITY CHECK
- * Ensures the 'logs' folder exists to prevent deployment crashes.
+ * Ensures the 'logs' folder exists to prevent I/O deployment crashes.
  */
 if (!fs.existsSync(logDir)) {
     fs.mkdirSync(logDir, { recursive: true });
 }
 
 /**
- * AUDIT LOG STREAM
- * Append-only stream to preserve immutable financial history.
+ * @export auditLogStream
+ * @desc Append-only stream for Morgan HTTP logging and system auditing.
  */
-const auditLogStream = fs.createWriteStream(logFile, { 
+export const auditLogStream = fs.createWriteStream(logFile, { 
     flags: 'a',
     encoding: 'utf8'
 });
@@ -41,25 +41,29 @@ const auditLogStream = fs.createWriteStream(logFile, {
 /**
  * @function writeAuditLog
  * @desc Standardized method to write entries into the financial audit log.
- * @param {string} level - INFO, WARN, or CRITICAL.
- * @param {string} message - Descriptive log content.
+ * @param {string} level - INFO, WARN, ERROR, or CRITICAL.
+ * @param {string} message - Descriptive log content for compliance reviews.
  */
 export const writeAuditLog = (level, message) => {
     const timestamp = new Date().toISOString();
     const entry = `${timestamp} - [${level.toUpperCase()}]: ${message}\n`;
     
-    // Write to file for permanent record
+    // Persistent write to the audit file
     auditLogStream.write(entry);
     
-    // Also output to console for real-time Vercel monitoring
-    if (level === 'CRITICAL' || level === 'WARN') {
-        console.error(`[AUDIT_ALERT] ${entry}`);
+    // Real-time console output for Termux/Vercel monitoring with color-coding logic
+    if (level === 'CRITICAL' || level === 'ERROR' || level === 'WARN') {
+        console.error(`\x1b[31m[AUDIT_ALERT] ${entry}\x1b[0m`); // Red for alerts
     } else {
-        console.log(`[AUDIT_INFO] ${entry}`);
+        console.log(`\x1b[32m[AUDIT_INFO] ${entry}\x1b[0m`); // Green for info
     }
 };
 
-// Log Engine Boot Sequence
-writeAuditLog('INFO', 'MapCap Audit Engine Successfully Reinitialized.');
+// Initializing Engine Boot Log
+writeAuditLog('INFO', 'MapCap Audit Engine Synchronized and Operational.');
 
-export default auditLogStream;
+/**
+ * DEFAULT EXPORT:
+ * Supports both named and default imports to align with server.js architecture.
+ */
+export default { auditLogStream, writeAuditLog };
