@@ -1,10 +1,10 @@
 /**
- * Payment Controller - Financial Operations v1.5
+ * Payment Controller - Financial Operations v1.6
  * ---------------------------------------------------------
  * Lead Architect: Eslam Kora | AppDev @Map-of-Pi
  * Project: MapCap Ecosystem | Spec: Daniel's Financial Audit Standards
  * * PURPOSE:
- * Processes incoming investment payments, synchronizes the Ledger, 
+ * Processes incoming investment payments (U2A), updates equity balances,
  * and maintains the immutable transaction history for the IPO.
  * ---------------------------------------------------------
  */
@@ -12,76 +12,81 @@
 import Investor from '../models/investor.model.js';
 import Transaction from '../models/transaction.model.js';
 import ResponseHelper from '../utils/response.helper.js';
+import { writeAuditLog } from '../config/logger.js';
 
 class PaymentController {
     /**
      * @method processInvestment
-     * @desc Records the transaction and updates the Pioneer's equity stake.
-     * Called post-transaction via the Pi Network Frontend SDK callback.
+     * @desc Records transaction and updates Pioneer stake post-SDK callback.
+     * Enforces strict idempotency via unique piTxId.
      */
     static async processInvestment(req, res) {
         const { piAddress, amount, piTxId } = req.body;
 
-        // 1. INPUT VALIDATION: Basic integrity check before DB operations
+        // 1. INPUT VALIDATION: Ensure financial metadata is present
         if (!piAddress || !amount || !piTxId) {
-            return ResponseHelper.error(res, "Missing transaction metadata (Wallet, Amount, or TXID).", 400);
+            return ResponseHelper.error(res, "Missing transaction metadata.", 400);
         }
 
         try {
             /**
-             * 2. AUDIT LOGGING:
-             * Daniel's Requirement: Record the movement *before* updating balances.
-             * This ensures we have a trace even if the investor update fails.
+             * 2. IDEMPOTENCY CHECK:
+             * Prevents processing the same blockchain transaction twice.
              */
+            const existingTx = await Transaction.findOne({ piTxId });
+            if (existingTx) {
+                return ResponseHelper.error(res, "Duplicate Transaction: TXID already processed.", 409);
+            }
+
+            /**
+             * 3. LEDGER & TRANSACTION ATOMICITY:
+             * Recording the movement and updating the investor profile.
+             */
+            const investmentAmount = Number(amount);
+
             const newTransaction = await Transaction.create({
                 piAddress,
-                amount,
+                amount: investmentAmount,
                 type: 'INVESTMENT',
                 status: 'COMPLETED',
                 piTxId,
-                memo: `IPO Contribution - Week ${Math.ceil((new Date().getDate()) / 7)}`
+                memo: `IPO Contribution - Manual Sync via SDK Callback`
             });
 
-            /**
-             * 3. LEDGER SYNCHRONIZATION:
-             * Updates or initializes the Investor's profile in the MapCap Ecosystem.
-             */
-            let investor = await Investor.findOne({ piAddress });
-
-            if (investor) {
-                investor.totalPiContributed += Number(amount);
-                investor.lastContributionDate = Date.now();
-            } else {
-                investor = new Investor({
-                    piAddress,
-                    totalPiContributed: Number(amount)
-                });
-            }
-
-            // Save the updated state to MongoDB
-            await investor.save();
+            // Update Investor Equity Stake
+            const investor = await Investor.findOneAndUpdate(
+                { piAddress },
+                { 
+                    $inc: { totalPiContributed: investmentAmount },
+                    $set: { lastContributionDate: Date.now() }
+                },
+                { upsert: true, new: true } // Creates record if it doesn't exist
+            );
 
             
 
-            // 4. SUCCESS RESPONSE: Informing the UI to refresh the 'Water-Level'
-            return ResponseHelper.success(res, "Investment successfully synchronized with MapCap Ledger.", {
-                transactionId: newTransaction._id,
-                piTxId: piTxId,
-                newTotalBalance: investor.totalPiContributed,
-                timestamp: new Date().toISOString()
+            /**
+             * 4. AUDIT LOGGING:
+             * Daniel's Compliance Requirement: Permanent log of the successful sync.
+             */
+            writeAuditLog('INFO', `Investment Processed: ${investmentAmount} Pi from ${piAddress} (TX: ${piTxId})`);
+
+            // 5. SUCCESS RESPONSE
+            return ResponseHelper.success(res, "Ledger Synchronized Successfully.", {
+                pioneer: piAddress,
+                contribution: investmentAmount,
+                totalBalance: investor.totalPiContributed,
+                piTxId
             });
 
         } catch (error) {
             /**
-             * 5. ERROR HANDLING:
-             * Specifically catch duplicate piTxId to prevent double-spending attacks.
+             * 6. CRITICAL ERROR HANDLING:
+             * Catching system failures and logging them for manual recovery.
              */
-            if (error.code === 11000) {
-                return ResponseHelper.error(res, "Duplicate Transaction: This PiTxId has already been processed.", 409);
-            }
-
+            writeAuditLog('CRITICAL', `Payment Processing Failed for ${piAddress}: ${error.message}`);
             console.error(`[PAYMENT_FAILURE]: ${error.message}`);
-            return ResponseHelper.error(res, "Financial Pipeline Interrupted. Please contact support.", 500);
+            return ResponseHelper.error(res, "Financial Pipeline Error. Support ID: " + Date.now(), 500);
         }
     }
 }
