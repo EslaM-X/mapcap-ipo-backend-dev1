@@ -1,11 +1,11 @@
 /**
- * MapCap IPO Controller - High-Precision Financial Engine v1.6
+ * MapCap IPO Controller - High-Precision Financial Engine v1.7
  * ---------------------------------------------------------
  * Lead Architect: Eslam Kora | AppDev @Map-of-Pi
  * Project: MapCap Ecosystem | Spec: Philip Jennings & Daniel
  * * OPERATIONAL OVERVIEW:
- * Orchestrates the 'Single Screen' data delivery by calculating 
- * dynamic Spot Price and enforcing the 10% Anti-Whale ceiling.
+ * Powers the 'Pulse Dashboard' by aggregating global liquidity 
+ * and enforcing the 10% Anti-Whale compliance protocol.
  * ---------------------------------------------------------
  */
 
@@ -16,18 +16,19 @@ import ResponseHelper from '../utils/response.helper.js';
 class IpoController {
     /**
      * @method getScreenStats
-     * @desc Syncs the dashboard with the Pi Network ledger and internal DB.
-     * @returns {Object} Values 1-4 for the IPO Pulse UI.
+     * @desc Delivers Value 1-4 for the IPO Pulse UI.
+     * Synchronizes individual stakes with the global scarcity model.
      */
     static async getScreenStats(req, res) {
         try {
             /**
-             * IDENTITY INJECTION:
-             * Extracts the pioneer's wallet address from the authenticated request.
+             * IDENTITY RESOLUTION:
+             * In production, req.user is populated by the AuthMiddleware 
+             * after verifying the Pi Network Scopes.
              */
-            const username = req.user?.username || "test_pioneer_01"; 
+            const piAddress = req.user?.uid || req.user?.username; 
 
-            // 1. GLOBAL AGGREGATION: Total Liquidity & Scarcity Pool
+            // 1. GLOBAL AGGREGATION: The 'Water-Level' [Spec Page 4]
             const globalMetrics = await Investor.aggregate([
                 { 
                     $group: { 
@@ -41,14 +42,13 @@ class IpoController {
             const totalPiInvested = globalMetrics[0]?.totalPi || 0;
             const totalInvestors = globalMetrics[0]?.investorCount || 0;
 
-            // 2. INDIVIDUAL LEDGER SYNC: Pioneer-specific stake calculation
-            const pioneer = await Investor.findOne({ piAddress: username });
+            // 2. INDIVIDUAL LEDGER SYNC
+            const pioneer = await Investor.findOne({ piAddress });
             const userPiBalance = pioneer ? pioneer.totalPiContributed : 0;
 
             /**
-             * 3. OFFICIAL SPOT PRICE FORMULA (Page 4 Spec)
-             * Formula: IPO MapCap Pool (2,181,818) / Current Total Contributed Pi.
-             * High-precision rounding applied via MathHelper.
+             * 3. DYNAMIC SPOT PRICE (Philip's Scarcity Formula)
+             * Logic: Total Supply (2,181,818) / Current Pool Liquidity.
              */
             const IPO_MAPCAP_SUPPLY = 2181818;
             const spotPrice = totalPiInvested > 0 
@@ -56,44 +56,39 @@ class IpoController {
                 : 0; 
 
             /**
-             * 4. VALUE 4: ALPHA GAIN (20% Early Access Reward)
-             * Logic: 1.20x multiplier representing the delta between IPO and LP.
+             * 4. ALPHA GAIN & WHALE-SHIELD MONITORING
+             * Leveraging MathHelper for audit-ready precision.
              */
-            const userCapitalGain = userPiBalance * 1.20;
-
-            /**
-             * 5. WHALE-SHIELD COMPLIANCE:
-             * Immediate detection if a single Pioneer holds > 10% of total pool.
-             */
-            const isWhale = totalPiInvested > 0 && (userPiBalance / totalPiInvested) > 0.10;
+            const userCapitalGain = MathHelper.calculateAlphaGain(userPiBalance);
+            const userSharePct = MathHelper.getPercentage(userPiBalance, totalPiInvested);
+            const isWhale = userSharePct > 10.0;
 
             
 
-            // SUCCESS RESPONSE: Data Delivery for StatsPanel.jsx
+            // 5. SUCCESS RESPONSE: Data Delivery for Dashboard.jsx
             return ResponseHelper.success(res, "Financial Ledger Synchronized", {
-                metrics: {
-                    totalInvestors,            // Value 1
-                    totalPiInvested,           // Value 2
-                    userPiInvested: userPiBalance, // Value 3
-                    userCapitalGain: MathHelper.toPiPrecision(userCapitalGain), // Value 4
-                    spotPrice: MathHelper.toPiPrecision(spotPrice),
+                values: {
+                    v1_totalInvestors: totalInvestors,            
+                    v2_totalPool: MathHelper.formatCurrency(totalPiInvested),           
+                    v3_userStake: MathHelper.formatCurrency(userPiBalance), 
+                    v4_capitalGain: MathHelper.formatCurrency(userCapitalGain),
+                    currentSpotPrice: MathHelper.formatCurrency(spotPrice, 6)
                 },
                 compliance: {
                     isWhale,
-                    whaleCapLimit: 0.10,
-                    status: isWhale ? "ACTION_REQUIRED" : "COMPLIANT"
+                    sharePercentage: `${userSharePct}%`,
+                    status: isWhale ? "WHALE_CAP_ACTIVE" : "COMPLIANT"
                 },
-                timeline: {
-                    daysActive: pioneer?.daysActive || 0,
-                    daysRemaining: 28 - (pioneer?.daysActive || 0),
-                    phase: "IPO_CYCLE_4_WEEKS"
-                },
-                priceHistory: pioneer?.priceHistory || []
+                vesting: {
+                    completed: pioneer?.vestingMonthsCompleted || 0,
+                    remaining: 10 - (pioneer?.vestingMonthsCompleted || 0),
+                    nextRelease: "1st of next month (UTC)"
+                }
             });
 
         } catch (error) {
-            console.error(`[CRITICAL_AUDIT_FAILURE]: ${error.message}`);
-            return ResponseHelper.error(res, "Ledger Sync Interrupted: Pipeline Failure", 500);
+            console.error(`[CRITICAL_CONTROLLER_ERROR]: ${error.message}`);
+            return ResponseHelper.error(res, "Dashboard Sync Failed: Financial Pipeline Offline", 500);
         }
     }
 }
