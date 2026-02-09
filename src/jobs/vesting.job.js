@@ -1,48 +1,66 @@
 /**
- * Vesting Job - IPO Token Release Engine
+ * Vesting Job - IPO Token Release Engine v1.5
  * ---------------------------------------------------------
- * Executed monthly after the LP open trading commences. 
- * Transfers 10% of the allocated MapCap to each IPO Pioneer 
- * [span_4](start_span)over a 10-month duration.[span_4](end_span)
+ * Lead Architect: Eslam Kora | AppDev @Map-of-Pi
+ * Project: MapCap Ecosystem | Spec: Philip Jennings & Daniel
+ * * PURPOSE:
+ * Automates the monthly release of MapCap tokens to IPO Pioneers.
+ * Releases 10% of total allocation per month over a 10-month cycle
+ * to ensure long-term stability and discourage market dumping.
+ * ---------------------------------------------------------
  */
 
-const PaymentService = require('../services/payment.service');
-const Investor = require('../models/Investor');
+import Investor from '../models/investor.model.js';
+import PaymentService from '../services/payment.service.js';
 
 class VestingJob {
     /**
-     * Executes the monthly vesting transfer.
-     * [span_5](start_span)Calculated as: (Total MapCap for User / 10) per month.[span_5](end_span)
+     * @method executeMonthlyVesting
+     * @desc Calculates and transfers the monthly 10% tranche of allocated MapCap.
+     * Formula: (Total Allocated MapCap / 10) per month.
      */
     static async executeMonthlyVesting() {
-        console.log("--- [SYSTEM] Starting Monthly MapCap Vesting Process ---");
+        console.log("--- [FINANCIAL_ENGINE] Starting Monthly MapCap Vesting Cycle ---");
 
         try {
+            // Fetch all pioneers who participated in the IPO cycle
             const investors = await Investor.find({ totalPiContributed: { $gt: 0 } });
 
             for (const investor of investors) {
-                [span_6](start_span)// Calculate 10% of the total MapCap allocated to the pioneer[span_6](end_span)
+                /**
+                 * CALCULATION:
+                 * Releasing a fixed 10% tranche based on the initial allocation.
+                 * Requirement: Page 5, Sec 87-88.
+                 */
                 const monthlyRelease = investor.allocatedMapCap * 0.10;
 
                 if (monthlyRelease > 0) {
                     try {
                         /**
-                         * Using A2UaaS for the secure vesting transfer.
-                         * [span_7](start_span)Ensures the pioneer receives their vested MapCap directly.[span_7](end_span)
+                         * EXECUTION:
+                         * Utilizing the A2UaaS (App-to-User) service via Pi SDK.
+                         * This guarantees secure and transparent ledger transfers.
                          */
                         await PaymentService.transferPi(investor.piAddress, monthlyRelease);
-                        console.log(`[VESTING] Released ${monthlyRelease} MapCap to ${investor.piAddress}`);
+                        
+                        // LOGGING: Crucial for Daniel's audit trail
+                        console.log(`[VESTING_SUCCESS] Released ${monthlyRelease} MapCap to ${investor.piAddress}`);
+                        
                     } catch (err) {
-                        console.error(`[ERROR] Vesting failed for ${investor.piAddress}:`, err.message);
+                        /**
+                         * RECOVERY LOGIC:
+                         * Failures are logged for administrative review in the audit.log.
+                         */
+                        console.error(`[CRITICAL_ERROR] Vesting failed for ${investor.piAddress}:`, err.message);
                     }
                 }
             }
             console.log("--- [SUCCESS] Monthly Vesting Cycle Completed ---");
         } catch (error) {
-            console.error("[CRITICAL] Vesting Job Failure:", error.message);
+            console.error("[FATAL_ERROR] Vesting Job Aborted:", error.message);
+            throw error;
         }
     }
 }
 
-module.exports = VestingJob;
-
+export default VestingJob;
