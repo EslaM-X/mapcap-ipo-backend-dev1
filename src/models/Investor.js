@@ -1,55 +1,89 @@
 /**
- * Investor Schema - Core Investment & Equity Tracker
+ * Investor Schema - Core Financial Equity Tracker
  * ---------------------------------------------------------
- * This model stores the cumulative data for each IPO participant.
- * Essential for calculating the 10% Whale Cap and managing 
- * the 10-month vesting cycle as per Philip's Use Case.
+ * Lead Architect: Eslam Kora | AppDev @Map-of-Pi
+ * Project: MapCap Ecosystem | Spec: Philip Jennings
+ * * PURPOSE: 
+ * This model serves as the primary ledger for all IPO participants.
+ * It enforces the 10% Anti-Whale Ceiling and tracks the 10-month 
+ * linear vesting schedule as defined in the project specs.
+ * ---------------------------------------------------------
  */
-const mongoose = require('mongoose');
+
+import mongoose from 'mongoose';
 
 const InvestorSchema = new mongoose.Schema({
-    // The unique Pi Network wallet address (Pioneer ID)
+    /**
+     * @property {String} piAddress
+     * Unique Pi Network wallet identifier (Pioneer ID).
+     * Indexed for high-performance lookups during peak IPO traffic.
+     */
     piAddress: { 
         type: String, 
-        required: true, 
+        required: [true, 'Pi Wallet Address is mandatory for ledger synchronization'], 
         unique: true,
-        index: true 
+        index: true,
+        trim: true
     },
     
-    // Total amount of Pi contributed during the 4-week cycle (Value 3)
+    /**
+     * @property {Number} totalPiContributed
+     * Cumulative amount of Pi contributed over the 4-week cycle.
+     * Maps to "Value 3" in the real-time analytics dashboard.
+     */
     totalPiContributed: { 
         type: Number, 
         default: 0,
-        min: 0
+        min: [0, 'Contribution cannot be negative']
     },
 
-    // Amount of MapCap allocated based on the Daily Spot Price
-    // Necessary for the 10% monthly release (Vesting Job)
+    /**
+     * @property {Number} allocatedMapCap
+     * Total MapCap tokens assigned based on the Daily Spot Price.
+     * Subject to the 10-month vesting release (10% per month).
+     */
     allocatedMapCap: {
         type: Number,
-        default: 0
+        default: 0,
+        min: 0
     },
     
-    // Proportional share relative to the total 2,181,818 MapCap pool
+    /**
+     * @property {Number} sharePercentage
+     * Proportional equity ownership within the 2,181,818 MapCap Pool.
+     * Formula: (allocatedMapCap / TOTAL_POOL) * 100.
+     */
     sharePercentage: { 
         type: Number, 
         default: 0 
     },
     
-    // Flag to identify if the pioneer has exceeded the 10% limit
-    // Automatically updated by the Settlement Job
+    /**
+     * @property {Boolean} isWhale
+     * Compliance Flag: Set to 'true' if the investor hits the 10% Anti-Whale Cap.
+     * Enforced by the Settlement Job to maintain decentralization.
+     */
     isWhale: { 
         type: Boolean, 
         default: false 
     },
     
-    // Tracking the last activity for audit and transparent reporting
+    /**
+     * @property {Date} lastContributionDate
+     * Audit Timestamp: Records the most recent financial activity.
+     */
     lastContributionDate: { 
         type: Date, 
         default: Date.now 
     }
 }, { 
-    timestamps: true // Automatically manages createdAt and updatedAt
+    /**
+     * Timestamps ensure a clear audit trail for Philip and Daniel
+     * as per transparency requirements.
+     */
+    timestamps: true 
 });
 
-module.exports = mongoose.model('Investor', InvestorSchema);
+// Exporting using ES Module syntax for seamless integration with server.js
+const Investor = mongoose.model('Investor', InvestorSchema);
+export default Investor;
