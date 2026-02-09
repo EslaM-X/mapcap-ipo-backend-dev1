@@ -1,5 +1,5 @@
 /**
- * API Routes - Unified Communication Layer v1.6
+ * API Routes - Unified Communication Layer v1.7
  * ---------------------------------------------------------
  * Lead Architect: Eslam Kora | AppDev @Map-of-Pi
  * Project: MapCap Ecosystem | Spec: Philip's White-Label Strategy
@@ -11,6 +11,7 @@
  */
 
 import express from 'express';
+import ipoRoutes from './ipo.routes.js'; // Modular IPO Routes
 import PriceService from '../services/price.service.js';
 import PayoutService from '../services/payout.service.js';
 import ResponseHelper from '../utils/response.helper.js';
@@ -18,72 +19,69 @@ import ResponseHelper from '../utils/response.helper.js';
 const router = express.Router();
 
 /**
- * @route   GET /api/stats
- * @desc    Fetch real-time IPO aggregate statistics for the "IPO Pulse Dashboard".
- * @requirement: Core Metrics 1 & 2 (Global Pool & Dynamic Spot Price) [Spec Page 4].
+ * MODULE INTEGRATION:
+ * Mapping the modular IPO routes under the /ipo namespace.
+ * This includes dashboard-stats, invest, and status.
+ */
+router.use('/ipo', ipoRoutes);
+
+/**
+ * @route   GET /api/v1/stats
+ * @desc    Global Aggregate Pulse for the Ecosystem.
+ * Provides broad scarcity engine metrics for public transparency.
  */
 router.get('/stats', async (req, res) => {
     try {
-        /**
-         * REAL-TIME CALCULATION:
-         * Fetches current pool liquidity. In production, this value is 
-         * aggregated from the MongoDB 'Investors' collection.
-         */
-        const totalPiInvested = 500000; // Simulated snapshot for initial sync
+        // 1. Snapshot Aggregation (Simulated for real-time pulse)
+        const totalPiInvested = 500000; 
         
-        /**
-         * SCARCITY ENGINE:
-         * Calculates spot price based on Philip's inverse proportion formula.
-         * Formula: Total MapCap Supply / Current Pi Liquidity.
-         */
+        // 2. Scarcity Engine Execution
         const currentPrice = PriceService.calculateDailySpotPrice(totalPiInvested);
         const formattedPrice = PriceService.formatPriceForDisplay(currentPrice);
 
-        // Success Response: Synchronizing the Single-Screen Pulse UI
-        return ResponseHelper.success(res, "IPO Pulse Data Synchronized Successfully", {
+        return ResponseHelper.success(res, "Global Pulse Synchronized", {
             totalPi: totalPiInvested,
             spotPrice: formattedPrice,
-            mapCapRemaining: PriceService.TOTAL_MAPCAP_SUPPLY - (totalPiInvested * currentPrice),
-            marketStatus: "IPO_PHASE_ACTIVE",
+            supplyStats: {
+                totalMapCap: PriceService.TOTAL_MAPCAP_SUPPLY,
+                remaining: PriceService.TOTAL_MAPCAP_SUPPLY - (totalPiInvested * currentPrice)
+            },
             compliance: {
-                whaleShield: "Operational",
-                precisionEngine: "6-Decimal_Standard"
+                whaleShield: "Active",
+                precision: "6-Decimal_Standard"
             }
         });
     } catch (error) {
-        return ResponseHelper.error(res, `Stats Synchronization Failed: ${error.message}`, 500);
+        return ResponseHelper.error(res, `Global Sync Failure: ${error.message}`, 500);
     }
 });
 
 /**
- * @route   POST /api/withdraw
- * @desc    Execute a secure Pi withdrawal/refund via the A2UaaS protocol.
- * @requirement: Daniel's standardized secure payout logic for Pioneers.
+ * @route   POST /api/v1/withdraw
+ * @desc    Secure Payout Pipeline (A2UaaS Protocol).
+ * Used for manual admin refunds or approved Pioneer withdrawals.
  */
 router.post('/withdraw', async (req, res) => {
     const { userWallet, amount } = req.body;
 
-    // 1. INPUT VALIDATION: Ensuring protocol integrity
     if (!userWallet || !amount) {
-        return ResponseHelper.error(res, "Missing mandatory parameters: wallet_address or amount", 400);
+        return ResponseHelper.error(res, "Required: wallet_address & amount", 400);
     }
 
     try {
         /**
-         * 2. EXECUTION:
-         * Triggers the PayoutService to interact with the EscrowPi / Pi Network API.
-         * Automated fees (0.01 Pi) are handled within the service layer.
+         * EXECUTION:
+         * Interacts with PayoutService to trigger the Pi SDK A2U transfer.
+         * Fees are auto-deducted within the service layer per Spec Page 5.
          */
         const result = await PayoutService.executeA2UPayout(userWallet, amount);
         
-        return ResponseHelper.success(res, "Withdrawal Sequence Initiated via A2UaaS", result);
+        return ResponseHelper.success(res, "A2U Payout Sequence Initiated", result);
     } catch (error) {
-        /**
-         * 3. AUDIT LOGGING:
-         * Failsafes captured for Daniel's compliance monitoring.
-         */
-        return ResponseHelper.error(res, `A2U Pipeline Disrupted: ${error.message}`, 500);
+        return ResponseHelper.error(res, `A2U Pipeline Error: ${error.message}`, 500);
     }
 });
+
+
 
 export default router;
