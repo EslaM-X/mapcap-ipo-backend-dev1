@@ -1,48 +1,65 @@
 /**
- * Daily Price Update Job
+ * Daily Price Update Job - Market Dynamics Engine
  * ---------------------------------------------------------
- * This job runs automatically once every 24 hours (Midnight UTC).
- * It updates the 'Spot Price' based on the current total Pi in the pool.
- * This ensures the "IPO Pulse Dashboard" reflects real-time data.
+ * Lead Architect: Eslam Kora | AppDev @Map-of-Pi
+ * Project: MapCap Ecosystem | Spec: Philip Jennings & Daniel
+ * * PURPOSE: 
+ * This job executes every 24 hours to recalibrate the 'Spot Price'.
+ * It ensures the "IPO Pulse Dashboard" reflects the scarcity-based
+ * valuation model derived from the total Pi pool [Page 4, Sec 73].
+ * ---------------------------------------------------------
  */
 
-const PriceService = require('../services/price.service');
-const Investor = require('../models/Investor'); // To get the total pool size
+import Investor from '../models/investor.model.js';
+import PriceService from '../services/price.service.js';
 
 class DailyPriceJob {
     /**
-     * Executes the daily price calculation and logging.
+     * @method updatePrice
+     * @desc Calculates the new market spot price based on global pool liquidity.
+     * @returns {Object} Current pool metrics and the recalculated price.
      */
     static async updatePrice() {
-        console.log("--- [SYSTEM] Starting Daily Price Update ---");
+        console.log("--- [MARKET_ENGINE] Starting Daily Price Recalibration ---");
 
         try {
-            // 1. Fetch all investments to calculate the total pool size
+            // 1. GLOBAL AGGREGATION
+            // Calculate total Pi contributed across all Pioneers to determine 'Water-Level'.
             const result = await Investor.aggregate([
                 { $group: { _id: null, totalPool: { $sum: "$totalPiContributed" } } }
             ]);
 
             const totalPiInvested = result.length > 0 ? result[0].totalPool : 0;
 
-            // 2. Calculate new spot price using Philip's Water-level formula
+            /**
+             * 2. SCARCITY-BASED VALUATION (Philip's Formula)
+             * Formula: Total MapCap Supply / Current Pi Pool.
+             * Handled by PriceService for modularity and precision.
+             */
             const newPrice = PriceService.calculateDailySpotPrice(totalPiInvested);
             const formattedPrice = PriceService.formatPrice(newPrice);
 
-            console.log(`[LOG] Total Pool: ${totalPiInvested} Pi`);
-            console.log(`[LOG] New Spot Price: ${formattedPrice} Pi per MapCap`);
+            console.log(`[AUDIT] Total Pool Liquidity: ${totalPiInvested} Pi`);
+            console.log(`[AUDIT] Recalculated Spot Price: ${formattedPrice} Pi/MapCap`);
 
             /**
-             * 3. (Optional) Here you can save this price to a 'DailyStats' collection 
-             * to show a price history graph on the Frontend.
+             * DANIEL'S TRANSPARENCY REQUIREMENT:
+             * This data feeds the DailySnapshots collection to render the 
+             * 28-day price history graph in the Frontend UI.
              */
             
-            console.log("--- [SUCCESS] Daily Price Update Completed ---");
-            return { totalPiInvested, newPrice: formattedPrice };
+            console.log("--- [SUCCESS] Daily Price Update Cycle Completed ---");
+            return { 
+                totalPiInvested, 
+                newPrice: formattedPrice,
+                timestamp: new Date().toISOString()
+            };
 
         } catch (error) {
-            console.error("--- [ERROR] Failed to update daily price:", error.message);
+            console.error("[CRITICAL_ERROR] Price Update Aborted:", error.message);
+            throw error; // Rethrow to let the CronScheduler log the failure
         }
     }
 }
 
-module.exports = DailyPriceJob;
+export default DailyPriceJob;
