@@ -1,12 +1,12 @@
 /**
- * IPO Routes - Dashboard & Pulse Data v1.3 (Production Build)
+ * IPO Routes - Dashboard & Pulse Data v1.4 (Production Build)
  * ---------------------------------------------------------
  * Lead Architect: Eslam Kora | AppDev @Map-of-Pi
  * Project: MapCap Ecosystem | Spec: Philip Jennings & Daniel
  * * PURPOSE: 
- * Centralized routing for real-time IPO statistics.
- * This file connects the Frontend Dashboard to the High-Precision 
- * Financial Controller, delivering the 'Single Screen' experience.
+ * Centralized routing for real-time IPO analytics and status.
+ * Connects the 'Single-Screen' Frontend to the Financial Engine,
+ * delivering high-precision metrics with minimal latency.
  * ---------------------------------------------------------
  */
 
@@ -17,31 +17,34 @@ const router = express.Router();
 
 /**
  * @route   GET /api/ipo/dashboard-stats
- * @desc    Fetch Values 1, 2, 3, and 4 (Investors, Total Pi, User Pi, 20% Alpha Gain)
- * @access  Public (Strategic for the 4-week high-transparency IPO period)
+ * @desc    Fetch Values 1, 2, 3, and 4 (Total Investors, Pool Liquidity, User Stake, 20% Alpha)
+ * @access  Public (Strategic for the 4-week transparency window)
  * * COMPLIANCE NOTE: 
- * This route is the heartbeat of the 'Water-Level' UX. Any disruption 
- * here triggers the "Synchronizing..." state in the Frontend.
+ * This is the primary heartbeat of the 'Water-Level' UX. 
+ * High availability on this route is critical to prevent UI flicker.
  */
 router.get('/dashboard-stats', IpoController.getScreenStats);
 
 /**
  * @route   GET /api/ipo/status
- * @desc    Health check for the IPO Pulse Engine.
- * Useful for Vercel deployment monitoring.
+ * @desc    System Health Check for the IPO Financial Engine.
+ * Monitors uptime and engine versioning for Vercel deployment logs.
  */
 router.get('/status', (req, res) => {
-    res.json({ 
+    res.status(200).json({ 
+        success: true,
         status: "Operational", 
-        engine: "MapCap Pulse v1.3",
+        engine: "MapCap_Pulse_v1.4",
+        compliance: "Daniel_Audit_Ready",
         timestamp: new Date().toISOString() 
     });
 });
 
 /**
- * FUTURE SCALABILITY:
- * Isolated routes to allow Daniel to integrate 'Investment' POST 
- * and 'Whale-Shield' audits without breaking the primary stats flow.
+ * ARCHITECTURAL SCALABILITY:
+ * Isolated the pulse routes to facilitate future integration of:
+ * 1. POST /invest - Pioneer investment processing via A2UaaS.
+ * 2. GET /audit-whale - Real-time compliance monitoring for the 10% cap.
  */
 
 export default router;
