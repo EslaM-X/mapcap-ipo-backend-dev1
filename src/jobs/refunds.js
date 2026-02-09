@@ -1,47 +1,60 @@
 /**
- * Whale Refund Job - Anti-Whale Enforcement
+ * Whale Refund Job - Anti-Whale Enforcement Protocol
  * ---------------------------------------------------------
- * This script is executed manually or via a scheduled task at the end of the IPO.
- * It enforces the 10% Whale Cap rule by calculating the excess Pi 
- * and returning it to the investors via the A2UaaS protocol.
+ * Architect: Eslam Kora | Spec: Philip Jennings & Daniel
+ * * PURPOSE:
+ * Enforces the 10% investment cap as per the "Anti-Whale Processes" 
+ * defined in the MapCapIPO Use Case [Page 5, Section 6].
+ * * LOGIC:
+ * 1. Identifies pioneers exceeding 10% of the total IPO pool.
+ * 2. Calculates the excess Pi balance.
+ * 3. Triggers A2UaaS refunds for the excess amount.
+ * 4. Compliance: Transaction fees are deducted during the transfer.
  */
 
-const PaymentService = require('../services/payment.service'); // Unified Payment Service
+const PaymentService = require('../services/payment.service');
 
 /**
- * Runs the Whale Refund logic.
- * Follows Philip's instruction: (Payer, Payee, Amount) structure.
- * * @param {number} totalPiPool - The final total of Pi collected in the IPO.
- * @param {Array} investors - List of all investors and their contribution amounts.
+ * Executes the Whale Refund logic at the end of the IPO phase.
+ * * @param {number} totalPiPool - The aggregate Pi collected from all pioneers.
+ * @param {Array} investors - Dataset of IPO pioneers (Address, Contribution).
  */
 const runWhaleRefunds = async (totalPiPool, investors) => {
-    // Define the 10% Whale Cap based on the final pool size
-    const WHALE_CAP = totalPiPool * 0.10; 
+    // Requirement [90]: Cap set at 10% of the total balance in the MapCapIPO wallet.
+    const WHALE_CAP_LIMIT = totalPiPool * 0.10; 
 
-    console.log(`--- Starting Whale Refund Process | Cap Limit: ${WHALE_CAP} Pi ---`);
+    console.log(`--- [AUDIT] Initiating Anti-Whale Refund Sequence ---`);
+    console.log(`--- [POOL STATS] Total: ${totalPiPool} Pi | Cap: ${WHALE_CAP_LIMIT} Pi ---`);
 
     for (let investor of investors) {
-        // Check if investor exceeds the 10% threshold
-        if (investor.amountPi > WHALE_CAP) {
-            const excessAmount = investor.amountPi - WHALE_CAP;
+        // Evaluate against the 10% threshold [Requirement 90]
+        if (investor.amountPi > WHALE_CAP_LIMIT) {
+            const excessAmount = investor.amountPi - WHALE_CAP_LIMIT;
             
-            console.log(`[REFUND] Processing whale: ${investor.piAddress} | Excess: ${excessAmount} Pi`);
+            console.log(`[WHALE DETECTED] Pioneer: ${investor.piAddress} | Excess: ${excessAmount} Pi`);
             
             try {
                 /**
                  * Executing the refund using the unified A2UaaS service.
-                 * Parameters: (Payee, Amount) - Payer is handled internally by the service.
+                 * * SPEC COMPLIANCE [Page 5, Line 84]: 
+                 * "Transaction/gas fees are deducted from the amount transferred."
+                 * The PaymentService handles this deduction to ensure ledger accuracy.
                  */
                 await PaymentService.transferPi(investor.piAddress, excessAmount);
-                console.log(`[SUCCESS] Refunded ${excessAmount} Pi to ${investor.piAddress}`);
+                
+                console.log(`[SUCCESS] Refunded net amount (Excess - Fees) to ${investor.piAddress}`);
             } catch (error) {
-                console.error(`[ERROR] Failed to refund ${investor.piAddress}:`, error.message);
-                // Log failed transactions for Daniel's audit trail
+                /**
+                 * ERROR HANDLING [Daniel's Audit Requirement]:
+                 * Failed refunds must be logged for manual reconciliation prior 
+                 * to the commencement of the vesting process.
+                 */
+                console.error(`[CRITICAL] Refund failure for ${investor.piAddress}:`, error.message);
             }
         }
     }
     
-    console.log("--- Whale Refund Process Completed Successfully ---");
+    console.log("--- [SYSTEM] Anti-Whale Refund Process Completed Successfully ---");
 };
 
 module.exports = { runWhaleRefunds };
