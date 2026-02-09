@@ -1,33 +1,40 @@
 /**
- * PaymentService - Unified A2UaaS (App-to-User-as-a-Service) Engine
- * * This service handles all outgoing Pi transfers from the App wallet to users.
- * Following Philip's architectural vision, it uses a standardized (Payer, Payee, Amount) 
- * flow for Vesting, Dividends, and Anti-Whale Refunds.
+ * PaymentService - Unified A2UaaS Engine (Spec-Compliant v1.5)
+ * ---------------------------------------------------------
+ * Architect: Eslam Kora | Spec: Philip Jennings [Page 5, 84]
+ * Role: Handles all outgoing Pi transfers (Vesting, Dividends, Refunds).
  */
 const axios = require('axios');
 
 class PaymentService {
   /**
-   * Executes a Pi transfer using the Pi Network A2UaaS API.
-   * * @param {string} payeeAddress - The destination Pi wallet address.
-   * @param {number} amount - The amount of Pi to transfer.
-   * @returns {Promise<object>} - The API response data.
+   * Executes a Pi transfer with mandatory fee deduction.
+   * Logic: (Gross Amount - Network Fee) = Net Transfer.
    */
-  static async transferPi(payeeAddress, amount) {
-    // App wallet address is pulled from environment variables to support White-Label flexibility
-    const payerAddress = process.env.APP_WALLET_ADDRESS || "GDWY6ATRSIWA2PEP7QFPFDBYXX443BOKDXUWJNH5XFE3NBWRVYPEX22X";
+  static async transferPi(payeeAddress, grossAmount) {
+    [span_1](start_span)// 1. Mandatory Gas Fee Deduction per Spec[span_1](end_span)
+    const PI_NETWORK_FEE = 0.01; 
+    const netAmount = grossAmount - PI_NETWORK_FEE;
+
+    // Safety check to ensure the amount covers the fee
+    if (netAmount <= 0) {
+      console.error(`[A2UaaS] Amount ${grossAmount} too low to cover fees.`);
+      return { success: false, reason: "Insufficient for gas fees" };
+    }
+
+    const payerAddress = process.env.APP_WALLET_ADDRESS;
     
-    // Standardized payload structure as requested by Philip
+    // Standardized payload structure
     const payload = {
       payer: payerAddress,
       payee: payeeAddress,
-      amount: amount
+      amount: parseFloat(netAmount.toFixed(4)) // Ensuring Pi precision
     };
 
     try {
       /**
-       * Secure API call using the API Key provided by Daniel.
-       * The endpoint follows the A2UaaS protocol for seamless App-to-User payments.
+       * Secure A2UaaS API Call
+       * Authorized by Daniel's Security Protocol.
        */
       const response = await axios.post('https://api.minepi.com/v2/payments/a2uaas', payload, {
         headers: { 
@@ -36,10 +43,9 @@ class PaymentService {
         }
       });
 
-      console.log(`Payment Successful: ${amount} Pi sent to ${payeeAddress}`);
+      console.log(`[SUCCESS] Sent ${netAmount} Pi to ${payeeAddress} (Fee ${PI_NETWORK_FEE} deducted)`);
       return response.data;
     } catch (error) {
-      // Clean error logging for easier debugging in the early build phase
       console.error("A2UaaS Transfer Error:", error.response?.data || error.message);
       throw error;
     }
