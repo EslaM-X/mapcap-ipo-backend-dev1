@@ -1,76 +1,83 @@
 /**
- * AuthController - Secure Administrative Access
+ * AuthController - Secure Administrative Access v1.4
  * -------------------------------------------------------------------------
- * This controller handles authentication for the MapCap IPO Admin Panel.
- * It enforces security by validating credentials against protected 
- * Environment Variables as per Daniel's architecture requirements.
- * * @category Admin Security
+ * Lead Architect: Eslam Kora | AppDev @Map-of-Pi
+ * Project: MapCap Ecosystem | Spec: Daniel's Security & Compliance
+ * * PURPOSE:
+ * Handles administrative authentication and real-time health monitoring.
+ * Implements JWT-based security to protect the high-stakes IPO dashboard.
+ * -------------------------------------------------------------------------
  */
+
+import jwt from 'jsonwebtoken';
+import ResponseHelper from '../../utils/response.helper.js';
 
 class AuthController {
     /**
-     * adminLogin
-     * ----------
-     * Validates administrative credentials to grant access to the IPO dashboard.
-     * Uses secure .env variables to maintain system integrity.
-     * * @param {Object} req - Request body containing 'username' and 'password'.
-     * @param {Object} res - JSON response with status and session token.
+     * @method adminLogin
+     * @desc Validates credentials and issues a secure JWT session token.
+     * @access Public
      */
     static async adminLogin(req, res) {
         const { username, password } = req.body;
 
         /**
-         * Environment-based credential fetching.
-         * Secured via the .env file (DO NOT commit credentials to Git).
+         * SECURE CREDENTIAL FETCHING:
+         * These values must be stored in the .env file for the Vercel deployment.
          */
         const ADMIN_USER = process.env.ADMIN_USERNAME || "admin";
         const ADMIN_PASS = process.env.ADMIN_PASSWORD || "MapCap2026";
 
         if (username === ADMIN_USER && password === ADMIN_PASS) {
-            console.log(`[AUTH SUCCESS] Administrator session started for: ${username}`);
+            /**
+             * JWT GENERATION:
+             * Creating a signed token that expires in 24h to maintain session security.
+             * The 'ADMIN_SECRET_TOKEN' should be a long, random string in .env.
+             */
+            const token = jwt.sign(
+                { user: username, role: 'SUPER_ADMIN' },
+                process.env.ADMIN_SECRET_TOKEN || 'fallback_secret_for_dev',
+                { expiresIn: '24h' }
+            );
+
+            console.log(`[AUTH_SUCCESS] Admin session initiated for: ${username}`);
             
-            return res.status(200).json({
-                success: true,
-                message: "Authentication successful. Access granted to MapCap Admin Panel.",
-                // Temporary session token; upgrade to JWT for production-level security.
-                token: "secure_mapcap_session_id", 
+            return ResponseHelper.success(res, "Authentication successful. Access granted.", {
+                token: token,
+                expiresIn: "24h",
                 sessionStart: new Date().toISOString()
             });
         }
 
-        // Security logging for unauthorized access attempts
-        console.warn(`[SECURITY ALERT] Failed login attempt from user: ${username}`);
+        // SECURITY LOGGING: Capturing failed attempts for Daniel's audit.
+        console.warn(`[SECURITY_ALERT] Unauthorized login attempt from: ${username}`);
         
-        return res.status(401).json({
-            success: false,
-            message: "Authentication failed: Invalid credentials provided."
-        });
+        return ResponseHelper.error(res, "Authentication failed: Invalid credentials.", 401);
     }
 
     /**
-     * getSystemStatus
-     * ---------------
-     * Provides a real-time health check of the API server and environment.
-     * Essential for Philip to monitor system stability during the 4-week IPO.
+     * @method getSystemStatus
+     * @desc Real-time health check of the API server and Node.js environment.
+     * @access Private (Admin Only)
      */
     static async getSystemStatus(req, res) {
         try {
-            res.status(200).json({
-                success: true,
+            /**
+             * HEALTH METRICS:
+             * Vital for Philip to monitor the 'IPO Pulse' during high-traffic weeks.
+             */
+            return ResponseHelper.success(res, "System health synchronized.", {
                 status: "Operational",
+                engine: "MapCap_Pulse_v1.4",
                 uptime: `${Math.floor(process.uptime())}s`,
-                environment: process.env.NODE_ENV || "development",
-                serverTimestamp: new Date().toISOString(),
+                environment: process.env.NODE_ENV || "production",
+                serverTime: new Date().toISOString(),
                 nodeVersion: process.version
             });
         } catch (error) {
-            res.status(500).json({ 
-                success: false, 
-                message: "System health check failed." 
-            });
+            return ResponseHelper.error(res, "System health check failed.", 500);
         }
     }
 }
 
-module.exports = AuthController;
-
+export default AuthController;
