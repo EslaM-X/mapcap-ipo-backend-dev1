@@ -1,37 +1,52 @@
 /**
- * PayoutService - Managed Fund Distribution (A2UaaS)
+ * PayoutService - Managed Fund Distribution (A2UaaS v1.6)
  * -------------------------------------------------------------------------
- * This service implements the App-to-User-as-a-Service (A2UaaS) protocol.
- * Per Philip's Use Case (Page 5), it uses the EscrowPi API to ensure 
- * [span_2](start_span)[span_3](start_span)secure, automated withdrawals and whale refunds.[span_2](end_span)[span_3](end_span)
+ * Lead Architect: Eslam Kora | AppDev @Map-of-Pi
+ * Project: MapCap Ecosystem | Spec: Philip Jennings & Daniel
+ * * PURPOSE:
+ * Implements the App-to-User-as-a-Service (A2UaaS) protocol.
+ * Ensures secure, automated withdrawals and mandatory whale refunds 
+ * via the EscrowPi API integration [Spec Page 5].
+ * -------------------------------------------------------------------------
  */
-const axios = require('axios');
+
+import axios from 'axios';
 
 class PayoutService {
     /**
-     * Executes a withdrawal via EscrowPi A2UaaS API.
-     * [span_4](start_span)Transaction fees are deducted from the transferred amount as per Page 5.[span_4](end_span)
-     * * [span_5](start_span)@param {string} userWallet - The pioneer's destination Pi wallet.[span_5](end_span)
-     * [span_6](start_span)@param {number} piAmount - The amount of Pi to be transferred.[span_6](end_span)
+     * @method executeA2UPayout
+     * @desc Executes a withdrawal/refund via EscrowPi A2UaaS API.
+     * @param {string} userWallet - The pioneer's destination Pi wallet address.
+     * @param {number} piAmount - The net amount of Pi to be transferred.
      */
     static async executeA2UPayout(userWallet, piAmount) {
-        // Fetching secure credentials from environment variables
+        // Fetching secure credentials from environment variables (Daniel's Standard)
         const apiKey = process.env.ESCROW_PI_API_KEY;
         const apiBaseUrl = process.env.ESCROW_PI_URL || 'https://api.escrowpi.com/v1/a2uaas';
 
+        /**
+         * SAFETY CHECK:
+         * Prevents zero or negative transfers which could trigger API errors.
+         */
+        if (!piAmount || piAmount <= 0) {
+            console.warn(`[A2UaaS_SKIP] Invalid amount: ${piAmount} for wallet ${userWallet}`);
+            return { success: false, message: "Invalid transfer amount" };
+        }
+
         try {
             /**
-             * Unified A2UaaS Execution:
-             * [span_7](start_span)This handles both individual pioneer withdrawals (0-100%)[span_7](end_span)
-             * [span_8](start_span)and mandatory whale excess refunds (above 10% cap).[span_8](end_span)
+             * UNIFIED A2UaaS EXECUTION:
+             * This handles both individual pioneer withdrawals and 
+             * mandatory whale excess refunds (above 10% cap).
              */
             const response = await axios.post(apiBaseUrl, {
                 recipient: userWallet, 
                 amount: piAmount,
                 memo: "MapCap IPO - Authorized Withdrawal/Refund",
                 metadata: {
-                    project: "MapCapIPO",
-                    type: "A2UaaS_Transfer"
+                    project: "MapCap_IPO",
+                    type: "A2UaaS_Financial_Engine",
+                    timestamp: new Date().toISOString()
                 }
             }, {
                 headers: { 
@@ -40,15 +55,29 @@ class PayoutService {
                 }
             });
 
-            console.log(`[A2UaaS SUCCESS] ${piAmount} Pi transferred to ${userWallet}`);
+            console.log(`[A2UaaS_SUCCESS] ${piAmount} Pi transferred to ${userWallet}`);
             return response.data;
 
         } catch (error) {
-            // Detailed error logging for Philip & Daniel's auditing
-            console.error("[CRITICAL] Payout Transfer Failed:", error.response?.data || error.message);
-            throw new Error("A2UaaS Transfer failed. Please check EscrowPi connectivity.");
+            /**
+             * CRITICAL AUDIT LOGGING:
+             * Detailed failure reporting for Daniel's compliance monitoring.
+             */
+            const errorDetails = error.response?.data || error.message;
+            console.error("[CRITICAL_A2U_FAILURE]:", errorDetails);
+            
+            throw new Error(`A2UaaS pipeline disrupted. Details: ${JSON.stringify(errorDetails)}`);
         }
+    }
+
+    /**
+     * @method simpleWithdraw
+     * @desc Simplified wrapper for basic withdrawal requests.
+     */
+    static async simpleWithdraw(userWallet, amount) {
+        return await this.executeA2UPayout(userWallet, amount);
     }
 }
 
-module.exports = PayoutService;
+// Exported as ES Module for seamless integration with the financial engine
+export default PayoutService;
