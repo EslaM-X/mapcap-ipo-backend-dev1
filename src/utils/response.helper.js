@@ -1,60 +1,65 @@
 /**
- * ResponseHelper - API Standardization Utility v1.3
+ * ResponseHelper - API Standardization Utility v1.4
  * ---------------------------------------------------------
  * Lead Architect: Eslam Kora | AppDev @Map-of-Pi
  * Project: MapCap Ecosystem | Spec: Philip Jennings & Daniel
  * * PURPOSE:
- * Ensures all API responses follow a strict, immutable structure.
- * Standardizes communication between the Node.js Financial Engine 
- * and the MapCap Frontend (Pi Browser / Mobile UI).
+ * Enforces a strict, predictable JSON structure for all responses.
+ * Essential for the 'Pulse Dashboard' real-time synchronization.
  * ---------------------------------------------------------
  */
+
+import { writeAuditLog } from '../config/logger.js';
 
 class ResponseHelper {
   /**
    * @method success
-   * @desc Standardized Success Response for IPO transactions and stats.
+   * @desc Standardized Success Response for IPO operations.
    * @param {object} res - Express response object.
-   * @param {string} message - Professional success status message.
-   * @param {object} data - The validated dataset (Values 1-4, etc.).
+   * @param {string} message - Success description.
+   * @param {object} data - Payload (Market stats, balances, etc.).
    */
   static success(res, message, data = {}) {
     return res.status(200).json({
       success: true,
       status: "OK",
       message,
-      timestamp: new Date().toISOString(), // Vital for real-time audit trails
+      timestamp: new Date().toISOString(),
       data
     });
   }
 
   /**
    * @method error
-   * @desc Unified Error Handler for financial failures or SDK disconnects.
+   * @desc Standardized Error Response for security/financial failures.
    * @param {object} res - Express response object.
-   * @param {string} message - Human-readable error for the Pioneer UI.
-   * @param {number} statusCode - Standard HTTP status (400, 401, 403, 500).
+   * @param {string} message - Sanitized message for the UI.
+   * @param {number} statusCode - HTTP status code (4xx, 5xx).
    */
   static error(res, message, statusCode = 500) {
     /**
-     * AUDIT LOGGING: 
-     * Records the error locally for Daniel's compliance review 
-     * before delivering the sanitised error to the end-user.
+     * TRACE ID GENERATION:
+     * Creates a unique identifier for Daniel's compliance tracking.
      */
-    console.error(`[AUDIT_LOG_ERROR] Code: ${statusCode} | Msg: ${message} | Time: ${new Date().toISOString()}`);
+    const traceId = `ERR-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 5).toUpperCase()}`;
+
+    // Record the failure in the permanent audit log
+    writeAuditLog('ERROR', `[${traceId}] Code: ${statusCode} | Message: ${message}`);
+
+    
 
     return res.status(statusCode).json({
       success: false,
       status: "FAIL",
       message,
       timestamp: new Date().toISOString(),
-      error_details: {
+      error: {
         code: statusCode,
-        reference: `ERR-${Math.random().toString(36).substr(2, 9).toUpperCase()}` // Unique Trace ID
+        trace_id: traceId,
+        documentation: "https://docs.map-of-pi.com/errors" // Professional touch for devs
       }
     });
   }
 }
 
-// Exporting as ES Module to align with Vercel/Node.js ES6 configuration
 export default ResponseHelper;
