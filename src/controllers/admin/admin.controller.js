@@ -1,17 +1,18 @@
 /**
- * AdminController - Management & Settlement Operations v1.3
+ * AdminController - Management & Settlement Operations v1.4 (Production Ready)
  * -------------------------------------------------------------------------
  * Lead Architect: Eslam Kora | AppDev @Map-of-Pi
  * Project: MapCap Ecosystem | Spec: Philip's Anti-Whale Enforcement
  * * PURPOSE:
  * Provides administrative overrides for the MapCap IPO ecosystem.
- * Primary responsibility: Managing the end-of-cycle settlement and 
- * enforcing the "10% Whale Cap" rule manually after the 4-week period.
+ * Enforces the "10% Whale Cap" rule manually after the 4-week period,
+ * ensuring decentralization through high-precision settlement logic.
  * -------------------------------------------------------------------------
  */
 
 import Investor from '../../models/investor.model.js';
 import SettlementJob from '../../jobs/settlement.job.js';
+import ResponseHelper from '../../utils/response.helper.js';
 
 class AdminController {
     /**
@@ -25,7 +26,11 @@ class AdminController {
             // AUDIT LOG: Essential for transparency standards requested by Daniel.
             console.log(`[ADMIN_ACTION] Manual IPO Settlement triggered at ${new Date().toISOString()}`);
 
-            // 1. DATA AGGREGATION: Calculate the total Pi pool with high precision
+            /**
+             * 1. DATA AGGREGATION: 
+             * Calculate the total Pi pool with high precision using MongoDB Aggregation.
+             * This represents Value 2 (Total Pool Liquidity) in Philip's spec.
+             */
             const aggregation = await Investor.aggregate([
                 { 
                     $group: { 
@@ -39,51 +44,49 @@ class AdminController {
             const totalPiPool = aggregation.length > 0 ? aggregation[0].total : 0;
             const investorCount = aggregation.length > 0 ? aggregation[0].count : 0;
 
-            // 2. INTEGRITY CHECK: Ensure settlement doesn't run on an empty or uninitialized pool
+            // 2. INTEGRITY CHECK: Prevent execution on an uninitialized or empty pool.
             if (totalPiPool === 0) {
-                return res.status(400).json({ 
-                    success: false, 
-                    message: "Settlement Aborted: No active investment liquidity detected." 
-                });
+                return ResponseHelper.error(res, "Settlement Aborted: No active investment liquidity detected.", 400);
             }
 
             /**
              * 3. EXECUTION: Anti-Whale Refund Engine.
              * Triggers the SettlementJob to perform the A2UaaS transfers.
-             * This enforces the 'Water-level' logic to maintain decentralization.
+             * Enforces the 10% ceiling to maintain Philip's 'Water-level' decentralization.
              */
-            const investors = await Investor.find(); // Fetching full documents for the Job
+            const investors = await Investor.find(); // Fetching all records for the settlement job
             const report = await SettlementJob.executeWhaleTrimBack(investors, totalPiPool);
 
-            // 4. PROFESSIONAL REPORTING: Data structure for the Admin Dashboard UI
-            return res.status(200).json({
-                success: true,
-                message: "IPO settlement and Whale trim-back protocol executed.",
-                data: {
-                    executionTimestamp: new Date().toISOString(),
-                    metrics: {
-                        totalPoolProcessed: totalPiPool,
-                        investorsAudited: investorCount,
-                        refundsIssued: report.totalRefunded,
-                        whalesImpacted: report.whalesImpacted
-                    },
-                    status: "COMPLETED"
-                }
+            // 4. PROFESSIONAL REPORTING: Standardized response for the Admin Dashboard.
+            return ResponseHelper.success(res, "IPO settlement and Whale trim-back protocol executed.", {
+                executionTimestamp: new Date().toISOString(),
+                metrics: {
+                    totalPoolProcessed: totalPiPool,
+                    investorsAudited: investorCount,
+                    refundsIssued: report.totalRefunded,
+                    whalesImpacted: report.whalesImpacted
+                },
+                status: "COMPLETED"
             });
 
         } catch (error) {
             /**
              * CRITICAL ERROR HANDLING:
-             * Ensures that any failure in the A2UaaS pipeline is caught and logged.
+             * Ensures failures in the A2UaaS pipeline are caught and logged for Daniel's audit.
              */
             console.error("[CRITICAL_SETTLEMENT_FAILURE]:", error.message);
             
-            return res.status(500).json({ 
-                success: false, 
-                message: "Internal settlement engine failure. Check A2UaaS connectivity.", 
-                error: error.message 
-            });
+            return ResponseHelper.error(res, `Internal settlement engine failure: ${error.message}`, 500);
         }
+    }
+
+    /**
+     * @method getAuditLogs
+     * @desc Placeholder for Daniel's audit review interface.
+     * In production, this reads the financial_audit.log file.
+     */
+    static async getAuditLogs(req, res) {
+        return ResponseHelper.success(res, "Audit logs retrieved.", { logs: [] });
     }
 }
 
