@@ -1,46 +1,56 @@
 /**
- * PriceService - Core Pricing Engine for MapCap IPO
- * * This service handles the dynamic "Spot Price" calculation based on 
- * Philip's inverse proportion formula: (Fixed MapCap Supply / Total Pi Invested).
- * * Designed to be simple, fast-running, and White-Label ready.
+ * PriceService - Dynamic Pricing Engine v1.4
+ * ---------------------------------------------------------
+ * Lead Architect: Eslam Kora | AppDev @Map-of-Pi
+ * Project: MapCap Ecosystem | Spec: Philip's "Water-Level" Model
+ * * STRATEGY: 
+ * This engine calculates the 'Spot Price' by balancing the fixed 
+ * MapCap supply against the real-time Pi investment pool. 
+ * Optimized for high-frequency dashboard updates.
+ * ---------------------------------------------------------
  */
+
 class PriceService {
     /**
-     * Fixed Total Supply for MapCap IPO. 
-     * In a White-Label scenario, this value can be pulled from a config file or DB.
+     * TOTAL_MAPCAP_SUPPLY
+     * Fixed ecosystem supply. Note: In a White-Label deployment, 
+     * this value can be injected via environment variables.
      */
-    static TOTAL_MAPCAP_SUPPLY = 2181818; //
+    static TOTAL_MAPCAP_SUPPLY = 2181818;
 
     /**
-     * Calculates the daily Spot Price.
-     * * @param {number} totalPiInvested - The total amount of Pi currently in the IPO pool.
-     * @returns {number} The calculated price per Pi.
+     * @method calculateDailySpotPrice
+     * @desc Calculates the price based on Philip's inverse proportion formula.
+     * @param {number} totalPiInvested - Aggregate Pi currently in the IPO pool.
+     * @returns {number} The raw spot price per MapCap unit.
      */
     static calculateDailySpotPrice(totalPiInvested) {
-        // Validation to prevent division by zero or negative values
+        // Validation to prevent division by zero or erroneous negative inputs
         if (!totalPiInvested || totalPiInvested <= 0) {
             return 0;
         }
 
         /**
-         * The "Water-Level" Formula:
-         * As total Pi investment increases, the individual share percentage (price) 
-         * adjusts accordingly. This is calculated once daily at 12:00 midnight UTC.
+         * THE WATER-LEVEL FORMULA:
+         * Spot Price = Fixed Supply / Total Contributed Pi.
+         * This ensures that early adopters benefit from the pool's growth.
          */
-        const spotPrice = this.TOTAL_MAPCAP_SUPPLY / totalPiInvested; //
+        const spotPrice = this.TOTAL_MAPCAP_SUPPLY / totalPiInvested;
 
-        // Returning the raw price to maintain precision for batch processing
         return spotPrice;
     }
 
     /**
-     * Optional: Formats the price for UI display (e.g., 4 decimal places).
-     * Part of the "IPO Pulse Dashboard" engaging visual strategy.
+     * @method formatPriceForDisplay
+     * @desc Normalizes the price for the "IPO Pulse Dashboard" UI.
+     * @param {number} price - The raw floating-point calculation.
+     * @returns {string} Formatted price with 4-decimal precision for UX clarity.
      */
     static formatPriceForDisplay(price) {
-        return Number(price).toFixed(4); //
+        if (!price || isNaN(price)) return "0.0000";
+        return Number(price).toFixed(4);
     }
 }
 
-module.exports = PriceService;
-
+// Transitioned to ES Module export for Vercel/Node.js compatibility
+export default PriceService;
