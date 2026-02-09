@@ -1,40 +1,58 @@
 /**
- * PriceService - Dynamic Pricing Engine
+ * PriceService - Dynamic Scarcity Pricing Engine v1.3
  * ---------------------------------------------------------
- * This service calculates the daily "Spot Price" of MapCap shares.
- * It follows Philip's core formula: Fixed Supply / Total Investment Pool.
- * Optimized for the 4-week high-intensity IPO period.
+ * Lead Architect: Eslam Kora | AppDev @Map-of-Pi
+ * Project: MapCap Ecosystem | Spec: Philip Jennings (Page 4)
+ * * PURPOSE:
+ * Calculates the real-time "Spot Price" based on the 'Water-Level' 
+ * (Total Pi Pool). This ensures the IPO Pulse Dashboard reflects 
+ * the dynamic valuation model requested for the 4-week period.
+ * ---------------------------------------------------------
  */
-
-// Fixed Total Supply for the MapCap IPO as per the ecosystem document
-const IPO_MAPCAP_SUPPLY = 2181818;
 
 class PriceService {
   /**
-   * Calculates the current Spot Price based on the total Pi collected.
-   * As the "water-level" (total Pi) increases, the price per share adjusts.
-   * * @param {number} totalPiInWallet - Total amount of Pi invested in the IPO.
-   * @returns {number} The calculated price of 1 MapCap share in Pi.
+   * OFFICIAL IPO SUPPLY:
+   * Fixed at 2,181,818 MapCap shares as per the ecosystem consensus.
+   */
+  static IPO_MAPCAP_SUPPLY = 2181818;
+
+  /**
+   * @method calculateDailySpotPrice
+   * @desc Implements the Inverse Proportion Formula.
+   * @param {number} totalPiInWallet - Aggregate Pi collected from all Pioneers.
+   * @returns {number} The current valuation of 1 MapCap in Pi.
    */
   static calculateDailySpotPrice(totalPiInWallet) {
-    // Prevent division by zero if the IPO has just started
+    /**
+     * SAFE-GUARD:
+     * If the pool is empty (start of IPO), return 0.
+     * This triggers the "Calculating..." state in the Frontend PriceGraph.
+     */
     if (!totalPiInWallet || totalPiInWallet <= 0) {
       return 0;
     }
 
     /**
-     * Simple Inverse Proportion Formula:
-     * This ensures the 10% Whale Cap can be calculated accurately at the end.
+     * PHILIP'S FORMULA:
+     * Price = Fixed Supply / Total Contributed Pi
+     * As liquidity (Pi) grows, the MapCap price adjusts to maintain 
+     * the fixed supply ratio, rewarding early 'Water-Level' participants.
      */
-    return IPO_MAPCAP_SUPPLY / totalPiInWallet;
+    return this.IPO_MAPCAP_SUPPLY / totalPiInWallet;
   }
 
   /**
-   * Utility to format the price for the IPO Pulse Dashboard display.
+   * @method formatPrice
+   * @desc Normalizes the price for UI display in the StatsPanel.
+   * @param {number} price - The raw floating-point calculation.
+   * @returns {string} Formatted string with 6-decimal precision.
    */
   static formatPrice(price) {
-    return Number(price).toFixed(6); // High precision for financial data
+    if (!price || isNaN(price)) return "0.000000";
+    return Number(price).toFixed(6);
   }
 }
 
-module.exports = PriceService;
+// Exporting as ES Module to align with Vercel/Node.js architecture
+export default PriceService;
