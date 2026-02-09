@@ -1,40 +1,60 @@
 /**
- * PaymentService - Unified A2UaaS Engine (Spec-Compliant v1.5)
+ * PaymentService - Unified A2UaaS Engine (Spec-Compliant v1.6)
  * ---------------------------------------------------------
- * Architect: Eslam Kora | Spec: Philip Jennings [Page 5, 84]
- * Role: Handles all outgoing Pi transfers (Vesting, Dividends, Refunds).
+ * Lead Architect: Eslam Kora | AppDev @Map-of-Pi
+ * Project: MapCap Ecosystem | Spec: Philip Jennings [Page 5, 84]
+ * * ROLE: 
+ * Orchestrates all outgoing Pi transfers (Vesting, Dividends, Refunds).
+ * Enforces mandatory fee deductions to maintain liquidity integrity.
+ * ---------------------------------------------------------
  */
-const axios = require('axios');
+
+import axios from 'axios';
 
 class PaymentService {
   /**
-   * Executes a Pi transfer with mandatory fee deduction.
-   * Logic: (Gross Amount - Network Fee) = Net Transfer.
+   * @method transferPi
+   * @desc Executes a secure Pi transfer with mandatory network fee deduction.
+   * @param {string} payeeAddress - The Pioneer's Pi wallet address.
+   * @param {number} grossAmount - Total amount before fees.
+   * @returns {Object} Pi Network API response.
    */
   static async transferPi(payeeAddress, grossAmount) {
-    [span_1](start_span)// 1. Mandatory Gas Fee Deduction per Spec[span_1](end_span)
+    /**
+     * 1. MANDATORY GAS FEE DEDUCTION (Spec Requirement)
+     * Logic: (Gross Amount - Network Fee) = Net Transfer.
+     * Standard Pi Network Fee: 0.01 Pi.
+     */
     const PI_NETWORK_FEE = 0.01; 
     const netAmount = grossAmount - PI_NETWORK_FEE;
 
-    // Safety check to ensure the amount covers the fee
+    // Safety check to ensure the amount is viable for transfer
     if (netAmount <= 0) {
-      console.error(`[A2UaaS] Amount ${grossAmount} too low to cover fees.`);
-      return { success: false, reason: "Insufficient for gas fees" };
+      console.warn(`[A2UaaS_REJECTED] Amount ${grossAmount} Pi is insufficient to cover the 0.01 network fee.`);
+      return { success: false, reason: "Insufficient balance for network fees" };
     }
 
+    /**
+     * DANIEL'S SECURITY PROTOCOL:
+     * Credentials injected from .env to ensure zero-exposure of private keys.
+     */
     const payerAddress = process.env.APP_WALLET_ADDRESS;
     
-    // Standardized payload structure
+    // Payload preparation for the Pi SDK / API
     const payload = {
       payer: payerAddress,
       payee: payeeAddress,
-      amount: parseFloat(netAmount.toFixed(4)) // Ensuring Pi precision
+      amount: parseFloat(netAmount.toFixed(6)), // 6-decimal precision for financial accuracy
+      metadata: { 
+        type: "IPO_DISTRIBUTION",
+        source: "MapCap_Financial_Engine"
+      }
     };
 
     try {
       /**
-       * Secure A2UaaS API Call
-       * Authorized by Daniel's Security Protocol.
+       * SECURE A2UaaS API EXECUTION
+       * Communicating with the official Pi Network V2 Payment endpoint.
        */
       const response = await axios.post('https://api.minepi.com/v2/payments/a2uaas', payload, {
         headers: { 
@@ -43,13 +63,19 @@ class PaymentService {
         }
       });
 
-      console.log(`[SUCCESS] Sent ${netAmount} Pi to ${payeeAddress} (Fee ${PI_NETWORK_FEE} deducted)`);
+      console.log(`[PAYMENT_SUCCESS] Transferred ${netAmount} Pi to ${payeeAddress}. Transaction Fee: ${PI_NETWORK_FEE}`);
       return response.data;
+
     } catch (error) {
-      console.error("A2UaaS Transfer Error:", error.response?.data || error.message);
-      throw error;
+      /**
+       * CRITICAL ERROR LOGGING:
+       * Errors here must be captured for the Audit Trail required by Daniel.
+       */
+      const errorMsg = error.response?.data?.message || error.message;
+      console.error(`[A2UaaS_FATAL_ERROR] Transaction Failed: ${errorMsg}`);
+      throw new Error(`A2UaaS Transfer Disrupted: ${errorMsg}`);
     }
   }
 }
 
-module.exports = PaymentService;
+export default PaymentService;
