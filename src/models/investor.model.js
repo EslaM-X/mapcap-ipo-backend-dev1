@@ -1,12 +1,12 @@
 /**
- * Investor Schema - Core Financial Equity Tracker
+ * Investor Schema - Core Financial Equity Ledger v1.5
  * ---------------------------------------------------------
  * Lead Architect: Eslam Kora | AppDev @Map-of-Pi
- * Project: MapCap Ecosystem | Spec: Philip Jennings
- * * PURPOSE: 
- * This model serves as the primary ledger for all IPO participants.
- * It enforces the 10% Anti-Whale Ceiling and tracks the 10-month 
- * linear vesting schedule as defined in the project specs.
+ * Project: MapCap Ecosystem | Spec: Philip Jennings & Daniel
+ * * DESCRIPTION:
+ * This model serves as the primary decentralized ledger for all IPO participants.
+ * It strictly enforces the 10% Anti-Whale Ceiling and tracks the 10-month 
+ * linear vesting schedule as defined in the official project specifications.
  * ---------------------------------------------------------
  */
 
@@ -16,7 +16,7 @@ const InvestorSchema = new mongoose.Schema({
     /**
      * @property {String} piAddress
      * Unique Pi Network wallet identifier (Pioneer ID).
-     * Indexed for high-performance lookups during peak IPO traffic.
+     * Indexed to ensure millisecond latency during high-traffic IPO spikes.
      */
     piAddress: { 
         type: String, 
@@ -29,18 +29,18 @@ const InvestorSchema = new mongoose.Schema({
     /**
      * @property {Number} totalPiContributed
      * Cumulative amount of Pi contributed over the 4-week cycle.
-     * Maps to "Value 3" in the real-time analytics dashboard.
+     * Directly feeds "Value 3" on the Real-Time Pulse Dashboard.
      */
     totalPiContributed: { 
         type: Number, 
         default: 0,
-        min: [0, 'Contribution cannot be negative']
+        min: [0, 'Contribution balance cannot be negative']
     },
 
     /**
      * @property {Number} allocatedMapCap
-     * Total MapCap tokens assigned based on the Daily Spot Price.
-     * Subject to the 10-month vesting release (10% per month).
+     * Total MapCap equity assigned based on the Daily Scarcity Spot Price.
+     * This balance is subject to the 10-month (10%/mo) linear vesting release.
      */
     allocatedMapCap: {
         type: Number,
@@ -49,9 +49,19 @@ const InvestorSchema = new mongoose.Schema({
     },
     
     /**
+     * @property {Number} mapCapReleased
+     * Audit field: Tracks total MapCap successfully transferred to the Pioneer.
+     * Prevents over-distribution during the automated monthly vesting jobs.
+     */
+    mapCapReleased: {
+        type: Number,
+        default: 0
+    },
+
+    /**
      * @property {Number} sharePercentage
-     * Proportional equity ownership within the 2,181,818 MapCap Pool.
-     * Formula: (allocatedMapCap / TOTAL_POOL) * 100.
+     * Proportional equity ownership within the 2,181,818 MapCap Global Pool.
+     * Formula: (Individual Allocation / Total Supply) * 100.
      */
     sharePercentage: { 
         type: Number, 
@@ -60,8 +70,8 @@ const InvestorSchema = new mongoose.Schema({
     
     /**
      * @property {Boolean} isWhale
-     * Compliance Flag: Set to 'true' if the investor hits the 10% Anti-Whale Cap.
-     * Enforced by the Settlement Job to maintain decentralization.
+     * Compliance Flag: Triggers when the investor hits the 10% Anti-Whale Ceiling.
+     * Managed by the SettlementJob to maintain ecosystem decentralization.
      */
     isWhale: { 
         type: Boolean, 
@@ -69,8 +79,17 @@ const InvestorSchema = new mongoose.Schema({
     },
     
     /**
+     * @property {Number} vestingMonthsCompleted
+     * Tracks the progress of the 10-month vesting cycle (0 to 10).
+     */
+    vestingMonthsCompleted: {
+        type: Number,
+        default: 0
+    },
+
+    /**
      * @property {Date} lastContributionDate
-     * Audit Timestamp: Records the most recent financial activity.
+     * Records the timestamp of the last financial activity for audit trails.
      */
     lastContributionDate: { 
         type: Date, 
@@ -78,12 +97,15 @@ const InvestorSchema = new mongoose.Schema({
     }
 }, { 
     /**
-     * Timestamps ensure a clear audit trail for Philip and Daniel
-     * as per transparency requirements.
+     * Enable timestamps to provide immutable 'createdAt' and 'updatedAt' 
+     * fields for Daniel's financial auditing and transparency reports.
      */
     timestamps: true 
 });
 
-// Exporting using ES Module syntax for seamless integration with server.js
+// Compound Index for optimized financial reporting
+InvestorSchema.index({ totalPiContributed: -1, isWhale: 1 });
+
 const Investor = mongoose.model('Investor', InvestorSchema);
+
 export default Investor;
