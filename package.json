@@ -7,7 +7,8 @@
     "start": "node server.js",
     "dev": "nodemon server.js",
     "seed": "node src/config/initial_mint.js",
-    "worker": "node src/jobs/vesting.job.js" 
+    "worker": "node src/jobs/vesting.job.js",
+    "test": "echo \"No tests yet\" && exit 0" 
   },
   "author": "Full-Stack Developer | Map-of-Pi",
   "dependencies": {
