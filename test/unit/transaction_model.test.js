@@ -1,5 +1,5 @@
 /**
- * Transaction Model Unit Tests - Audit Integrity v1.3 (ESM Migration)
+ * Transaction Model Unit Tests - Audit Integrity v1.6.2 (ESM Migration)
  * ---------------------------------------------------------
  * Lead Architect: EslaM-X | AppDev @Map-of-Pi
  * Project: MapCap Ecosystem | Spec: Daniel's Financial Audit Standards
@@ -46,16 +46,18 @@ describe('Transaction Model - Ledger Integrity Tests', () => {
 
   /**
    * TEST: Default Status
-   * Requirement: New records should default to 'COMPLETED' for ledger consistency.
+   * Requirement: New records should default to 'PENDING' to align with Pi Network lifecycle.
+   * Note: Status 'PENDING' ensures Frontend wait-states are triggered correctly before finalization.
    */
-  test('Defaults: Should default to COMPLETED status for ledger consistency', () => {
+  test('Defaults: Should default to PENDING status for ledger consistency', () => {
     const tx = new Transaction({
       piAddress: 'GBV...ADDR',
       amount: 100,
       type: 'INVESTMENT'
     });
 
-    expect(tx.status).toBe('COMPLETED');
+    // Updated to match Backend/Database default schema for safety
+    expect(tx.status).toBe('PENDING');
   });
 
   /**
