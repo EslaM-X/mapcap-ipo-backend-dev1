@@ -1,22 +1,26 @@
 /**
- * PriceService - Dynamic Pricing Engine v1.4
+ * PriceService - Dynamic Pricing Engine v1.6.1 (Stabilized)
  * ---------------------------------------------------------
  * Lead Architect: Eslam Kora | AppDev @Map-of-Pi
  * Project: MapCap Ecosystem | Spec: Philip's "Water-Level" Model
- * * STRATEGY: 
+ * * * STRATEGY: 
  * This engine calculates the 'Spot Price' by balancing the fixed 
  * MapCap supply against the real-time Pi investment pool. 
- * Optimized for high-frequency dashboard updates.
+ * Optimized for high-frequency dashboard updates and mathematical precision.
  * ---------------------------------------------------------
  */
 
-class PriceService {
-    /**
-     * TOTAL_MAPCAP_SUPPLY
-     * Fixed ecosystem supply. Note: In a White-Label deployment, 
-     * this value can be injected via environment variables.
-     */
-    static TOTAL_MAPCAP_SUPPLY = 2181818;
+/**
+ * IPO_MAPCAP_SUPPLY
+ * Fixed ecosystem supply as per institutional-grade specifications.
+ * Exported as a named constant to ensure visibility for unit testing.
+ */
+export const IPO_MAPCAP_SUPPLY = 2181818;
+
+export class PriceService {
+    
+    // Internal reference to the supply constant
+    static IPO_MAPCAP_SUPPLY = IPO_MAPCAP_SUPPLY;
 
     /**
      * @method calculateDailySpotPrice
@@ -33,24 +37,26 @@ class PriceService {
         /**
          * THE WATER-LEVEL FORMULA:
          * Spot Price = Fixed Supply / Total Contributed Pi.
-         * This ensures that early adopters benefit from the pool's growth.
+         * Ensures transparency and scarcity-driven valuation.
          */
-        const spotPrice = this.TOTAL_MAPCAP_SUPPLY / totalPiInvested;
+        const spotPrice = this.IPO_MAPCAP_SUPPLY / totalPiInvested;
 
         return spotPrice;
     }
 
     /**
-     * @method formatPriceForDisplay
+     * @method formatPrice
      * @desc Normalizes the price for the "IPO Pulse Dashboard" UI.
      * @param {number} price - The raw floating-point calculation.
-     * @returns {string} Formatted price with 4-decimal precision for UX clarity.
+     * @returns {string} Formatted price with 6-decimal precision for audit clarity.
      */
-    static formatPriceForDisplay(price) {
-        if (!price || isNaN(price)) return "0.0000";
-        return Number(price).toFixed(4);
+    static formatPrice(price) {
+        if (!price || isNaN(price)) return "0.000000";
+        
+        // Upgraded to 6-decimal precision to align with MathHelper standards
+        return Number(price).toFixed(6);
     }
 }
 
-// Transitioned to ES Module export for Vercel/Node.js compatibility
+// Default export maintained for existing controller integrations
 export default PriceService;
