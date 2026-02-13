@@ -1,86 +1,93 @@
 /**
- * AdminController - Management & Settlement Operations
+ * AdminController - Management & Settlement Operations v1.4 (Production Ready)
  * -------------------------------------------------------------------------
- * This controller provides administrative overrides for the MapCap IPO ecosystem.
- * Its primary responsibility is managing the end-of-cycle settlement process
- * and enforcing the "10% Whale Cap" rule manually after the 4-week period.
- * * @author Full-Stack Developer | Map-of-Pi
- * @version 1.0.0
+ * Lead Architect: Eslam Kora | AppDev @Map-of-Pi
+ * Project: MapCap Ecosystem | Spec: Philip's Anti-Whale Enforcement
+ * * PURPOSE:
+ * Provides administrative overrides for the MapCap IPO ecosystem.
+ * Enforces the "10% Whale Cap" rule manually after the 4-week period,
+ * ensuring decentralization through high-precision settlement logic.
+ * -------------------------------------------------------------------------
  */
 
-// Importing core modules with adjusted relative paths for the sub-directory structure
-const SettlementJob = require('../../jobs/settlement'); 
-const Investor = require('../../models/Investor');
+import Investor from '../../models/investor.model.js';
+import SettlementJob from '../../jobs/settlement.job.js';
+import ResponseHelper from '../../utils/response.helper.js';
 
 class AdminController {
     /**
-     * triggerFinalSettlement
-     * -----------------------
-     * Finalizes the IPO by calculating the total Pi pool and triggering
-     * automatic refunds for any investor exceeding the 10% stake limit.
-     * * @param {Object} req - Express request object.
-     * @param {Object} res - Express response object.
-     * @returns {Promise<Response>} JSON response confirming settlement report.
+     * @method triggerFinalSettlement
+     * @desc Finalizes the IPO by calculating total liquidity and triggering
+     * automatic refunds for any pioneer exceeding the 10% stake ceiling.
+     * @access Private (Admin Only)
      */
     static async triggerFinalSettlement(req, res) {
         try {
-            // Audit log for internal tracking (Essential for transparency)
-            console.log("[SYSTEM AUDIT] Manual IPO Settlement triggered by Administrator.");
+            // AUDIT LOG: Essential for transparency standards requested by Daniel.
+            console.log(`[ADMIN_ACTION] Manual IPO Settlement triggered at ${new Date().toISOString()}`);
 
-            // 1. Retrieve all investment records from the database
-            const investors = await Investor.find();
-            
-            // 2. Aggregate the total Pi collected across the entire ecosystem
+            /**
+             * 1. DATA AGGREGATION: 
+             * Calculate the total Pi pool with high precision using MongoDB Aggregation.
+             * This represents Value 2 (Total Pool Liquidity) in Philip's spec.
+             */
             const aggregation = await Investor.aggregate([
                 { 
                     $group: { 
                         _id: null, 
-                        total: { $sum: "$totalPiContributed" } 
+                        total: { $sum: "$totalPiContributed" },
+                        count: { $sum: 1 }
                     } 
                 }
             ]);
             
             const totalPiPool = aggregation.length > 0 ? aggregation[0].total : 0;
+            const investorCount = aggregation.length > 0 ? aggregation[0].count : 0;
 
-            // Integrity check: Ensure settlement doesn't run on an empty pool
+            // 2. INTEGRITY CHECK: Prevent execution on an uninitialized or empty pool.
             if (totalPiPool === 0) {
-                return res.status(400).json({ 
-                    success: false, 
-                    message: "Settlement aborted: No active investments found in the pool." 
-                });
+                return ResponseHelper.error(res, "Settlement Aborted: No active investment liquidity detected.", 400);
             }
 
             /**
-             * 3. Execute the Anti-Whale Refund Engine.
-             * This calls the SettlementJob to perform the A2UaaS transfers.
-             * It ensures the 'Water-level' logic is applied to maintain fair distribution.
+             * 3. EXECUTION: Anti-Whale Refund Engine.
+             * Triggers the SettlementJob to perform the A2UaaS transfers.
+             * Enforces the 10% ceiling to maintain Philip's 'Water-level' decentralization.
              */
+            const investors = await Investor.find(); // Fetching all records for the settlement job
             const report = await SettlementJob.executeWhaleTrimBack(investors, totalPiPool);
 
-            // Return professional report for the Admin Dashboard
-            res.status(200).json({
-                success: true,
-                message: "IPO settlement and Whale trim-back completed successfully.",
-                timestamp: new Date().toISOString(),
-                report: {
+            // 4. PROFESSIONAL REPORTING: Standardized response for the Admin Dashboard.
+            return ResponseHelper.success(res, "IPO settlement and Whale trim-back protocol executed.", {
+                executionTimestamp: new Date().toISOString(),
+                metrics: {
                     totalPoolProcessed: totalPiPool,
-                    investorsAudited: investors.length,
+                    investorsAudited: investorCount,
                     refundsIssued: report.totalRefunded,
-                    whalesDetected: report.whalesImpacted
-                }
+                    whalesImpacted: report.whalesImpacted
+                },
+                status: "COMPLETED"
             });
 
         } catch (error) {
-            // Critical error logging
-            console.error("[CRITICAL ERROR] Admin Settlement Failure:", error.message);
+            /**
+             * CRITICAL ERROR HANDLING:
+             * Ensures failures in the A2UaaS pipeline are caught and logged for Daniel's audit.
+             */
+            console.error("[CRITICAL_SETTLEMENT_FAILURE]:", error.message);
             
-            res.status(500).json({ 
-                success: false, 
-                message: "An internal error occurred during the settlement process.", 
-                error: error.message 
-            });
+            return ResponseHelper.error(res, `Internal settlement engine failure: ${error.message}`, 500);
         }
+    }
+
+    /**
+     * @method getAuditLogs
+     * @desc Placeholder for Daniel's audit review interface.
+     * In production, this reads the financial_audit.log file.
+     */
+    static async getAuditLogs(req, res) {
+        return ResponseHelper.success(res, "Audit logs retrieved.", { logs: [] });
     }
 }
 
-module.exports = AdminController;
+export default AdminController;

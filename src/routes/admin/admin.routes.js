@@ -1,41 +1,50 @@
 /**
- * Admin Routes Provider - Secure Management Interface
+ * Admin Routes Provider - Secure Management Interface v1.4
  * ---------------------------------------------------------
- * Strategic routing for administrative operations.
- * This file centralizes login, health checks, and the final 10% trim-back logic.
- * * SECURITY: All critical endpoints are protected by adminAuth middleware.
+ * Lead Architect: Eslam Kora | AppDev @Map-of-Pi
+ * Project: MapCap Ecosystem | Spec: Daniel's Security & Compliance
+ * * PURPOSE:
+ * Centralizes administrative operations including authentication,
+ * health monitoring, and the mandatory 10% Whale-Cap settlement.
+ * ---------------------------------------------------------
  */
-const express = require('express');
+
+import express from 'express';
+import AdminController from '../../controllers/admin/admin.controller.js';
+import AuthController from '../../controllers/admin/auth.controller.js';
+import adminAuth from '../../middlewares/auth.middleware.js';
+
 const router = express.Router();
-
-// Importing controllers from the adjacent admin directory
-const AdminController = require('../../controllers/admin/admin.controller');
-const AuthController = require('../../controllers/admin/auth.controller');
-
-// Importing security middleware to protect Philip & Daniel's dashboard
-const adminAuth = require('../../middlewares/auth.middleware');
 
 /**
  * @route   POST /api/admin/login
- * @desc    Authenticates Philip/Daniel for dashboard access.
- * @access  Public (Initial entry)
+ * @desc    Authenticates Philip or Daniel for secure dashboard access.
+ * @access  Public (Entry Point)
  */
 router.post('/login', AuthController.adminLogin);
 
 /**
  * @route   GET /api/admin/status
- * @desc    Real-time system health and uptime monitoring.
- * @access  Protected (Requires adminAuth)
+ * @desc    Fetches real-time system health, uptime, and A2UaaS connectivity.
+ * @access  Protected (Requires adminAuth Middleware)
  */
 router.get('/status', adminAuth, AuthController.getSystemStatus);
 
 /**
  * @route   POST /api/admin/settle
- * @desc    Critical: Triggers the 10% Whale Cap refund process via A2UaaS.
- * @access  Protected (Requires adminAuth)
- * * Note: This implements the mandatory refund for any pioneer exceeding 
- * [span_1](start_span)the 10% total balance cap as per Philip's Use Case[span_1](end_span).
+ * @desc    CRITICAL: Triggers the 10% Whale-Cap refund protocol.
+ * @access  Protected (Requires adminAuth Middleware)
+ * * COMPLIANCE: 
+ * Implements the mandatory trim-back for Pioneers exceeding 
+ * the 10% IPO pool cap as per Philip's Core Spec [Page 5].
  */
 router.post('/settle', adminAuth, AdminController.triggerFinalSettlement);
 
-module.exports = router;
+/**
+ * @route   GET /api/admin/audit-logs
+ * @desc    Retrieves a detailed history of all A2UaaS transfers for Daniel's audit.
+ * @access  Protected
+ */
+router.get('/audit-logs', adminAuth, AdminController.getAuditLogs);
+
+export default router;

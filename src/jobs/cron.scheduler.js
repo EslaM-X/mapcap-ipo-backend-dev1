@@ -1,54 +1,52 @@
 /**
- * Cron Scheduler - MapCap IPO Automation Engine (Production Ready)
+ * Cron Scheduler - MapCap IPO Automation Engine v1.5
  * -------------------------------------------------------------------------
- * This orchestrator automates the MapCap lifecycle based on Philip Jennings' 
- * Use Case. It ensures all global financial operations align with the 
- * Gregorian calendar and UTC time standards.
+ * Lead Architect: Eslam Kora | AppDev @Map-of-Pi
+ * Project: MapCap Ecosystem | Spec: Philip Jennings & Daniel
+ * * PURPOSE: 
+ * Centralized orchestrator for Daily Snapshots, Whale Settlements, 
+ * and Monthly Vesting release cycles.
+ * -------------------------------------------------------------------------
  */
 
-const cron = require('node-cron');
-const Investor = require('../models/Investor');
-const SettlementJob = require('./settlement');
-const auditLogStream = require('../config/logger');
+import cron from 'node-cron';
+import Investor from '../models/investor.model.js';
+import SettlementJob from './settlement.job.js';
+import VestingJob from './vesting.job.js'; // Integrated the Vesting logic
+import DailyPriceJob from './daily-price-update.js'; // Integrated the Pricing logic
+import { writeAuditLog } from '../config/logger.js';
 
 class CronScheduler {
     /**
-     * Initializes all automated tasks for the IPO ecosystem.
-     * All tasks are strictly bound to the 'UTC' timezone.
+     * Initializes all automated tasks.
+     * Use of locked UTC timezone ensures global ledger consistency.
      */
     static init() {
         console.log("--- [SYSTEM] Cron Scheduler Initialized (UTC Mode) ---");
+        writeAuditLog('INFO', 'Cron Scheduler Engine Online.');
 
         /**
-         * TASK 1: Daily Spot Price Calculation (Midnight UTC Every Day)
+         * TASK 1: Daily Spot Price & Snapshot
+         * Freq: Midnight UTC (0 0 * * *)
+         * Purpose: Updates the scarcity-based pricing model daily.
          */
         cron.schedule('0 0 * * *', async () => {
-            console.log("[CRON] Executing End-of-Day Spot Price Calculation...");
+            writeAuditLog('INFO', '[CRON_START] Daily Price Recalibration Sequence.');
             try {
-                const globalStats = await Investor.aggregate([
-                    { $group: { _id: null, totalPi: { $sum: "$totalPiContributed" } } }
-                ]);
-                
-                const totalPi = globalStats[0]?.totalPi || 0;
-                
-                // Audit logging for Daniel's transparency standard
-                const logEntry = `[PRICE_SNAPSHOT] ${new Date().toISOString()} | Pool: ${totalPi} Pi | UTC Sync Active\n`;
-                auditLogStream.write(logEntry);
-                
-                console.log(`[CRON SUCCESS] Daily Water-Level recorded: ${totalPi} Pi`);
+                // Triggering the standalone DailyPriceJob
+                await DailyPriceJob.updatePrice();
             } catch (error) {
-                auditLogStream.write(`[CRON_ERROR] Price Sync Failed: ${error.message}\n`);
+                writeAuditLog('CRITICAL', `Price Snapshot Failed: ${error.message}`);
             }
-        }, {
-            scheduled: true,
-            timezone: "UTC" 
-        });
+        }, { scheduled: true, timezone: "UTC" });
 
         /**
-         * TASK 2: Final Whale Settlement (End of 4-Week Cycle)
+         * TASK 2: Final Whale Settlement (IPO PHASE END)
+         * Freq: 23:00 UTC on the 28th day of the cycle.
+         * Purpose: Automated 10% trim-back via A2UaaS protocol.
          */
         cron.schedule('0 23 28 * *', async () => {
-            console.log("[CRON] 🚨 IPO PHASE END: Triggering Anti-Whale Settlement...");
+            writeAuditLog('WARN', '[CRON_ALERT] IPO Closure Threshold Reached. Starting Settlement.');
             try {
                 const investors = await Investor.find({ totalPiContributed: { $gt: 0 } });
                 const totalStats = await Investor.aggregate([
@@ -57,33 +55,30 @@ class CronScheduler {
                 
                 const totalPool = totalStats[0]?.totalPi || 0;
                 
-                // Invoke the integrated settlement engine
-                const result = await SettlementJob.executeWhaleTrimBack(investors, totalPool);
-                
-                auditLogStream.write(`[SETTLEMENT_REPORT] ${new Date().toISOString()} | Refunded: ${result.totalRefunded} Pi\n`);
+                if (totalPool > 0) {
+                    const result = await SettlementJob.executeWhaleTrimBack(investors, totalPool);
+                    writeAuditLog('INFO', `[SETTLEMENT_SUCCESS] ${result.totalRefunded} Pi returned to pool.`);
+                }
             } catch (error) {
-                auditLogStream.write(`[CRITICAL_SETTLEMENT_FAILURE] ${error.message}\n`);
+                writeAuditLog('CRITICAL', `Whale Settlement Failure: ${error.message}`);
             }
-        }, {
-            scheduled: true,
-            timezone: "UTC"
-        });
+        }, { scheduled: true, timezone: "UTC" });
 
         /**
-         * TASK 3: Monthly Vesting Release (1st of Month, UTC)
+         * TASK 3: Monthly 10% Vesting Release
+         * Freq: Midnight UTC on the 1st of every month.
+         * Purpose: 10-month linear release as per Spec Page 5.
          */
         cron.schedule('0 0 1 * *', async () => {
-            console.log("[CRON] Executing Monthly 10% Vesting Distribution...");
+            writeAuditLog('INFO', '[CRON_START] Monthly Vesting Disbursement Cycle.');
             try {
-                auditLogStream.write(`[VESTING_CYCLE] Started for ${new Date().toLocaleString('default', { month: 'long' })}\n`);
+                // Calling the VestingJob to handle A2UaaS payouts
+                await VestingJob.executeMonthlyVesting();
             } catch (error) {
-                console.error("[CRON ERROR] Vesting Process Interrupted:", error.message);
+                writeAuditLog('CRITICAL', `Vesting Cycle Failed: ${error.message}`);
             }
-        }, {
-            scheduled: true,
-            timezone: "UTC"
-        });
+        }, { scheduled: true, timezone: "UTC" });
     }
 }
 
-module.exports = CronScheduler;
+export default CronScheduler;

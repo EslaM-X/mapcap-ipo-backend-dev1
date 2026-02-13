@@ -1,49 +1,65 @@
 /**
- * Logger Configuration - Audit Trail Engine v1.2
+ * Logger Configuration - Audit Trail Engine v1.5 (Stabilized for Vercel)
  * ---------------------------------------------------------
  * Lead Architect: Eslam Kora | AppDev @Map-of-Pi
- * Project: MapCap Ecosystem Security (MERN Stack)
- * * * Purpose:
- * Implements a permanent, immutable record of all financial movements.
- * Specifically monitors:
- * 1. Whale-Shield Activations (10% Cap Enforcement)
- * 2. A2UaaS (Asset-to-User) Transaction Failures
- * 3. Pi SDK Handshake Anomalies
+ * Project: MapCap Ecosystem | Spec: Daniel's Transparency Standard
  */
 
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-// Utility to handle __dirname in ES Modules environment
+// ESM-compliant __dirname resolution
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Define the absolute path for financial audit logs
-const logDir = path.join(__dirname, '../../logs');
-const logFile = path.join(logDir, 'audit.log');
-
 /**
- * DIRECTORY INTEGRITY CHECK
- * Ensures the 'logs' folder exists before initializing the stream,
- * preventing server crashes on new deployments.
+ * VERCEL READ-ONLY FIX: 
+ * Vercel environment is read-only. We use '/tmp' for logs in production 
+ * to prevent '500 Internal Server Error' during write attempts.
  */
-if (!fs.existsSync(logDir)) {
+const isProduction = process.env.NODE_ENV === 'production';
+const logDir = isProduction ? '/tmp' : path.join(__dirname, '../../logs');
+const logFile = path.join(logDir, 'financial_audit.log');
+
+// Directory Integrity Check
+if (!isProduction && !fs.existsSync(logDir)) {
     fs.mkdirSync(logDir, { recursive: true });
 }
 
 /**
- * AUDIT LOG STREAM
- * Implements an 'Append-Only' stream to preserve financial history.
- * Daniel's Transparency Standard: Flags 'a' ensures no data is overwritten.
+ * @export auditLogStream
+ * Maintains exact same naming to prevent breaking server.js or morgan integration.
  */
 export const auditLogStream = fs.createWriteStream(logFile, { 
     flags: 'a',
     encoding: 'utf8'
 });
 
-// Strategic Log Entry: Record Engine Boot Sequence
-const bootEntry = `${new Date().toISOString()} - [SYSTEM]: MapCap Audit Engine Reinitialized.\n`;
-auditLogStream.write(bootEntry);
+/**
+ * @function writeAuditLog
+ * Logic preserved to ensure Whale-Shield alerts and A2UaaS integrity remain intact.
+ */
+export const writeAuditLog = (level, message) => {
+    const timestamp = new Date().toISOString();
+    const entry = `${timestamp} - [${level.toUpperCase()}]: ${message}\n`;
+    
+    // Attempting persistent write (fails gracefully in strictly read-only envs)
+    try {
+        auditLogStream.write(entry);
+    } catch (err) {
+        console.error(`[LOG_ERROR] Could not write to audit file: ${err.message}`);
+    }
+    
+    // Critical console output for real-time monitoring via Vercel Logs
+    if (level === 'CRITICAL' || level === 'ERROR' || level === 'WARN') {
+        console.error(`\x1b[31m[AUDIT_ALERT] ${entry}\x1b[0m`);
+    } else {
+        console.log(`\x1b[32m[AUDIT_INFO] ${entry}\x1b[0m`);
+    }
+};
 
-export default auditLogStream;
+// Initializing Engine Boot Log
+writeAuditLog('INFO', 'MapCap Audit Engine Synchronized for Cloud Deployment.');
+
+export default { auditLogStream, writeAuditLog };

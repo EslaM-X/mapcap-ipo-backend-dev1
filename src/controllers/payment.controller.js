@@ -1,59 +1,94 @@
 /**
- * Payment Controller - Financial Operations
+ * Payment Controller - Financial Operations v1.6
  * ---------------------------------------------------------
- * This controller handles incoming investment payments and 
- * verifies Pi Network transactions.
+ * Lead Architect: Eslam Kora | AppDev @Map-of-Pi
+ * Project: MapCap Ecosystem | Spec: Daniel's Financial Audit Standards
+ * * PURPOSE:
+ * Processes incoming investment payments (U2A), updates equity balances,
+ * and maintains the immutable transaction history for the IPO.
+ * ---------------------------------------------------------
  */
 
-const Investor = require('../models/Investor');
-const Transaction = require('../models/Transaction');
-const PaymentService = require('../services/payment.service');
+import Investor from '../models/investor.model.js';
+import Transaction from '../models/transaction.model.js';
+import ResponseHelper from '../utils/response.helper.js';
+import { writeAuditLog } from '../config/logger.js';
 
 class PaymentController {
     /**
-     * Handle New Investment
-     * This is called after the user completes the Pi payment in the frontend.
+     * @method processInvestment
+     * @desc Records transaction and updates Pioneer stake post-SDK callback.
+     * Enforces strict idempotency via unique piTxId.
      */
     static async processInvestment(req, res) {
         const { piAddress, amount, piTxId } = req.body;
 
+        // 1. INPUT VALIDATION: Ensure financial metadata is present
+        if (!piAddress || !amount || !piTxId) {
+            return ResponseHelper.error(res, "Missing transaction metadata.", 400);
+        }
+
         try {
-            // 1. Record the transaction in the Audit Log
+            /**
+             * 2. IDEMPOTENCY CHECK:
+             * Prevents processing the same blockchain transaction twice.
+             */
+            const existingTx = await Transaction.findOne({ piTxId });
+            if (existingTx) {
+                return ResponseHelper.error(res, "Duplicate Transaction: TXID already processed.", 409);
+            }
+
+            /**
+             * 3. LEDGER & TRANSACTION ATOMICITY:
+             * Recording the movement and updating the investor profile.
+             */
+            const investmentAmount = Number(amount);
+
             const newTransaction = await Transaction.create({
                 piAddress,
-                amount,
+                amount: investmentAmount,
                 type: 'INVESTMENT',
                 status: 'COMPLETED',
+                piTxId,
+                memo: `IPO Contribution - Manual Sync via SDK Callback`
+            });
+
+            // Update Investor Equity Stake
+            const investor = await Investor.findOneAndUpdate(
+                { piAddress },
+                { 
+                    $inc: { totalPiContributed: investmentAmount },
+                    $set: { lastContributionDate: Date.now() }
+                },
+                { upsert: true, new: true } // Creates record if it doesn't exist
+            );
+
+            
+
+            /**
+             * 4. AUDIT LOGGING:
+             * Daniel's Compliance Requirement: Permanent log of the successful sync.
+             */
+            writeAuditLog('INFO', `Investment Processed: ${investmentAmount} Pi from ${piAddress} (TX: ${piTxId})`);
+
+            // 5. SUCCESS RESPONSE
+            return ResponseHelper.success(res, "Ledger Synchronized Successfully.", {
+                pioneer: piAddress,
+                contribution: investmentAmount,
+                totalBalance: investor.totalPiContributed,
                 piTxId
             });
 
-            // 2. Update or Create the Investor record
-            let investor = await Investor.findOne({ piAddress });
-
-            if (investor) {
-                investor.totalPiContributed += amount;
-                investor.lastContributionDate = Date.now();
-            } else {
-                investor = new Investor({
-                    piAddress,
-                    totalPiContributed: amount
-                });
-            }
-
-            // 3. Save investor data and recalculate share (Logic handled in background jobs)
-            await investor.save();
-
-            res.status(200).json({
-                success: true,
-                message: "Investment processed successfully",
-                transaction: newTransaction
-            });
-
         } catch (error) {
-            console.error("Payment Processing Error:", error.message);
-            res.status(500).json({ success: false, message: "Internal Server Error" });
+            /**
+             * 6. CRITICAL ERROR HANDLING:
+             * Catching system failures and logging them for manual recovery.
+             */
+            writeAuditLog('CRITICAL', `Payment Processing Failed for ${piAddress}: ${error.message}`);
+            console.error(`[PAYMENT_FAILURE]: ${error.message}`);
+            return ResponseHelper.error(res, "Financial Pipeline Error. Support ID: " + Date.now(), 500);
         }
     }
 }
 
-module.exports = PaymentController;
+export default PaymentController;
