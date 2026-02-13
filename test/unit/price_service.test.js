@@ -11,6 +11,7 @@
  */
 
 // Added curly braces for Named Export compatibility to resolve 'undefined' errors
+// This ensures the test suite can see the constants and the class independently
 import { PriceService, IPO_MAPCAP_SUPPLY } from '../../src/services/price.service.js';
 
 describe('PriceService - Dynamic Pricing Logic Tests', () => {
@@ -27,6 +28,7 @@ describe('PriceService - Dynamic Pricing Logic Tests', () => {
     
     const actualPrice = PriceService.calculateDailySpotPrice(totalPi);
     
+    // Testing raw number accuracy before formatting
     expect(actualPrice).toBe(expectedPrice);
   });
 
@@ -42,6 +44,7 @@ describe('PriceService - Dynamic Pricing Logic Tests', () => {
   /**
    * TEST: Precision Formatting
    * Requirement: UI StatsPanel display requires strict 6-decimal string output.
+   * This matches the updated PriceService.formatPrice method.
    */
   test('Formatting: Should format the price to exactly 6 decimal places', () => {
     const rawPrice = 4.363636363636;
@@ -54,10 +57,10 @@ describe('PriceService - Dynamic Pricing Logic Tests', () => {
   /**
    * TEST: Supply Integrity
    * Requirement: Economic Audit - The IPO supply must remain locked at 2,181,818.
-   * Resolves: The 'undefined' failure observed in previous test runs.
+   * Resolves: The 'undefined' failure observed in previous test runs in Termux.
    */
   test('Integrity: Should maintain the fixed MapCap supply constant', () => {
-    // Audit check against the institutional-grade constant
+    // Direct audit against the institutional-grade constant
     expect(IPO_MAPCAP_SUPPLY).toBe(2181818);
   });
 });
