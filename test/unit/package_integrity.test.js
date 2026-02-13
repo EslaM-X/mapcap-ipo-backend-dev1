@@ -1,5 +1,5 @@
 /**
- * Package Integrity Unit Tests - Dependency Guard v1.6.1
+ * Package Integrity Unit Tests - Dependency Guard v1.6.2
  * ---------------------------------------------------------
  * Lead Architect: EslaM-X | AppDev @Map-of-Pi
  * Project: MapCap Ecosystem | Spec: Node.js Runtime Compliance
@@ -19,11 +19,12 @@ describe('Package Integrity - Production Readiness Tests', () => {
 
   /**
    * TEST: Versioning & Metadata
-   * Requirement: Version must match the stabilized release 1.6.1.
+   * Requirement: Version must match the stabilized release 1.6.2.
+   * Note: Updated to align with the current production backend deployment.
    */
   test('Metadata: Should have the correct name and stabilized version', () => {
     expect(pkg.name).toBe('mapcap-ipo-backend');
-    expect(pkg.version).toBe('1.6.1');
+    expect(pkg.version).toBe('1.6.2');
     expect(pkg.type).toBe('module'); // Critical for ES6 imports
   });
 
@@ -41,11 +42,11 @@ describe('Package Integrity - Production Readiness Tests', () => {
    */
   test('Dependencies: Should include all core security and financial libraries', () => {
     const deps = pkg.dependencies;
-    expect(deps).toHaveProperty('helmet');      // Security headers
-    expect(deps).toHaveProperty('mongoose');    // DB Ledger
-    expect(deps).toHaveProperty('node-cron');   // Automation (Vesting/Dividends)
-    expect(deps).toHaveProperty('jsonwebtoken'); // Admin Auth
-    expect(deps).toHaveProperty('dotenv');      // Env Protection
+    expect(deps).toHaveProperty('helmet');      // Security headers for Frontend protection
+    expect(deps).toHaveProperty('mongoose');    // Financial Ledger Database
+    expect(deps).toHaveProperty('node-cron');   // Automation Engine (Vesting/Dividends)
+    expect(deps).toHaveProperty('jsonwebtoken'); // Secure Admin Authentication
+    expect(deps).toHaveProperty('dotenv');      // Environment Variable Protection
   });
 
   /**
@@ -57,4 +58,3 @@ describe('Package Integrity - Production Readiness Tests', () => {
     expect(pkg.scripts.dev).toBe('nodemon server.js');
   });
 });
-
