@@ -1,25 +1,29 @@
 /**
- * Cron Scheduler Unit Tests - Automation Engine v1.5
+ * Cron Scheduler Unit Tests - Automation Engine v1.6 (ESM Stabilized)
  * -------------------------------------------------------------------------
  * Lead Architect: EslaM-X | AppDev @Map-of-Pi
- * Project: MapCap Ecosystem | Spec: Philip Jennings & Daniel
- * * PURPOSE:
- * Validates the Automated Task Orchestrator.
- * Ensures Daily Pricing, Final Settlement, and Monthly Vesting 
- * jobs are correctly scheduled and triggered within the UTC timeline.
+ * Project: MapCap Ecosystem | Spec: Philip Jennings & Daniel Compliance
  * -------------------------------------------------------------------------
+ * PURPOSE: 
+ * Validates the Automated Task Orchestrator. Ensures Daily Pricing, Final 
+ * Settlement, and Monthly Vesting jobs are correctly scheduled and triggered.
  */
 
-import CronScheduler from '../../src/jobs/cron.scheduler.js';
-import cron from 'node-cron';
-import DailyPriceJob from '../../src/jobs/daily-price-update.js';
-import VestingJob from '../../src/jobs/vesting.job.js';
 import { jest } from '@jest/globals';
 
-// Mocking node-cron to intercept scheduling without waiting for real time
-jest.mock('node-cron', () => ({
-  schedule: jest.fn()
+/**
+ * STRATEGY: ESM Mocking for node-cron
+ * Resolves: "ReferenceError: require is not defined" in Termux.
+ */
+jest.unstable_mockModule('node-cron', () => ({
+  default: {
+    schedule: jest.fn()
+  }
 }));
+
+// Dynamic imports to ensure Mocks are applied before the scheduler loads
+const { default: cron } = await import('node-cron');
+const { default: CronScheduler } = await import('../../src/jobs/cron.scheduler.js');
 
 describe('Cron Scheduler - Automation Logic Tests', () => {
   
@@ -29,18 +33,18 @@ describe('Cron Scheduler - Automation Logic Tests', () => {
 
   /**
    * TEST: Initialization & Task Count
-   * Requirement: Should initialize 3 core automated tasks.
+   * Requirement: Daniel's Audit - Should initialize exactly 3 core automated tasks.
    */
   test('Orchestration: Should initialize all 3 core automated tasks on boot', () => {
     CronScheduler.init();
     
-    // Check if cron.schedule was called 3 times (Price, Settlement, Vesting)
+    // Verifying that the scheduler registered 3 distinct tasks
     expect(cron.schedule).toHaveBeenCalledTimes(3);
   });
 
   /**
    * TEST: Daily Price Schedule (Task 1)
-   * Requirement: Must run at Midnight UTC (0 0 * * *).
+   * Requirement: Must run at Midnight UTC to sync with market opening.
    */
   test('Scheduling: Daily Price Job must be set for Midnight UTC', () => {
     CronScheduler.init();
@@ -54,7 +58,7 @@ describe('Cron Scheduler - Automation Logic Tests', () => {
 
   /**
    * TEST: Monthly Vesting Schedule (Task 3)
-   * Requirement: Must run on the 1st of every month (0 0 1 * *).
+   * Requirement: Automated tranche release on the 1st of every month.
    */
   test('Scheduling: Monthly Vesting must be set for the 1st of each month', () => {
     CronScheduler.init();
@@ -68,7 +72,7 @@ describe('Cron Scheduler - Automation Logic Tests', () => {
 
   /**
    * TEST: Whale Settlement Trigger (Task 2)
-   * Requirement: Must run on the 28th day for IPO closure (0 23 28 * *).
+   * Requirement: IPO Closure Protocol - Triggers on the 28th day.
    */
   test('Scheduling: Final Whale Settlement must trigger at IPO threshold', () => {
     CronScheduler.init();
@@ -80,4 +84,3 @@ describe('Cron Scheduler - Automation Logic Tests', () => {
     );
   });
 });
-
