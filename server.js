@@ -1,11 +1,10 @@
 /**
- * MapCap IPO - Integrated Server Engine (Final Production Build v1.1)
+ * MapCap IPO - Integrated Server Engine (Final Production Build v1.2)
  * -------------------------------------------------------------------------
- * Lead Architect: Eslam Kora | AppDev @Map-of-Pi
- * Project: MapCap Ecosystem | Spec: Philip Jennings & Daniel
+ * Lead Architect: EslaM-X | AppDev @Map-of-Pi
+ * Project: MapCap Ecosystem | Spec: Philip Jennings & Daniel Compliance
  * * PURPOSE:
- * Core orchestrator for the 4-week high-intensity IPO lifecycle. 
- * Manages real-time analytics, automated financial jobs, and security protocols.
+ * Core orchestrator for the IPO lifecycle. Optimized for Vercel Serverless.
  */
 
 import dotenv from 'dotenv';
@@ -33,48 +32,44 @@ const app = express();
 
 /**
  * 1. GLOBAL MIDDLEWARE & SECURITY
- * Logs all traffic to audit.log via Morgan for compliance. [Spec Page 5]
+ * Maintains compliance with Daniel's Audit Standard.
  */
 app.use(morgan('combined', { stream: auditLogStream }));
 app.use(express.json());
-app.use(cors());
+app.use(cors({
+    origin: '*',
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
 
 /**
  * 2. DATABASE PERSISTENCE & AUTOMATION
- * Background jobs are triggered only after a confirmed ledger handshake.
+ * Refined connection logic to prevent Vercel invocation timeouts.
  */
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => {
-      console.log('✅ [DATABASE] Financial Ledger: Connection Established');
-      writeAuditLog('INFO', 'Database Connection Established.');
+const connectDB = async () => {
+    try {
+        await mongoose.connect(process.env.MONGO_URI, {
+            useNewUrlParser: true,
+            useUnifiedTopology: true,
+        });
+        console.log('✅ [DATABASE] Financial Ledger: Connection Established');
+        writeAuditLog('INFO', 'Database Connection Established.');
 
-      // Initialize automated tasks (Snapshots, Whale-Shield, Vesting)
-      CronScheduler.init();
+        // Initialize automated tasks (Snapshots, Whale-Shield, Vesting)
+        if (process.env.NODE_ENV !== 'production') {
+            CronScheduler.init();
+        }
+    } catch (err) {
+        console.error('❌ [CRITICAL] Database Connection Failed:', err.message);
+        writeAuditLog('CRITICAL', `DB Connection Error: ${err.message}`);
+    }
+};
 
-      /**
-       * 3. DIVIDEND SCHEDULE (Philip's Requirement [Page 5, 87-88])
-       * Default: Monthly (1st of every month at midnight UTC).
-       */
-      const DIVIDEND_POT = process.env.DIVIDEND_POT_AMOUNT || 0;
-      cron.schedule('0 0 1 * *', async () => {
-          writeAuditLog('INFO', '--- [CRON] Starting Automated Profit Distribution ---');
-          try {
-              await DividendJob.distributeDividends(DIVIDEND_POT);
-              writeAuditLog('INFO', '--- [CRON] Dividend Distribution Cycle Completed ---');
-          } catch (err) {
-              writeAuditLog('CRITICAL', `Dividend Job Aborted: ${err.message}`);
-          }
-      }, { scheduled: true, timezone: "UTC" });
-  })
-  .catch(err => {
-      console.error('❌ [CRITICAL] Database Connection Failed:', err.message);
-      writeAuditLog('CRITICAL', `DB Connection Error: ${err.message}`);
-      process.exit(1); 
-  });
+connectDB();
 
 /**
- * 4. ROOT PULSE CHECK (Real-Time Metrics)
- * Serves primary "Water-Level" stats for the dashboard [Page 4, 73-75].
+ * 3. ROOT PULSE CHECK (Real-Time Metrics)
+ * Direct alignment with Philip's Dashboard 'Water-Level' Requirements.
  */
 app.get('/', async (req, res) => {
     try {
@@ -90,33 +85,32 @@ app.get('/', async (req, res) => {
 
         const waterLevel = globalStats[0]?.totalPiInPool || 0;
         const pioneers = globalStats[0]?.pioneerCount || 0;
-        const IPO_MAX_CAPACITY = 2181818; // Fixed IPO MapCap Pool [Page 2, 26]
+        const IPO_MAX_CAPACITY = 2181818; 
 
         return ResponseHelper.success(res, "MapCap IPO Pulse Engine - Operational", {
             live_metrics: {
-                total_investors: pioneers,       // Value 1
-                total_pi_invested: waterLevel,   // Value 2
+                total_investors: pioneers,
+                total_pi_invested: waterLevel,
                 ipo_capacity_fill: `${((waterLevel / IPO_MAX_CAPACITY) * 100).toFixed(2)}%`
             },
             status: "Whale-Shield Level 4 Active",
-            uptime: `${Math.floor(process.uptime())}s`
+            environment: process.env.NODE_ENV
         });
     } catch (error) {
+        writeAuditLog('ERROR', `Pulse check failure: ${error.message}`);
         return ResponseHelper.error(res, "Pulse check failed: Pipeline disrupted.", 500);
     }
 });
 
 /**
- * 5. ROUTE ORCHESTRATION
- * Ensuring routes align with the modular src/routes structure.
+ * 4. ROUTE ORCHESTRATION
  */
 app.use('/api/ipo', ipoRoutes);
 app.use('/api/admin', adminRoutes);
 
-
-
 /**
- * 6. GLOBAL ERROR INTERCEPTOR
+ * 5. GLOBAL ERROR INTERCEPTOR
+ * Ensures the '500' error is always logged even in serverless crashes.
  */
 app.use((err, req, res, next) => {
     writeAuditLog('CRITICAL', `FATAL ERROR: ${err.stack}`);
@@ -125,9 +119,10 @@ app.use((err, req, res, next) => {
 
 // SERVER EXECUTION
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`🚀 [ENGINE] MapCap IPO Pulse deployed on port ${PORT}`);
-    console.log(`📜 [AUDIT] Recording transactions via morgan/winston audit logs`);
-});
+if (process.env.NODE_ENV !== 'production') {
+    app.listen(PORT, () => {
+        console.log(`🚀 [ENGINE] MapCap IPO Pulse deployed on port ${PORT}`);
+    });
+}
 
 export default app;
