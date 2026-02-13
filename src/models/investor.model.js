@@ -1,120 +1,96 @@
 /**
- * Investor Schema - Core Financial Equity Ledger v1.6 (Production Ready)
+ * Investor Schema - Core Financial Equity Ledger v1.7 (Automated & Stabilized)
  * -------------------------------------------------------------------------
- * Lead Architect: Eslam Kora | AppDev @Map-of-Pi
+ * Lead Architect: EslaM-X | AppDev @Map-of-Pi
  * Project: MapCap Ecosystem | Spec: Philip Jennings & Daniel Compliance
  * * DESCRIPTION:
- * Decentralized ledger for IPO participants. Enforces the 10% Anti-Whale 
- * Ceiling and monitors the 10-month linear vesting schedule for MapCap equity.
+ * Decentralized ledger for IPO participants. Now features automated Whale-Shield 
+ * logic and negative-balance protection via Math.max orchestration.
  * -------------------------------------------------------------------------
  */
 
 import mongoose from 'mongoose';
 
 const InvestorSchema = new mongoose.Schema({
-    /**
-     * @property {String} piAddress
-     * Unique Pi Network wallet identifier. Indexed for O(1) high-speed lookups.
-     */
     piAddress: { 
         type: String, 
-        required: [true, 'Pi Wallet Address is mandatory for A2UaaS synchronization'], 
+        required: [true, 'Pi Wallet Address is mandatory'], 
         unique: true,
         index: true,
         trim: true
     },
-    
-    /**
-     * @property {Number} totalPiContributed
-     * Total Pi invested by the Pioneer. Feeds "Value 3" on the Pulse Dashboard.
-     */
     totalPiContributed: { 
         type: Number, 
         default: 0,
         min: [0, 'Contribution balance cannot be negative']
     },
-
-    /**
-     * @property {Number} allocatedMapCap
-     * Total equity based on Scarcity Spot Price (Total Pi / IPO Rate). 
-     * This serves as the target for the 10-month vesting release.
-     */
     allocatedMapCap: {
         type: Number,
         default: 0,
         min: 0
     },
-    
-    /**
-     * @property {Number} mapCapReleased
-     * Tracks successfully transferred MapCap tokens to prevent double-spending
-     * during the automated monthly vesting cycles.
-     */
     mapCapReleased: {
         type: Number,
         default: 0
     },
-
-    /**
-     * @property {Number} vestingMonthsCompleted
-     * Tracks vesting progress (0-10). Incremented by the VestingJob monthly
-     * until the 10-month linear distribution is finalized.
-     */
     vestingMonthsCompleted: {
         type: Number,
         default: 0,
         min: 0,
         max: 10
     },
-    
-    /**
-     * @property {Boolean} isWhale
-     * Compliance Flag for Philip's 10% Anti-Whale Ceiling.
-     * Automatically flagged if sharePercentage exceeds the decentralization limit.
-     */
     isWhale: { 
         type: Boolean, 
         default: false 
     },
-    
-    /**
-     * @property {Date} lastContributionDate
-     * Audit timestamp for the last financial activity. Crucial for Daniel's audit trail.
-     */
     lastContributionDate: { 
         type: Date, 
         default: Date.now 
     }
 }, { 
-    timestamps: true, // Manages createdAt and updatedAt for data integrity
+    timestamps: true,
     toJSON: { virtuals: true },
     toObject: { virtuals: true }
 });
 
 /**
- * VIRTUAL PROPERTY: remainingVesting
- * Dynamically calculates the equity left to release without storing redundant data.
- * Formula: Total Allocation - Already Released Amount.
+ * PRE-SAVE HOOK: Automated Whale-Shield & Integrity Logic
+ * This ensures the Backend is the "Single Source of Truth".
  */
-InvestorSchema.virtual('remainingVesting').get(function() {
-    return this.allocatedMapCap - this.mapCapReleased;
+InvestorSchema.pre('save', function(next) {
+    const GLOBAL_SUPPLY = 2181818;
+    const WHALE_THRESHOLD = 0.10; // 10% Ceiling as per Philip's Spec
+
+    // 1. Automated Anti-Whale Flagging
+    const currentShare = this.allocatedMapCap / GLOBAL_SUPPLY;
+    this.isWhale = currentShare >= WHALE_THRESHOLD;
+
+    // 2. Negative Balance Protection (Math.max(0, ...))
+    // Ensures UI never displays negative equity during sync delays
+    if (this.mapCapReleased > this.allocatedMapCap) {
+        this.mapCapReleased = this.allocatedMapCap;
+    }
+
+    next();
 });
 
 /**
- * VIRTUAL PROPERTY: sharePercentage
- * Logic: (Individual Allocation / Global Supply of 2,181,818) * 100
- * Essential for real-time Whale-Cap monitoring.
+ * VIRTUAL PROPERTY: remainingVesting
+ * Refined with Math.max to prevent negative display on Frontend.
+ */
+InvestorSchema.virtual('remainingVesting').get(function() {
+    return Math.max(0, this.allocatedMapCap - this.mapCapReleased);
+});
+
+/**
+ * VIRTUAL PROPERTY: sharePct
+ * Synchronized with the 2,181,818 Scarcity Supply.
  */
 InvestorSchema.virtual('sharePct').get(function() {
     const GLOBAL_SUPPLY = 2181818;
     return (this.allocatedMapCap / GLOBAL_SUPPLY) * 100;
 });
 
-/**
- * COMPOUND INDEX: 
- * Optimized for Leaderboards (Descending contribution) and Whale auditing.
- * Ensures the 'IPO Pulse' remains performant under high traffic.
- */
 InvestorSchema.index({ totalPiContributed: -1, isWhale: 1 });
 
 const Investor = mongoose.model('Investor', InvestorSchema);
