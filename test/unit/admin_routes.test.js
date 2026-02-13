@@ -1,19 +1,20 @@
 /**
- * Admin Routes Unit Tests - Command Interface v1.4
+ * Admin Routes Unit Tests - Command Interface v1.5 (Path Corrected)
  * ---------------------------------------------------------
  * Lead Architect: EslaM-X | AppDev @Map-of-Pi
  * Project: MapCap Ecosystem | Spec: Daniel's Security & Compliance
- * * PURPOSE:
- * Validates the security and reachability of admin endpoints.
- * Ensures the 'adminAuth' middleware is properly integrated to 
- * protect high-stakes operations like Whale Settlement.
  * ---------------------------------------------------------
+ * PURPOSE: 
+ * Validates the security and reachability of admin endpoints. 
+ * Ensures 'adminAuth' middleware is properly integrated to 
+ * protect high-stakes operations.
  */
 
-import router from '../../src/routes/admin/admin.routes.js';
-import AuthController from '../../controllers/admin/auth.controller.js';
-import AdminController from '../../controllers/admin/admin.controller.js';
 import { jest } from '@jest/globals';
+// Corrected Paths: Adding '/src/' to ensure the Resolver finds the files
+import router from '../../src/routes/admin/admin.routes.js';
+import AuthController from '../../src/controllers/admin/auth.controller.js';
+import AdminController from '../../src/controllers/admin/admin.controller.js';
 
 describe('Admin Routes - Security & Gateway Tests', () => {
   let mockRes;
@@ -33,24 +34,22 @@ describe('Admin Routes - Security & Gateway Tests', () => {
   test('Auth: POST /login should be mapped to AuthController.adminLogin', () => {
     const route = router.stack.find(s => s.route?.path === '/login' && s.route?.methods.post);
     expect(route).toBeDefined();
-    // Verification of the handler is implied by mapping
   });
 
   /**
    * TEST: System Status Security
-   * Requirement: Must be protected by adminAuth middleware.
+   * Requirement: Daniel's Standard - Must be protected by adminAuth middleware.
    */
   test('Security: GET /status should have adminAuth middleware attached', () => {
     const route = router.stack.find(s => s.route?.path === '/status');
     
-    // Check if the middleware stack contains more than just the final controller
-    // Usually, adminAuth would be the first or second in the stack
+    // Validating that at least one middleware (adminAuth) precedes the controller
     expect(route.route.stack.length).toBeGreaterThan(1);
   });
 
   /**
    * TEST: Critical Settlement Trigger
-   * Requirement: Direct mapping to the trim-back logic for compliance.
+   * Requirement: Secure mapping to the trim-back logic for IPO compliance.
    */
   test('Compliance: POST /settle should be correctly routed for final Whale-Cap trimming', () => {
     const route = router.stack.find(s => s.route?.path === '/settle' && s.route?.methods.post);
@@ -59,11 +58,10 @@ describe('Admin Routes - Security & Gateway Tests', () => {
 
   /**
    * TEST: Audit Log Transparency
-   * Requirement: Daniel must have access to the transfer history.
+   * Requirement: Daniel must have access to the transfer history for financial audits.
    */
   test('Transparency: GET /audit-logs should be available for Daniel’s compliance review', () => {
     const route = router.stack.find(s => s.route?.path === '/audit-logs');
     expect(route).toBeDefined();
   });
 });
-
