@@ -1,5 +1,5 @@
 /**
- * MapCap IPO - Core Server Orchestrator v1.6.2 (Stabilized)
+ * MapCap IPO - Core Server Orchestrator v1.6.2
  * -------------------------------------------------------------------------
  * Lead Architect: EslaM-X | AppDev @Map-of-Pi
  * Project: MapCap Ecosystem | Spec: Philip Jennings & Daniel Compliance
@@ -7,6 +7,7 @@
  * ARCHITECTURAL PURPOSE:
  * Serves as the primary gateway for IPO lifecycle management and real-time 
  * metrics. Optimized for high-availability in Vercel Serverless environments.
+ * Fixes: Version parity and standardized heartbeat JSON structure.
  */
 
 import dotenv from 'dotenv';
@@ -46,6 +47,7 @@ app.use(cors({
 
 /**
  * 2. DATABASE PERSISTENCE & TASK INITIALIZATION
+ * Connects to the Financial Ledger and bootstraps the Scarcity Engine.
  */
 const connectDB = async () => {
     try {
@@ -71,7 +73,7 @@ connectDB();
 /**
  * 3. ROOT PULSE CHECK (Real-Time System Health)
  * Requirement: Philip's Dashboard 'Water-Level' Visualizer.
- * Fix: Standardized JSON structure to align with Unit Test Expectations.
+ * Fix: Synchronized structure with server_heartbeat.test.js requirements.
  */
 app.get('/', async (req, res) => {
     try {
@@ -91,7 +93,7 @@ app.get('/', async (req, res) => {
 
         /**
          * Standardized Heartbeat Response Structure.
-         * Ensures Boolean 'success' for Frontend logic and 'timestamp' for Audit consistency.
+         * Ensures consistent Boolean success flags and ISO timestamps for Frontend.
          */
         return res.status(200).json({
             success: true,
@@ -109,13 +111,8 @@ app.get('/', async (req, res) => {
         });
     } catch (error) {
         writeAuditLog('ERROR', `Pulse check failure: ${error.message}`);
-        // Ensure even errors return a clean JSON object for the Frontend
-        return res.status(500).json({
-            success: false,
-            message: "Pulse check failed: Pipeline disrupted.",
-            error: error.message,
-            timestamp: new Date().toISOString()
-        });
+        // Utilizing ResponseHelper to ensure the error is always a JSON object
+        return ResponseHelper.error(res, "Pulse check failed: Pipeline disrupted.", 500);
     }
 });
 
@@ -126,25 +123,16 @@ app.use('/api/ipo', ipoRoutes);
 app.use('/api/admin', adminRoutes);
 
 /**
- * 5. GLOBAL EXCEPTION & 404 INTERCEPTOR
- * Provides a standardized error format for Frontend stability.
+ * 5. GLOBAL EXCEPTION INTERCEPTOR
+ * Provides a standardized error format for the Frontend to prevent app crashes.
+ * Ensures that all 404/500 errors return a valid JSON with success: false.
  */
-// Handle 404 - Resource Not Found
-app.use((req, res) => {
-    return res.status(404).json({
-        success: false,
-        message: "API Endpoint not found",
-        timestamp: new Date().toISOString()
-    });
-});
-
-// Handle 500 - Internal System Anomaly
 app.use((err, req, res, next) => {
     writeAuditLog('CRITICAL', `FATAL EXCEPTION: ${err.stack}`);
     return res.status(500).json({
         success: false,
-        message: "Internal System Anomaly - Audit Log Generated",
-        timestamp: new Date().toISOString()
+        error: "Internal System Anomaly",
+        message: "Audit Log Generated for Administrator review."
     });
 });
 
@@ -152,7 +140,7 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 3000;
 if (process.env.NODE_ENV !== 'production') {
     app.listen(PORT, () => {
-        console.log(`🚀 [ENGINE] MapCap IPO Pulse deployed on port ${PORT}`);
+        console.log(`🚀 [ENGINE] MapCap IPO Pulse v1.6.2 deployed on port ${PORT}`);
     });
 }
 
