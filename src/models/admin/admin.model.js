@@ -1,14 +1,10 @@
 /**
- * Admin Account Schema v1.5.1 (Executive Access Layer)
+ * Admin Account Schema v1.5.2 (Executive Access Layer)
  * -------------------------------------------------------------------------
  * Lead Architect: EslaM-X | AppDev @Map-of-Pi
  * Project: MapCap Ecosystem | Spec: Daniel's Security & Compliance Standard
  * -------------------------------------------------------------------------
- * ARCHITECTURAL ROLE:
- * Defines administrative credentials and granular access levels (RBAC).
- * Engineered to provide a secure environment for Philip (Operations) 
- * and Daniel (Auditing), ensuring strict separation of administrative duties.
- * -------------------------------------------------------------------------
+ * FIXED: Standardized file naming to admin.model.js for testing compatibility.
  */
 
 import mongoose from 'mongoose';
@@ -17,7 +13,6 @@ const AdminSchema = new mongoose.Schema({
     /**
      * @property {String} username
      * Unique identifier for the administrator.
-     * Enforces lowercase and trimming for high-fidelity login synchronization.
      */
     username: { 
         type: String, 
@@ -29,7 +24,6 @@ const AdminSchema = new mongoose.Schema({
 
     /**
      * @property {String} password
-     * High-entropy hashed credential.
      * Security Constraint: 'select: false' prevents accidental exposure in API logs.
      */
     password: {
@@ -41,8 +35,8 @@ const AdminSchema = new mongoose.Schema({
     /**
      * @property {String} role
      * Access Level Definition (Role-Based Access Control):
-     * - SUPER_ADMIN: Full ecosystem oversight and settlement execution (Philip).
-     * - AUDITOR: Read-only access to ledger logs and A2UaaS records (Daniel).
+     * - SUPER_ADMIN: Full ecosystem oversight (Philip).
+     * - AUDITOR: Read-only access for compliance (Daniel).
      */
     role: { 
         type: String, 
@@ -52,7 +46,7 @@ const AdminSchema = new mongoose.Schema({
 
     /**
      * @property {Date} lastLogin
-     * Security Audit Trail: Monitors the most recent dashboard session.
+     * Security Audit Trail.
      */
     lastLogin: { 
         type: Date 
@@ -60,26 +54,23 @@ const AdminSchema = new mongoose.Schema({
 
     /**
      * @property {Boolean} isActive
-     * Global Kill-Switch: Allows immediate suspension of admin privileges
-     * in the event of credential compromise.
+     * Global Kill-Switch for credential compromise.
      */
     isActive: {
         type: Boolean,
         default: true
     }
 }, { 
-    /**
-     * timestamps: Automatic creation of 'createdAt' and 'updatedAt' for Daniel's compliance reports.
-     */
     timestamps: true 
 });
 
 /**
  * INDEXING STRATEGY: 
- * Optimized for high-speed authentication and status checks.
+ * Optimized for high-speed authentication.
  */
 AdminSchema.index({ username: 1, isActive: 1 });
 
-const Admin = mongoose.model('Admin', AdminSchema);
+// Ensure we don't redefine the model if it already exists (Hot Reload Support)
+const Admin = mongoose.models.Admin || mongoose.model('Admin', AdminSchema);
 
 export default Admin;
