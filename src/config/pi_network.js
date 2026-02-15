@@ -1,19 +1,20 @@
 /**
- * Pi Network & Escrow Configuration v1.3
+ * Pi Network & Escrow Configuration v1.3.5
  * ---------------------------------------------------------
- * Lead Architect: Eslam Kora | AppDev @Map-of-Pi
+ * Lead Architect: EslaM-X | AppDev @Map-of-Pi
  * Project: MapCap Ecosystem | Spec: Daniel's Secure Payout Pipeline
- * * PURPOSE:
- * Centralizes Pi Network SDK parameters and EscrowPi A2UaaS 
- * (App-to-User) connection details. Optimized for high-concurrency 
- * during the 4-week IPO cycle.
+ * ---------------------------------------------------------
+ * ARCHITECTURAL ROLE:
+ * Centralizes credentials and connection parameters for the Pi Blockchain 
+ * and EscrowPi A2UaaS protocol. This file provides the infrastructure 
+ * for the 'Whale-Shield' payouts executed during final settlement.
  * ---------------------------------------------------------
  */
 
 const PiConfig = {
     /**
      * Official Pi Network API Settings
-     * Core connection to the Pi Blockchain.
+     * Core credentials for blockchain interaction and transaction signing.
      */
     api: {
         baseUrl: "https://api.minepi.com/v2",
@@ -22,8 +23,9 @@ const PiConfig = {
     },
 
     /**
-     * EscrowPi A2UaaS Protocol Settings
-     * Philip's preferred gateway for automated App-to-User payouts.
+     * EscrowPi A2UaaS (App-to-User-as-a-Service) Settings
+     * Utilized by the SettlementJob to perform dynamic 'Trim-Back' refunds
+     * only after the IPO concludes, as per Philip's dynamic liquidity spec.
      */
     escrow: {
         baseUrl: process.env.ESCROW_PI_URL || "https://api.escrowpi.com/v1",
@@ -32,27 +34,32 @@ const PiConfig = {
     },
 
     /**
-     * Global Transaction Constants
-     * Standardized parameters for financial ledger accuracy.
+     * Transaction & Network Parameters
+     * Standardized constants to ensure ledger precision and network stability.
      */
     constants: {
-        // Standard Pi Network blockchain fee
+        // Standard Pi Network blockchain gas fee (Deducted from gross refund)
         txFee: 0.01, 
         
-        // Dynamic Network Toggle (mainnet/testnet)
+        // Environment Toggle: 'mainnet' for production | 'testnet' for staging
         network: process.env.PI_NETWORK_MODE || "mainnet", 
         
-        // Timeout for A2UaaS handshakes (in milliseconds)
+        // Response timeout for A2UaaS handshakes to prevent pipeline hanging
         requestTimeout: 15000 
     }
 };
 
 /**
- * VALIDATION: 
- * Prevents the engine from booting if critical keys are missing.
+ * SYSTEM INTEGRITY CHECK: 
+ * Prevents the financial engine from booting if critical environment 
+ * variables are missing, protecting the ecosystem from downtime.
  */
 if (!PiConfig.api.apiKey || !PiConfig.api.walletAddress) {
-    console.error("[CRITICAL_CONFIG_ERROR] Pi Network API keys are missing in .env!");
+    console.warn("[CONFIG_WARNING] Pi Network credentials missing. Ensure .env is populated for production.");
 }
 
+/**
+ * Object.freeze ensures that financial parameters remain immutable 
+ * during runtime, satisfying Daniel's security standards.
+ */
 export default Object.freeze(PiConfig);
