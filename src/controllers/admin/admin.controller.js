@@ -1,5 +1,5 @@
 /**
- * AdminController - Management & Settlement Operations v1.4.5
+ * AdminController - Management & Settlement Operations v1.4.6
  * -------------------------------------------------------------------------
  * Lead Architect: EslaM-X | AppDev @Map-of-Pi
  * Project: MapCap Ecosystem | Spec: Philip's Post-IPO Whale Enforcement
@@ -20,19 +20,22 @@ class AdminController {
      * @method triggerFinalSettlement
      * @desc Orchestrates the manual IPO finalization. It calculates the terminal 
      * 'Water-Level' and triggers the automated refund protocol for excess stakes.
+     * Synchronized with A2UaaS protocol for secure Pi transfers.
      * @access Private (System Administrator)
-     * @returns {JSON} Execution metrics and settlement status.
      */
     static async triggerFinalSettlement(req, res) {
         try {
-            // AUDIT LOG: Mandatory entry for Daniel's compliance monitoring
-            console.log(`[ADMIN_ACTION] Manual Post-IPO Settlement triggered at ${new Date().toISOString()}`);
+            /**
+             * DANIEL'S COMPLIANCE AUDIT:
+             * Mandatory log entry to track who triggered the final settlement and when.
+             */
+            console.log(`[ADMIN_ACTION] Manual Post-IPO Settlement sequence initiated at ${new Date().toISOString()}`);
 
             /**
-             * STEP 1: LIQUIDITY AGGREGATION
-             * Calculate the final total Pi pool across all pioneers. 
-             * This satisfies Philip's requirement to use the aggregate total 
-             * at the end of the 4-week cycle as the basis for the 10% cap.
+             * STEP 1: GLOBAL LIQUIDITY AGGREGATION
+             * Calculates the terminal Pi pool. This satisfies Philip's requirement 
+             * to use the aggregate total at the end of the 28-day cycle as the 
+             * mathematical basis for the 10% anti-whale cap.
              */
             const aggregation = await Investor.aggregate([
                 { 
@@ -49,24 +52,24 @@ class AdminController {
 
             /**
              * STEP 2: INTEGRITY GATEKEEPER
-             * Abort execution if no liquidity exists to prevent algorithmic errors.
+             * Prevents execution if the pool is empty to avoid algorithmic division errors.
              */
             if (totalPiPool === 0) {
                 return ResponseHelper.error(res, "Settlement Aborted: No liquidity detected in the IPO pool.", 400);
             }
 
             /**
-             * STEP 3: FINANCIAL ENGINE EXECUTION
-             * Invokes the SettlementJob which interfaces with the 'refunds.job.js' 
-             * professional engine to handle A2UaaS payouts and ledger updates.
+             * STEP 3: CORE FINANCIAL EXECUTION
+             * Invokes the SettlementJob to perform the 10% trim-back logic.
+             * This handles the actual Pi refunds and ledger adjustments.
              */
             const investors = await Investor.find(); 
             const report = await SettlementJob.executeWhaleTrimBack(investors, totalPiPool);
 
             /**
              * STEP 4: FRONTEND SYNCHRONIZATION
-             * Returns a standardized payload for the Dashboard. 
-             * Metrics are mapped to match the 'refunds.job.js' output schema.
+             * Returns a standardized payload for the Admin Dashboard.
+             * Mapping ensures Values are correctly displayed in the UI.
              */
             return ResponseHelper.success(res, "Post-IPO settlement and Whale trim-back protocol executed.", {
                 executionTimestamp: new Date().toISOString(),
@@ -82,7 +85,7 @@ class AdminController {
         } catch (error) {
             /**
              * EXCEPTION HANDLING:
-             * Logs failure details for Daniel's manual financial reconciliation.
+             * Logs failure details for manual financial reconciliation by Daniel.
              */
             console.error("[CRITICAL_SETTLEMENT_FAILURE]:", error.message);
             return ResponseHelper.error(res, `Settlement engine failure: ${error.message}`, 500);
@@ -92,6 +95,7 @@ class AdminController {
     /**
      * @method getAuditLogs
      * @desc Retrieves administrative logs for Daniel's transparency audit.
+     * Preserved for future expansion of the Audit UI.
      */
     static async getAuditLogs(req, res) {
         return ResponseHelper.success(res, "Audit logs retrieved.", { logs: [] });
