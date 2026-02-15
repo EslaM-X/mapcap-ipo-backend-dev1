@@ -4,10 +4,7 @@
  * Lead Architect: EslaM-X | AppDev @Map-of-Pi
  * Project: MapCap Ecosystem | Spec: Philip Jennings & Daniel Compliance
  * -------------------------------------------------------------------------
- * ARCHITECTURAL PURPOSE:
- * Serves as the primary gateway for IPO lifecycle management and real-time 
- * metrics. Optimized for high-availability in Vercel Serverless environments.
- * -------------------------------------------------------------------------
+ * FIXED: Port Collision (EADDRINUSE) & Route Prefix (v1) Synchronization.
  */
 
 import dotenv from 'dotenv';
@@ -33,28 +30,29 @@ const app = express();
 
 /**
  * 1. GLOBAL MIDDLEWARE & SECURITY FRAMEWORK
- * Enforces Daniel's Audit Standard via Morgan streaming to our custom logger.
  */
 app.use(morgan('combined', { stream: auditLogStream }));
 app.use(express.json());
 app.use(cors({
-    origin: '*', // Dynamic scaling for multi-tenant frontend access
+    origin: '*', 
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 /**
  * 2. DATABASE PERSISTENCE
- * Connects to the MongoDB Financial Ledger.
  */
 const connectDB = async () => {
     try {
-        await mongoose.connect(process.env.MONGO_URI);
-        console.log('✅ [DATABASE] Financial Ledger: Connection Established');
+        // Use test URI if in testing environment
+        const dbUri = process.env.NODE_ENV === 'test' ? process.env.MONGO_URI_TEST : process.env.MONGO_URI;
+        await mongoose.connect(dbUri || 'mongodb://localhost:27017/mapcap_dev');
+        
+        console.log(`✅ [DATABASE] Financial Ledger: Connection Established (${process.env.NODE_ENV || 'dev'})`);
         writeAuditLog('INFO', 'Database Connection Established.');
 
-        // Initialize Cron Jobs only if not in production (Vercel uses Cron Config)
-        if (process.env.NODE_ENV !== 'production') {
+        // Initialize Cron Jobs only if not in production and NOT in test
+        if (process.env.NODE_ENV !== 'production' && process.env.NODE_ENV !== 'test') {
             CronScheduler.init();
         }
     } catch (err) {
@@ -67,8 +65,6 @@ connectDB();
 
 /**
  * 3. ROOT PULSE CHECK (Real-Time System Health)
- * Requirement: Philip's Dashboard 'Water-Level' Visualizer.
- * Synchronized with server_heartbeat.test.js requirements.
  */
 app.get('/', async (req, res) => {
     try {
@@ -108,13 +104,15 @@ app.get('/', async (req, res) => {
 
 /**
  * 4. ROUTE ARCHITECTURE
+ * Added v1 prefix to match Integration Tests while keeping base routes active for stability.
  */
-app.use('/api/ipo', ipoRoutes);
-app.use('/api/admin', adminRoutes);
+app.use('/api/v1/ipo', ipoRoutes);
+app.use('/api/v1/admin', adminRoutes);
+app.use('/api/ipo', ipoRoutes);     // Fallback for Frontend Stability
+app.use('/api/admin', adminRoutes); // Fallback for Frontend Stability
 
 /**
  * 5. GLOBAL EXCEPTION INTERCEPTOR
- * Standardized error handling to prevent Frontend crashes and maintain Daniel's Audit trail.
  */
 app.use((err, req, res, next) => {
     writeAuditLog('CRITICAL', `FATAL EXCEPTION: ${err.stack}`);
@@ -127,7 +125,8 @@ app.use((err, req, res, next) => {
 
 // SERVER EXECUTION
 const PORT = process.env.PORT || 3000;
-if (process.env.NODE_ENV !== 'production') {
+// CRITICAL FIX: Ensure server doesn't start manually during JEST testing
+if (process.env.NODE_ENV !== 'production' && process.env.NODE_ENV !== 'test') {
     app.listen(PORT, () => {
         console.log(`🚀 [ENGINE] MapCap IPO Pulse v1.6.5 deployed on port ${PORT}`);
     });
