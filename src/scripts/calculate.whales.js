@@ -1,50 +1,79 @@
 /**
- * Whale Audit Tool - Compliance Verification v1.0
+ * Whale Audit Tool - Compliance & Decentralization Verification v1.0.1
  * -------------------------------------------------------------------------
- * Lead Architect: Eslam Kora | AppDev @Map-of-Pi
- * PURPOSE: Identifies pioneers exceeding the 10% decentralization ceiling.
+ * Lead Architect: EslaM-X | AppDev @Map-of-Pi
+ * Project: MapCap Ecosystem | Spec: Daniel's Audit & Philip's Whale-Shield
+ * -------------------------------------------------------------------------
+ * PURPOSE: 
+ * Identifies and flags Pioneers exceeding the 10% decentralization ceiling.
+ * This script provides a diagnostic snapshot of the 'Water-Level' to ensure 
+ * the ecosystem remains decentralized prior to the final settlement phase.
  * -------------------------------------------------------------------------
  */
+
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import Investor from '../models/investor.model.js';
 
 dotenv.config();
 
+/**
+ * @function auditWhales
+ * @desc Executes a global scan of the investor ledger to synchronize the 'isWhale' status.
+ */
 const auditWhales = async () => {
-    const GLOBAL_SUPPLY = 2181818; // MapCap Scarcity Spec
-    const CEILING_LIMIT = 0.10;    // 10% Anti-Whale Rule
+    // Constants aligned with Philip's Scarcity Specification
+    const GLOBAL_SUPPLY = 2181818; 
+    const CEILING_LIMIT = 0.10;    // 10% Anti-Whale Threshold
 
     try {
+        /**
+         * INITIALIZATION:
+         * Connecting to the production/staging database as per Daniel's compliance guidelines.
+         */
         await mongoose.connect(process.env.MONGO_URI);
-        console.log("🔍 [AUDIT] Scanning Global Ledger for Whale activity...");
+        console.log("🔍 [AUDIT_INIT] Establishing connection to Global Ledger...");
+        console.log("🚀 [AUDIT_START] Scanning for Whale activity exceeding 10% cap...");
 
+        // Fetching all investors to evaluate current pool distribution
         const investors = await Investor.find();
         let whaleCount = 0;
 
+        /**
+         * EVALUATION LOOP:
+         * Iterates through each record to calculate real-time share percentage.
+         */
         for (let inv of investors) {
             const sharePct = inv.allocatedMapCap / GLOBAL_SUPPLY;
             
             if (sharePct > CEILING_LIMIT) {
                 whaleCount++;
-                console.warn(`⚠️ [WHALE_DETECTED] Pioneer: ${inv.piAddress} | Share: ${(sharePct * 100).toFixed(2)}%`);
+                console.warn(`⚠️ [WHALE_FLAGGED] Pioneer: ${inv.piAddress} | Share: ${(sharePct * 100).toFixed(2)}%`);
                 
-                // Flagging in DB for Daniel's settlement review
+                // Flagging for Daniel's final financial reconciliation
                 inv.isWhale = true;
                 await inv.save();
             } else {
+                // Clearing flag if Pioneer has successfully re-aligned their stake
                 inv.isWhale = false;
                 await inv.save();
             }
         }
 
-        console.log(`✅ [AUDIT_COMPLETE] Scan finished. Total Whales Flagged: ${whaleCount}`);
+        console.log(`\n✅ [AUDIT_SUCCESS] Scan concluded successfully.`);
+        console.log(`📊 [SUMMARY] Total Whales Flagged: ${whaleCount} / Total Pioneers: ${investors.length}`);
+        
+        // Graceful exit for automated job runners (Cron/GitHub Actions)
         process.exit(0);
     } catch (error) {
-        console.error("❌ [CRITICAL] Audit failed:", error.message);
+        /**
+         * ERROR INTERCEPTOR:
+         * Critical failures are logged for infrastructure monitoring.
+         */
+        console.error("❌ [CRITICAL_AUDIT_FAILURE]:", error.message);
         process.exit(1);
     }
 };
 
+// Execute the audit sequence
 auditWhales();
-
