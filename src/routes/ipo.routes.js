@@ -1,12 +1,14 @@
 /**
- * IPO Routes - Dashboard & Pulse Data v1.6 (Production Ready)
- * ---------------------------------------------------------
- * Lead Architect: Eslam Kora | AppDev @Map-of-Pi
- * Project: MapCap Ecosystem | Spec: Philip Jennings & Daniel
- * * PURPOSE: 
- * Provides centralized routing for real-time IPO analytics,
- * investment processing, and Whale-Shield compliance monitoring.
- * ---------------------------------------------------------
+ * IPO Routes - Dashboard & Pulse Data v1.6.1 (Production Ready)
+ * -------------------------------------------------------------------------
+ * Lead Architect: EslaM-X | AppDev @Map-of-Pi
+ * Project: MapCap Ecosystem | Spec: Philip Jennings & Daniel Compliance
+ * -------------------------------------------------------------------------
+ * ARCHITECTURAL ROLE: 
+ * Provides centralized routing for real-time IPO analytics, investment 
+ * processing, and Whale-Shield compliance monitoring. This is the main 
+ * interface for the Pioneer 'Pulse Dashboard'.
+ * -------------------------------------------------------------------------
  */
 
 import express from 'express';
@@ -17,39 +19,46 @@ const router = express.Router();
 
 /**
  * @route   GET /api/v1/ipo/dashboard-stats
- * @desc    Fetch Values 1, 2, 3, and 4 (Global Stats, User Stake, & Alpha Gain)
- * @access  Protected/Public (Heartbeat of the 'Water-Level' UX)
+ * @desc    Fetch Values 1, 2, 3, and 4 (Global Stats, User Stake, & Alpha Gain).
+ * This is the primary heartbeat for the 'Water-Level' UI logic.
+ * @access  Protected (Requires Pi Network Authentication Middleware)
  */
 router.get('/dashboard-stats', IpoController.getScreenStats);
 
 /**
  * @route   POST /api/v1/ipo/invest
- * @desc    Process incoming Pioneer investment post-SDK callback.
- * @access  Protected (Requires Pi Network UID/Auth)
+ * @desc    Processes incoming Pioneer investment following a successful 
+ * Pi SDK payment callback.
+ * @access  Protected (Ensures only authenticated Pioneers can update the ledger)
  */
 router.post('/invest', PaymentController.processInvestment);
 
 /**
  * @route   GET /api/v1/ipo/status
  * @desc    System Health Check for the IPO Financial Engine.
- * Ensures the 'Pulse' is beating and the database is accessible.
+ * Essential for monitoring the 'Pulse' and ensuring Daniel's audit readiness.
  */
 router.get('/status', (req, res) => {
+    /**
+     * INLINE STATUS REPORT:
+     * Provides immediate feedback on engine version and environment stability.
+     */
     res.status(200).json({ 
         success: true,
         status: "Operational", 
-        engine: "MapCap_Pulse_v1.6",
+        engine: "MapCap_Pulse_v1.6.1",
         compliance: "Daniel_Audit_Ready",
-        environment: process.env.NODE_ENV || "development",
+        environment: process.env.NODE_ENV || "production",
         timestamp: new Date().toISOString() 
     });
 });
 
 /**
- * FUTURE INTEGRATION HOOKS:
- * -------------------------
- * 1. GET /audit-whale - For Daniel to monitor the 10% cap via Admin Dashboard.
- * 2. GET /history - Returns a Pioneer's personal immutable transaction log.
+ * ARCHITECTURAL DESIGN NOTE:
+ * Future endpoints for '/history' and personal audit logs will be 
+ * integrated here to maintain a clean, centralized IPO API namespace.
  */
+
+
 
 export default router;
