@@ -1,12 +1,13 @@
 /**
- * Admin Management Service v1.4
+ * Admin Management Service v1.4.5 (Executive Oversight)
  * ---------------------------------------------------------
- * Lead Architect: Eslam Kora | AppDev @Map-of-Pi
- * Project: MapCap Ecosystem | Spec: Executive Oversight Dashboard
- * * PURPOSE:
+ * Lead Architect: EslaM-X | AppDev @Map-of-Pi
+ * Project: MapCap Ecosystem | Spec: Dynamic IPO Monitoring
+ * ---------------------------------------------------------
+ * PURPOSE:
  * Provides high-performance data processing for administrative reporting.
- * Focuses on real-time auditing, liquidity tracking, and IPO metrics.
- * ---------------------------------------------------------
+ * Tailored to Philip's dynamic use case where whale monitoring is active
+ * throughout the IPO, while enforcement is deferred to final settlement.
  */
 
 import Investor from '../../models/investor.model.js';
@@ -15,15 +16,14 @@ class AdminService {
     /**
      * @method getExecutiveSummary
      * @desc Generates an executive summary of the IPO performance.
-     * Calculates the "Water-Level" and Investor participation rates.
-     * @returns {Object} Aggregated IPO statistics.
+     * Calculates the "Water-Level" and current whale participation rates.
      */
     static async getExecutiveSummary() {
         try {
             /**
              * AGGREGATION PIPELINE:
-             * Efficiently sums total Pi liquidity and counts unique Pioneers
-             * in a single database pass to ensure high performance.
+             * Sums total Pi liquidity and counts unique Pioneers.
+             * Tracks 'whaleCount' for Philip's audit prior to final settlement.
              */
             const stats = await Investor.aggregate([
                 {
@@ -38,7 +38,7 @@ class AdminService {
                 }
             ]);
 
-            // Formatting the response for the IPO Pulse Dashboard
+            // Structure preserved for Frontend Dashboard compatibility
             return stats.length > 0 ? stats[0] : { 
                 totalPiLiquidity: 0, 
                 totalInvestors: 0, 
@@ -46,19 +46,19 @@ class AdminService {
             };
         } catch (error) {
             console.error("[ADMIN_SERVICE_ERROR] Failed to aggregate IPO stats:", error.message);
-            throw new Error("Analytics Engine failure. Please check MongoDB connectivity.");
+            throw new Error("Analytics Engine failure. Pipeline disrupted.");
         }
     }
 
     /**
      * @method getWhaleReport
-     * @desc Retrieves a list of Pioneers nearing or exceeding the 10% cap.
-     * Essential for Daniel's final settlement audit.
+     * @desc Retrieves Pioneers flagged for the 10% cap audit.
+     * Essential for the final Settlement Job execution [Spec Page 6].
      */
     static async getWhaleReport() {
+        // Returns the list of flagged whales for final reconciliation
         return await Investor.find({ isWhale: true }).sort({ totalPiContributed: -1 });
     }
 }
 
-// Transitioned to ES Module export for project consistency
 export default AdminService;
