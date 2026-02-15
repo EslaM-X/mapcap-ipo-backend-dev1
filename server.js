@@ -1,5 +1,5 @@
 /**
- * MapCap IPO - Core Server Orchestrator v1.6.2
+ * MapCap IPO - Core Server Orchestrator v1.6.5
  * -------------------------------------------------------------------------
  * Lead Architect: EslaM-X | AppDev @Map-of-Pi
  * Project: MapCap Ecosystem | Spec: Philip Jennings & Daniel Compliance
@@ -7,7 +7,7 @@
  * ARCHITECTURAL PURPOSE:
  * Serves as the primary gateway for IPO lifecycle management and real-time 
  * metrics. Optimized for high-availability in Vercel Serverless environments.
- * Fixes: Version parity and standardized heartbeat JSON structure.
+ * -------------------------------------------------------------------------
  */
 
 import dotenv from 'dotenv';
@@ -15,12 +15,10 @@ import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
 import morgan from 'morgan';
-import cron from 'node-cron';
 
 // Infrastructure & Domain Logic
 import { auditLogStream, writeAuditLog } from './src/config/logger.js';
 import CronScheduler from './src/jobs/cron.scheduler.js';
-import DividendJob from './src/jobs/dividend.job.js'; 
 import Investor from './src/models/investor.model.js';
 import ResponseHelper from './src/utils/response.helper.js';
 
@@ -35,30 +33,27 @@ const app = express();
 
 /**
  * 1. GLOBAL MIDDLEWARE & SECURITY FRAMEWORK
- * Enforces Daniel's Audit Standard and handles cross-origin dashboard requests.
+ * Enforces Daniel's Audit Standard via Morgan streaming to our custom logger.
  */
 app.use(morgan('combined', { stream: auditLogStream }));
 app.use(express.json());
 app.use(cors({
-    origin: '*',
+    origin: '*', // Dynamic scaling for multi-tenant frontend access
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 /**
- * 2. DATABASE PERSISTENCE & TASK INITIALIZATION
- * Connects to the Financial Ledger and bootstraps the Scarcity Engine.
+ * 2. DATABASE PERSISTENCE
+ * Connects to the MongoDB Financial Ledger.
  */
 const connectDB = async () => {
     try {
-        await mongoose.connect(process.env.MONGO_URI, {
-            useNewUrlParser: true,
-            useUnifiedTopology: true,
-        });
+        await mongoose.connect(process.env.MONGO_URI);
         console.log('✅ [DATABASE] Financial Ledger: Connection Established');
         writeAuditLog('INFO', 'Database Connection Established.');
 
-        // Bootstrap cron jobs in development/staging environments
+        // Initialize Cron Jobs only if not in production (Vercel uses Cron Config)
         if (process.env.NODE_ENV !== 'production') {
             CronScheduler.init();
         }
@@ -73,7 +68,7 @@ connectDB();
 /**
  * 3. ROOT PULSE CHECK (Real-Time System Health)
  * Requirement: Philip's Dashboard 'Water-Level' Visualizer.
- * Fix: Synchronized structure with server_heartbeat.test.js requirements.
+ * Synchronized with server_heartbeat.test.js requirements.
  */
 app.get('/', async (req, res) => {
     try {
@@ -91,10 +86,6 @@ app.get('/', async (req, res) => {
         const pioneers = globalStats[0]?.pioneerCount || 0;
         const IPO_MAX_CAPACITY = 2181818; 
 
-        /**
-         * Standardized Heartbeat Response Structure.
-         * Ensures consistent Boolean success flags and ISO timestamps for Frontend.
-         */
         return res.status(200).json({
             success: true,
             message: "MapCap IPO Pulse Engine - Operational",
@@ -111,7 +102,6 @@ app.get('/', async (req, res) => {
         });
     } catch (error) {
         writeAuditLog('ERROR', `Pulse check failure: ${error.message}`);
-        // Utilizing ResponseHelper to ensure the error is always a JSON object
         return ResponseHelper.error(res, "Pulse check failed: Pipeline disrupted.", 500);
     }
 });
@@ -124,15 +114,14 @@ app.use('/api/admin', adminRoutes);
 
 /**
  * 5. GLOBAL EXCEPTION INTERCEPTOR
- * Provides a standardized error format for the Frontend to prevent app crashes.
- * Ensures that all 404/500 errors return a valid JSON with success: false.
+ * Standardized error handling to prevent Frontend crashes and maintain Daniel's Audit trail.
  */
 app.use((err, req, res, next) => {
     writeAuditLog('CRITICAL', `FATAL EXCEPTION: ${err.stack}`);
     return res.status(500).json({
         success: false,
         error: "Internal System Anomaly",
-        message: "Audit Log Generated for Administrator review."
+        message: "Financial audit log generated for review."
     });
 });
 
@@ -140,7 +129,7 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 3000;
 if (process.env.NODE_ENV !== 'production') {
     app.listen(PORT, () => {
-        console.log(`🚀 [ENGINE] MapCap IPO Pulse v1.6.2 deployed on port ${PORT}`);
+        console.log(`🚀 [ENGINE] MapCap IPO Pulse v1.6.5 deployed on port ${PORT}`);
     });
 }
 
