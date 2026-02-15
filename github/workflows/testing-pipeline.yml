@@ -1,0 +1,61 @@
+# -------------------------------------------------------------------------
+# MapCap Quality Assurance (QA) Pipeline - Continuous Integration
+# -------------------------------------------------------------------------
+# Lead Architect: EslaM-X | AppDev @Map-of-Pi
+# Version: 1.0.0
+# Description: Automated testing suite for validating Unit and Integration 
+# integrity across multiple Node.js runtimes before deployment.
+# -------------------------------------------------------------------------
+
+name: MapCap Quality Assurance
+
+# TRIGGER POLICY: 
+# Execute on every push to main/develop or on Pull Request submissions.
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    name: Build and Execute Test Suites
+    runs-on: ubuntu-latest
+
+    # COMPATIBILITY MATRIX:
+    # Ensures the MapCap ecosystem remains stable on both current (LTS) 
+    # and future Node.js runtimes.
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+
+    steps:
+      # 1. CLONE REPOSITORY
+      - name: Checkout Source Code
+        uses: actions/checkout@v3
+
+      # 2. RUNTIME CONFIGURATION
+      - name: Initialize Node.js ${{ matrix.node-version }} Runtime
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      # 3. DEPENDENCY INSTALLATION
+      - name: Install Project Dependencies
+        run: npm install
+
+      # 4. UNIT TEST EXECUTION
+      # Architectural Validation: Verifies isolated logic, models, and helpers.
+      - name: Run Unit Tests (Standardized Suite)
+        run: npm test test/unit/
+
+      # 5. INTEGRATION TEST EXECUTION
+      # Ecosystem Validation: Verifies end-to-end flows (Contribution, Admin, Payouts).
+      # Requirements: Secured MongoDB URI and JWT Secret for environmental parity.
+      - name: Run Integration Tests (Full Flow)
+        run: npm test test/integration/
+        env:
+          MONGO_URI_TEST: ${{ secrets.MONGO_URI_TEST }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+
