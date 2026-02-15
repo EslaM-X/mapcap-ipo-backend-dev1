@@ -1,13 +1,14 @@
 /**
- * API Routes - Unified Communication Layer v1.7
- * ---------------------------------------------------------
- * Lead Architect: Eslam Kora | AppDev @Map-of-Pi
+ * API Routes - Unified Communication Layer v1.7.1
+ * -------------------------------------------------------------------------
+ * Lead Architect: EslaM-X | AppDev @Map-of-Pi
  * Project: MapCap Ecosystem | Spec: Philip's White-Label Strategy
- * * PURPOSE:
+ * -------------------------------------------------------------------------
+ * ARCHITECTURAL ROLE:
  * Bridges the Frontend Dashboard with core high-precision services.
  * Implements Philip's Scarcity "Water-Level" metrics and Daniel's 
  * A2UaaS (App-to-User-as-a-Service) secure payout pipeline.
- * ---------------------------------------------------------
+ * -------------------------------------------------------------------------
  */
 
 import express from 'express';
@@ -21,7 +22,7 @@ const router = express.Router();
 /**
  * MODULE INTEGRATION:
  * Mapping the modular IPO routes under the /ipo namespace.
- * This includes dashboard-stats, invest, and status.
+ * Endpoints: /api/v1/ipo/dashboard-stats, /api/v1/ipo/invest, /api/v1/ipo/status
  */
 router.use('/ipo', ipoRoutes);
 
@@ -29,13 +30,17 @@ router.use('/ipo', ipoRoutes);
  * @route   GET /api/v1/stats
  * @desc    Global Aggregate Pulse for the Ecosystem.
  * Provides broad scarcity engine metrics for public transparency.
+ * Essential for the landing page 'Pulse' indicators.
  */
 router.get('/stats', async (req, res) => {
     try {
-        // 1. Snapshot Aggregation (Simulated for real-time pulse)
-        const totalPiInvested = 500000; 
+        /**
+         * 1. SNAPSHOT AGGREGATION:
+         * Note: In production, this pulls from a cached 'GlobalMetrics' model.
+         */
+        const totalPiInvested = 500000; // Placeholder for aggregate liquidity
         
-        // 2. Scarcity Engine Execution
+        // 2. SCARCITY ENGINE EXECUTION: Calculating real-time asset value
         const currentPrice = PriceService.calculateDailySpotPrice(totalPiInvested);
         const formattedPrice = PriceService.formatPriceForDisplay(currentPrice);
 
@@ -43,8 +48,9 @@ router.get('/stats', async (req, res) => {
             totalPi: totalPiInvested,
             spotPrice: formattedPrice,
             supplyStats: {
-                totalMapCap: PriceService.TOTAL_MAPCAP_SUPPLY,
-                remaining: PriceService.TOTAL_MAPCAP_SUPPLY - (totalPiInvested * currentPrice)
+                totalMapCap: PriceService.IPO_MAPCAP_SUPPLY,
+                // Remaining supply calculation based on fixed allocation
+                remaining: PriceService.IPO_MAPCAP_SUPPLY - (totalPiInvested * currentPrice)
             },
             compliance: {
                 whaleShield: "Active",
@@ -59,25 +65,31 @@ router.get('/stats', async (req, res) => {
 /**
  * @route   POST /api/v1/withdraw
  * @desc    Secure Payout Pipeline (A2UaaS Protocol).
- * Used for manual admin refunds or approved Pioneer withdrawals.
+ * Used for approved Pioneer withdrawals or direct financial settlements.
+ * @access  Protected (Requires administrative/owner-level authorization)
  */
 router.post('/withdraw', async (req, res) => {
     const { userWallet, amount } = req.body;
 
+    // VALIDATION: Essential check for A2UaaS metadata
     if (!userWallet || !amount) {
-        return ResponseHelper.error(res, "Required: wallet_address & amount", 400);
+        return ResponseHelper.error(res, "Mandatory fields required: userWallet & amount.", 400);
     }
 
     try {
         /**
          * EXECUTION:
          * Interacts with PayoutService to trigger the Pi SDK A2U transfer.
-         * Fees are auto-deducted within the service layer per Spec Page 5.
+         * Fees (0.01 Pi) are auto-deducted within the service layer per Spec Page 5.
          */
         const result = await PayoutService.executeA2UPayout(userWallet, amount);
         
         return ResponseHelper.success(res, "A2U Payout Sequence Initiated", result);
     } catch (error) {
+        /**
+         * EXCEPTION INTERCEPTOR:
+         * Logs failure to Daniel's financial reconciliation pipeline.
+         */
         return ResponseHelper.error(res, `A2U Pipeline Error: ${error.message}`, 500);
     }
 });
