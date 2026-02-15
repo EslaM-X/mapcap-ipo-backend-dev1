@@ -1,11 +1,13 @@
 /**
- * Daily Price Update Job - Market Dynamics Engine v1.2
+ * Daily Price Update Job - Market Dynamics Engine v1.2.5
  * ---------------------------------------------------------
- * Lead Architect: Eslam Kora | AppDev @Map-of-Pi
+ * Lead Architect: EslaM-X | AppDev @Map-of-Pi
  * Project: MapCap Ecosystem | Spec: Philip Jennings & Daniel
- * * PURPOSE: 
- * Executes every 24 hours to recalibrate the 'Spot Price'.
- * Powering the scarcity-based valuation model [Page 4, Sec 73].
+ * ---------------------------------------------------------
+ * ARCHITECTURAL ROLE: 
+ * Executes the 24-hour recalibration of the MapCap 'Spot Price'.
+ * This job synchronizes the 'Water-Level' liquidity with the 
+ * scarcity-based valuation model [Page 4, Sec 73].
  * ---------------------------------------------------------
  */
 
@@ -16,16 +18,18 @@ import { writeAuditLog } from '../config/logger.js';
 class DailyPriceJob {
     /**
      * @method updatePrice
-     * @desc Calculates the new market spot price based on global pool liquidity.
-     * Synchronizes the 'Water-Level' with the Dashboard UI.
+     * @desc Aggregates global Pi liquidity and calculates the current market 
+     * spot price. Values are formatted for high-precision Dashboard display.
+     * @returns {Object} Metadata for historical charting and UI synchronization.
      */
     static async updatePrice() {
-        console.log("--- [MARKET_ENGINE] Starting Daily Price Recalibration ---");
+        console.log("--- [MARKET_ENGINE] Starting Daily Price Recalibration Cycle ---");
 
         try {
             /**
-             * 1. GLOBAL AGGREGATION
-             * Summing total Pi liquidity to determine the current 'Water-Level'.
+             * STEP 1: LIQUIDITY AGGREGATION
+             * Calculating the finalized 'Water-Level' across all Pioneers.
+             * This aggregate serves as the denominator in the scarcity formula.
              */
             const result = await Investor.aggregate([
                 { $group: { _id: null, totalPool: { $sum: "$totalPiContributed" } } }
@@ -34,28 +38,28 @@ class DailyPriceJob {
             const totalPiInvested = result.length > 0 ? result[0].totalPool : 0;
 
             /**
-             * 2. SCARCITY-BASED VALUATION (Philip's Formula)
-             * Logic: Total MapCap Supply / Current Pi Pool.
-             * Handled by PriceService for high-precision math.
+             * STEP 2: SCARCITY-BASED VALUATION (Philip's Core Formula)
+             * Formula: Total MapCap Supply / Current Liquidity Pool.
+             * High-precision logic is delegated to the PriceService.
              */
             const newPrice = PriceService.calculateDailySpotPrice(totalPiInvested);
             const formattedPrice = PriceService.formatPrice(newPrice);
 
             /**
-             * DANIEL'S AUDIT TRAIL:
-             * Logging the price movement to the permanent audit.log file.
+             * STEP 3: DANIEL'S COMPLIANCE AUDIT
+             * Captures a permanent snapshot of the market movement for financial auditing.
              */
-            writeAuditLog('INFO', `[MARKET_SNAPSHOT] Pool: ${totalPiInvested} Pi | Spot Price: ${formattedPrice} Pi/MapCap`);
+            writeAuditLog('INFO', `[MARKET_SNAPSHOT] Pool: ${totalPiInvested} Pi | Spot Price: ${formattedPrice}`);
 
-            console.log(`[AUDIT] Total Pool Liquidity: ${totalPiInvested} Pi`);
-            console.log(`[AUDIT] Recalculated Spot Price: ${formattedPrice}`);
+            console.log(`[AUDIT] Current Water-Level: ${totalPiInvested} Pi`);
+            console.log(`[AUDIT] Market Spot Price: ${formattedPrice}`);
 
             /**
-             * FUTURE UI SYNC:
-             * This return value is captured by CronScheduler to trigger 
-             * real-time updates via WebSockets or saved for the 28-day graph.
+             * STEP 4: EXECUTION SUMMARY
+             * The returned payload is formatted for historical data persistence 
+             * used in the Dashboard's 28-day performance graph.
              */
-            console.log("--- [SUCCESS] Daily Price Update Cycle Completed ---");
+            console.log("--- [SUCCESS] Market Recalibration Cycle Finalized ---");
             
             return { 
                 totalPiInvested, 
@@ -64,8 +68,12 @@ class DailyPriceJob {
             };
 
         } catch (error) {
-            writeAuditLog('CRITICAL', `Price Update Aborted: ${error.message}`);
-            console.error("[CRITICAL_ERROR] Price Update Aborted:", error.message);
+            /**
+             * EXCEPTION HANDLING:
+             * Logs failure for Daniel's manual reconciliation to prevent data gaps.
+             */
+            writeAuditLog('CRITICAL', `Price Engine Stalled: ${error.message}`);
+            console.error("[CRITICAL_FAILURE] Price Update Aborted:", error.message);
             throw error; 
         }
     }
