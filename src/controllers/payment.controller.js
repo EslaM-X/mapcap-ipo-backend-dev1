@@ -1,11 +1,13 @@
 /**
- * Payment Controller - Financial Operations v1.6
+ * Payment Controller - Financial Operations v1.6.5
  * ---------------------------------------------------------
- * Lead Architect: Eslam Kora | AppDev @Map-of-Pi
- * Project: MapCap Ecosystem | Spec: Daniel's Financial Audit Standards
- * * PURPOSE:
- * Processes incoming investment payments (U2A), updates equity balances,
- * and maintains the immutable transaction history for the IPO.
+ * Lead Architect: EslaM-X | AppDev @Map-of-Pi
+ * Project: MapCap Ecosystem | Spec: Philip's Dynamic IPO Flexibility
+ * ---------------------------------------------------------
+ * PURPOSE:
+ * Processes incoming investment payments (U2A). Updated to allow 
+ * contributions to flow freely during the IPO phase, deferring 
+ * whale capping to the final settlement stage per Philip's Spec.
  * ---------------------------------------------------------
  */
 
@@ -17,13 +19,14 @@ import { writeAuditLog } from '../config/logger.js';
 class PaymentController {
     /**
      * @method processInvestment
-     * @desc Records transaction and updates Pioneer stake post-SDK callback.
-     * Enforces strict idempotency via unique piTxId.
+     * @desc Records transaction and updates Pioneer stake.
+     * Logic: Accepts all valid Pi transfers without hard-capping at 10% 
+     * during this phase to account for pool fluctuations.
      */
     static async processInvestment(req, res) {
         const { piAddress, amount, piTxId } = req.body;
 
-        // 1. INPUT VALIDATION: Ensure financial metadata is present
+        // 1. INPUT VALIDATION
         if (!piAddress || !amount || !piTxId) {
             return ResponseHelper.error(res, "Missing transaction metadata.", 400);
         }
@@ -31,7 +34,7 @@ class PaymentController {
         try {
             /**
              * 2. IDEMPOTENCY CHECK:
-             * Prevents processing the same blockchain transaction twice.
+             * Ensures no double-crediting of the same blockchain transaction.
              */
             const existingTx = await Transaction.findOne({ piTxId });
             if (existingTx) {
@@ -39,8 +42,10 @@ class PaymentController {
             }
 
             /**
-             * 3. LEDGER & TRANSACTION ATOMICITY:
-             * Recording the movement and updating the investor profile.
+             * 3. ATOMIC LEDGER UPDATE:
+             * Per Philip's requirement: We increment the total contribution 
+             * WITHOUT enforcing the 10% ceiling here. This allows the 
+             * "Water-Level" to fluctuate naturally.
              */
             const investmentAmount = Number(amount);
 
@@ -50,28 +55,27 @@ class PaymentController {
                 type: 'INVESTMENT',
                 status: 'COMPLETED',
                 piTxId,
-                memo: `IPO Contribution - Manual Sync via SDK Callback`
+                memo: `IPO Contribution - Dynamic Sync`
             });
 
-            // Update Investor Equity Stake
+            // Update Investor Balance - No 'isWhale' check here to prevent UX friction
             const investor = await Investor.findOneAndUpdate(
                 { piAddress },
                 { 
                     $inc: { totalPiContributed: investmentAmount },
                     $set: { lastContributionDate: Date.now() }
                 },
-                { upsert: true, new: true } // Creates record if it doesn't exist
+                { upsert: true, new: true }
             );
-
-            
 
             /**
              * 4. AUDIT LOGGING:
-             * Daniel's Compliance Requirement: Permanent log of the successful sync.
+             * Daniel's Standard: Every successful contribution is logged 
+             * for the final 4-week cycle audit.
              */
             writeAuditLog('INFO', `Investment Processed: ${investmentAmount} Pi from ${piAddress} (TX: ${piTxId})`);
 
-            // 5. SUCCESS RESPONSE
+            // 5. SUCCESS RESPONSE: Structure preserved for Frontend Dashboard compatibility
             return ResponseHelper.success(res, "Ledger Synchronized Successfully.", {
                 pioneer: piAddress,
                 contribution: investmentAmount,
@@ -81,8 +85,8 @@ class PaymentController {
 
         } catch (error) {
             /**
-             * 6. CRITICAL ERROR HANDLING:
-             * Catching system failures and logging them for manual recovery.
+             * 6. EXCEPTION HANDLING:
+             * Critical for Daniel's monitoring.
              */
             writeAuditLog('CRITICAL', `Payment Processing Failed for ${piAddress}: ${error.message}`);
             console.error(`[PAYMENT_FAILURE]: ${error.message}`);
