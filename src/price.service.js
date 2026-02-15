@@ -1,58 +1,63 @@
 /**
- * PriceService - Dynamic Scarcity Pricing Engine v1.3
- * ---------------------------------------------------------
- * Lead Architect: Eslam Kora | AppDev @Map-of-Pi
- * Project: MapCap Ecosystem | Spec: Philip Jennings (Page 4)
- * * PURPOSE:
- * Calculates the real-time "Spot Price" based on the 'Water-Level' 
- * (Total Pi Pool). This ensures the IPO Pulse Dashboard reflects 
- * the dynamic valuation model requested for the 4-week period.
- * ---------------------------------------------------------
+ * PriceService - Dynamic Scarcity Pricing Engine v1.3.1
+ * -------------------------------------------------------------------------
+ * Lead Architect: EslaM-X | AppDev @Map-of-Pi
+ * Project: MapCap Ecosystem | Spec: Philip Jennings (Scarcity Model)
+ * -------------------------------------------------------------------------
+ * ARCHITECTURAL ROLE:
+ * Orchestrates the real-time "Spot Price" calculation based on the 
+ * aggregate 'Water-Level' (Total Pi Contributed). This service ensures 
+ * the IPO Pulse Dashboard reflects the dynamic valuation requested.
+ * -------------------------------------------------------------------------
  */
 
 class PriceService {
   /**
    * OFFICIAL IPO SUPPLY:
-   * Fixed at 2,181,818 MapCap shares as per the ecosystem consensus.
+   * Fixed at 2,181,818 MapCap units. This constant is the anchor for 
+   * all scarcity-based valuation logic.
    */
   static IPO_MAPCAP_SUPPLY = 2181818;
 
   /**
    * @method calculateDailySpotPrice
-   * @desc Implements the Inverse Proportion Formula.
-   * @param {number} totalPiInWallet - Aggregate Pi collected from all Pioneers.
-   * @returns {number} The current valuation of 1 MapCap in Pi.
+   * @description Implementation of the Inverse Scarcity Formula.
+   * Logic: Price = (Fixed Supply / Total Contributed Pi).
+   * @param {number} totalPiInWallet - Total Pi aggregate from the IPO wallet.
+   * @returns {number} The current valuation of 1 MapCap relative to Pi.
    */
   static calculateDailySpotPrice(totalPiInWallet) {
     /**
-     * SAFE-GUARD:
-     * If the pool is empty (start of IPO), return 0.
-     * This triggers the "Calculating..." state in the Frontend PriceGraph.
+     * INITIALIZATION GUARD:
+     * Prevents division by zero or negative results. If the pool is empty 
+     * (start of IPO), it returns 0 to trigger the "Pending" UI state.
      */
     if (!totalPiInWallet || totalPiInWallet <= 0) {
       return 0;
     }
 
     /**
-     * PHILIP'S FORMULA:
-     * Price = Fixed Supply / Total Contributed Pi
-     * As liquidity (Pi) grows, the MapCap price adjusts to maintain 
-     * the fixed supply ratio, rewarding early 'Water-Level' participants.
+     * PHILIP'S SPECIFICATION:
+     * As liquidity (Pi) increases, the MapCap 'Spot Price' adjusts dynamically.
+     * This rewards early participants by establishing a fixed equity ratio.
      */
     return this.IPO_MAPCAP_SUPPLY / totalPiInWallet;
   }
 
   /**
    * @method formatPrice
-   * @desc Normalizes the price for UI display in the StatsPanel.
-   * @param {number} price - The raw floating-point calculation.
-   * @returns {string} Formatted string with 6-decimal precision.
+   * @description Standardizes price strings for the StatsPanel and PriceGraph.
+   * @param {number} price - Raw floating-point spot price.
+   * @returns {string} Normalized string formatted to 6-decimal precision.
    */
   static formatPrice(price) {
     if (!price || isNaN(price)) return "0.000000";
+    // Aligns with the high-fidelity reporting standard (Daniel's Compliance)
     return Number(price).toFixed(6);
   }
 }
 
-// Exporting as ES Module to align with Vercel/Node.js architecture
+
+
+// Exporting as ES Module for seamless Vercel/Node.js integration
 export default PriceService;
