@@ -1,47 +1,49 @@
 /**
- * Initial Mint Configuration - MapCap Tokenomics v1.2
+ * Initial Mint Configuration - MapCap Tokenomics v1.2.5
  * ---------------------------------------------------------
- * Lead Architect: Eslam Kora | AppDev @Map-of-Pi
+ * Lead Architect: EslaM-X | AppDev @Map-of-Pi
  * Project: MapCap Ecosystem | Spec: Philip Jennings (Tokenomics)
- * * PURPOSE:
+ * ---------------------------------------------------------
+ * ARCHITECTURAL ROLE:
  * Defines the core supply constants for the MapCap Genesis Mint.
- * These values govern the scarcity model and the transition from 
- * the 4-week IPO phase to the Liquidity Pool (LP) stage.
+ * These values are the foundation for the "Value 2" (Spot Price) 
+ * calculation and the final LP (Liquidity Pool) transition.
  * ---------------------------------------------------------
  */
 
 const MintConfig = {
     /**
-     * TOTAL_MINT_SUPPLY
+     * TOTAL_MINT_SUPPLY: 4,000,000
      * The absolute hard-cap for the MapCap ecosystem.
-     * All calculations must reference this base value.
+     * This ensures long-term scarcity and value preservation.
      */
     TOTAL_MINT: 4000000,
 
     /**
-     * IPO_POOL_ALLOCATION
-     * Reserved specifically for the 4-week dynamic pricing IPO.
-     * This pool is governed by the 'Water-Level' scarcity formula.
+     * IPO_POOL_ALLOCATION: 2,181,818
+     * Specifically reserved for the 4-week dynamic pricing IPO.
+     * Formula Impact: Current Spot Price = IPO_POOL / Total Pi Invested.
      */
     IPO_POOL: 2181818,
 
     /**
-     * LP_POOL_RESERVE
-     * Reserved for the Liquidity Pool transition post-IPO.
-     * Ensures market stability and trading depth for the Pioneers.
+     * LP_POOL_RESERVE: 1,818,182
+     * Reserved for market depth post-IPO settlement.
+     * This pool is utilized only after the Whale-Shield protocol is finalized.
      */
     LP_POOL: 1818182,
 
     /**
-     * PRECISION_STANDARD
-     * Global precision for all minting and distribution calculations.
+     * PRECISION_STANDARD: 6
+     * Standardized decimal precision for Pi Network compatibility.
      */
     PRECISION: 6
 };
 
 /**
- * Note: ALPHA_GAIN (1.20) is removed from static config as it is 
- * dynamically derived from the (IPO_POOL / TOTAL_MINT) ratio 
- * within the Financial Engine.
+ * ARCHITECTURAL NOTE:
+ * ALPHA_GAIN is now a dynamic property in the Financial Engine, 
+ * derived from the IPO_POOL/TOTAL_MINT ratio to maintain accuracy.
+ * Object.freeze prevents accidental runtime mutations.
  */
 export default Object.freeze(MintConfig);
