@@ -1,5 +1,5 @@
 /**
- * Server Heartbeat Unit Tests - Core Orchestration v1.6.2 (Stabilized)
+ * Server Heartbeat Unit Tests - Core Orchestration v1.6.5 (Stabilized)
  * ---------------------------------------------------------
  * Lead Architect: EslaM-X | AppDev @Map-of-Pi
  * Project: MapCap Ecosystem | Spec: Philip & Daniel Compliance
@@ -52,11 +52,13 @@ describe('Server Engine - Heartbeat & Integration Tests', () => {
   /**
    * TEST: CORS & Security Headers
    * Requirement: Public API accessibility for the MapCap Dashboard.
+   * FIX v1.6.5: Increased timeout to 15s to ensure stability across different 
+   * environment performance levels (Fixes Daniel's timeout error).
    */
   test('Security: Should have CORS headers enabled for dashboard access', async () => {
     const res = await request(app).get('/'); 
     expect(res.header['access-control-allow-origin']).toBe('*');
-  });
+  }, 15000); // Increased timeout to 15,000ms for cross-platform stability
 
   /**
    * TEST: Error Handling Interceptor
