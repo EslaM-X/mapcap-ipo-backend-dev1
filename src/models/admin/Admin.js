@@ -1,13 +1,14 @@
 /**
- * Admin Account Schema v1.5
- * ---------------------------------------------------------
- * Lead Architect: Eslam Kora | AppDev @Map-of-Pi
- * Project: MapCap Ecosystem | Spec: Daniel's Security & Compliance
- * * PURPOSE:
- * Defines administrative credentials and access levels.
- * Supports granular Role-Based Access Control (RBAC) to ensure 
- * separation of duties between Operations (Philip) and Auditing (Daniel).
- * ---------------------------------------------------------
+ * Admin Account Schema v1.5.1 (Executive Access Layer)
+ * -------------------------------------------------------------------------
+ * Lead Architect: EslaM-X | AppDev @Map-of-Pi
+ * Project: MapCap Ecosystem | Spec: Daniel's Security & Compliance Standard
+ * -------------------------------------------------------------------------
+ * ARCHITECTURAL ROLE:
+ * Defines administrative credentials and granular access levels (RBAC).
+ * Engineered to provide a secure environment for Philip (Operations) 
+ * and Daniel (Auditing), ensuring strict separation of administrative duties.
+ * -------------------------------------------------------------------------
  */
 
 import mongoose from 'mongoose';
@@ -15,11 +16,12 @@ import mongoose from 'mongoose';
 const AdminSchema = new mongoose.Schema({
     /**
      * @property {String} username
-     * Unique identifier for the administrator (e.g., 'philip_admin').
+     * Unique identifier for the administrator.
+     * Enforces lowercase and trimming for high-fidelity login synchronization.
      */
     username: { 
         type: String, 
-        required: [true, 'Admin username is required'], 
+        required: [true, 'Administrative username is mandatory'], 
         unique: true,
         trim: true,
         lowercase: true
@@ -27,20 +29,20 @@ const AdminSchema = new mongoose.Schema({
 
     /**
      * @property {String} password
-     * Hashed credential. 
-     * NOTE: Must be processed via bcrypt before saving in AuthController.
+     * High-entropy hashed credential.
+     * Security Constraint: 'select: false' prevents accidental exposure in API logs.
      */
     password: {
         type: String,
-        required: [true, 'Secure password hash is mandatory'],
-        select: false // Ensures password isn't leaked in general API queries
+        required: [true, 'Secure password hash is required for system entry'],
+        select: false 
     },
     
     /**
      * @property {String} role
-     * Access Level Definition:
-     * - SUPER_ADMIN: Full control (Philip)
-     * - AUDITOR: Read-only access to financial logs (Daniel)
+     * Access Level Definition (Role-Based Access Control):
+     * - SUPER_ADMIN: Full ecosystem oversight and settlement execution (Philip).
+     * - AUDITOR: Read-only access to ledger logs and A2UaaS records (Daniel).
      */
     role: { 
         type: String, 
@@ -50,7 +52,7 @@ const AdminSchema = new mongoose.Schema({
 
     /**
      * @property {Date} lastLogin
-     * Security Audit Trail: Tracks the last time the dashboard was accessed.
+     * Security Audit Trail: Monitors the most recent dashboard session.
      */
     lastLogin: { 
         type: Date 
@@ -58,7 +60,8 @@ const AdminSchema = new mongoose.Schema({
 
     /**
      * @property {Boolean} isActive
-     * Kill-switch for admin access in case of credential compromise.
+     * Global Kill-Switch: Allows immediate suspension of admin privileges
+     * in the event of credential compromise.
      */
     isActive: {
         type: Boolean,
@@ -66,12 +69,15 @@ const AdminSchema = new mongoose.Schema({
     }
 }, { 
     /**
-     * Timestamps for compliance tracking.
+     * timestamps: Automatic creation of 'createdAt' and 'updatedAt' for Daniel's compliance reports.
      */
     timestamps: true 
 });
 
-// Adding index for high-speed authentication lookups
+/**
+ * INDEXING STRATEGY: 
+ * Optimized for high-speed authentication and status checks.
+ */
 AdminSchema.index({ username: 1, isActive: 1 });
 
 const Admin = mongoose.model('Admin', AdminSchema);
