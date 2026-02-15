@@ -1,14 +1,14 @@
 /**
- * MapCap IPO Controller - High-Precision Financial Engine v1.7.6
- * ---------------------------------------------------------
+ * MapCap IPO Controller - High-Precision Financial Engine v1.7.7
+ * -------------------------------------------------------------------------
  * Lead Architect: EslaM-X | AppDev @Map-of-Pi
  * Project: MapCap Ecosystem | Spec: Philip's Post-IPO Compliance
- * ---------------------------------------------------------
+ * -------------------------------------------------------------------------
  * ARCHITECTURAL ROLE:
- * Powers the 'Pulse Dashboard' by aggregating global liquidity.
+ * Powers the 'Pulse Dashboard' by aggregating global liquidity metrics.
  * Implements the scarcity-based Spot Price logic and provides real-time 
- * transparency for Pioneers while ensuring zero Frontend breakage.
- * ---------------------------------------------------------
+ * transparency for Pioneers while ensuring 100% Frontend stability.
+ * -------------------------------------------------------------------------
  */
 
 import Investor from '../models/investor.model.js';
@@ -26,11 +26,16 @@ class IpoController {
         try {
             /**
              * IDENTITY RESOLUTION:
-             * Resolves the Pioneer's UID for real-time ledger synchronization.
+             * Resolves the Pioneer's UID/Address for real-time ledger sync.
+             * Compatible with the authentication middleware layer.
              */
             const piAddress = req.user?.uid || req.user?.username; 
 
-            // 1. GLOBAL AGGREGATION: Calculating the 'Water-Level' [Spec Page 4]
+            /**
+             * STEP 1: GLOBAL LIQUIDITY AGGREGATION
+             * Calculating the 'Water-Level' across the entire ecosystem.
+             * This satisfies Philip's requirement for aggregate-based pricing.
+             */
             const globalMetrics = await Investor.aggregate([
                 { 
                     $group: { 
@@ -44,14 +49,17 @@ class IpoController {
             const totalPiInvested = globalMetrics[0]?.totalPi || 0;
             const totalInvestors = globalMetrics[0]?.investorCount || 0;
 
-            // 2. INDIVIDUAL LEDGER SYNC: Fetching personalized contribution data
+            /**
+             * STEP 2: INDIVIDUAL LEDGER SYNC
+             * Fetching personalized contribution data for the logged-in Pioneer.
+             */
             const pioneer = await Investor.findOne({ piAddress });
             const userPiBalance = pioneer ? pioneer.totalPiContributed : 0;
 
             /**
-             * 3. DYNAMIC SPOT PRICE (Philip's Scarcity Formula)
+             * STEP 3: DYNAMIC SPOT PRICE (Philip's Scarcity Formula)
              * Formula: Total MAPCAP IPO Supply (2,181,818) / Current Pool Liquidity.
-             * This creates the "Value 2" scarcity metric.
+             * This populates the "Value 2" scarcity metric in the UI.
              */
             const IPO_MAPCAP_SUPPLY = 2181818;
             const spotPrice = totalPiInvested > 0 
@@ -59,19 +67,20 @@ class IpoController {
                 : 0; 
 
             /**
-             * 4. ALPHA GAIN & WHALE SHIELD MONITORING
-             * Logic: We monitor the 10% ceiling without enforcing hard-locks 
-             * during the IPO, as the pool total is continuously fluctuating.
+             * STEP 4: ALPHA GAIN & COMPLIANCE MONITORING
+             * Calculates capital gains and monitors the 10% Whale ceiling.
+             * Advisory status provided until final 28-day cycle settlement.
              */
             const userCapitalGain = MathHelper.calculateAlphaGain(userPiBalance);
             const userSharePct = MathHelper.getPercentage(userPiBalance, totalPiInvested);
             
-            // Per Philip's Use Case: isWhale is an advisory status until the 4-week cycle ends.
+            // isWhale remains advisory to prevent UX friction during IPO phase
             const isWhale = userSharePct > 10.0;
 
             /**
-             * 5. SUCCESS RESPONSE: Data Delivery for Dashboard.jsx
-             * KEY: Variable names (v1, v2, v3, v4) are preserved for 100% Frontend stability.
+             * STEP 5: STANDARDIZED SUCCESS RESPONSE
+             * KEY: 'v1' through 'v4' keys are preserved for 100% Frontend stability.
+             * This prevents crashes in the Dashboard.jsx data mapping.
              */
             return ResponseHelper.success(res, "Financial Ledger Synchronized", {
                 values: {
@@ -84,7 +93,7 @@ class IpoController {
                 compliance: {
                     isWhale,
                     sharePercentage: `${userSharePct}%`,
-                    // Informative status: Actual enforcement occurs at Post-IPO Settlement.
+                    // Status indicates enforcement is pending final cycle closure
                     status: isWhale ? "PENDING_FINAL_SETTLEMENT" : "COMPLIANT"
                 },
                 vesting: {
@@ -97,7 +106,7 @@ class IpoController {
         } catch (error) {
             /**
              * CRITICAL EXCEPTION LOGGING:
-             * Ensures pipeline failures are visible for Daniel's monitoring.
+             * Vital for Daniel's audit. Ensures failures are captured in server logs.
              */
             console.error(`[CRITICAL_CONTROLLER_ERROR]: ${error.message}`);
             return ResponseHelper.error(res, "Dashboard Sync Failed: Financial Pipeline Offline", 500);
