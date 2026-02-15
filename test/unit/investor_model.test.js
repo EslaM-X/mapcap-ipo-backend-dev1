@@ -1,18 +1,18 @@
 /**
- * Investor Model Unit Tests - Data Integrity v1.3 (ESM Migration)
+ * Investor Model Unit Tests - Data Integrity v1.6.5 (Philip's Use Case)
  * ---------------------------------------------------------
  * Lead Architect: EslaM-X | AppDev @Map-of-Pi
- * Project: MapCap Ecosystem | Spec: Philip's Equity Tracker
+ * Project: MapCap Ecosystem | Spec: Dynamic IPO Participation
  * ---------------------------------------------------------
  * PURPOSE: 
  * Validates Schema constraints for IPO participants. Ensures 
- * strict data integrity for Pi addresses and financial fields 
- * while maintaining compatibility with the Node.js ESM environment.
+ * strict data integrity for Pi addresses while allowing dynamic 
+ * balance fluctuations during the IPO period as per project requirements.
  */
 
 import { jest } from '@jest/globals';
 import mongoose from 'mongoose';
-// Fix: Updated to use the explicit model filename and path for ESM
+// Path maintained to ensure compatibility before Daniel's folder restructuring
 import Investor from '../../src/models/investor.model.js';
 
 describe('Investor Model - Schema Integrity Tests', () => {
@@ -20,6 +20,7 @@ describe('Investor Model - Schema Integrity Tests', () => {
   /**
    * TEST: Required Fields
    * Requirement: Every record must have a unique piAddress for ledger tracking.
+   * Ensures the Frontend can always link a wallet to a contribution.
    */
   test('Validation: Should throw an error if piAddress is missing', async () => {
     const investor = new Investor({ totalPiContributed: 100 });
@@ -31,6 +32,7 @@ describe('Investor Model - Schema Integrity Tests', () => {
   /**
    * TEST: Non-Negative Contributions
    * Requirement: Financial integrity check (Ensures non-negative Pi values).
+   * Prevents database anomalies in equity calculation.
    */
   test('Financials: Should reject negative Pi contributions', async () => {
     const investor = new Investor({ 
@@ -43,10 +45,29 @@ describe('Investor Model - Schema Integrity Tests', () => {
   });
 
   /**
+   * TEST: Dynamic Balance Flexibility (Philip's Feedback)
+   * Requirement: Allow balances to exceed temporary thresholds during IPO.
+   * Validates that the Schema does NOT hard-cap contributions at this level.
+   */
+  test('Flexibility: Should allow contributions to exceed 10% during IPO phase', () => {
+    const highValueContribution = 500000; // Simulating a large stake
+    const investor = new Investor({ 
+      piAddress: 'GBV...WHALE', 
+      totalPiContributed: highValueContribution 
+    });
+
+    const err = investor.validateSync();
+    // Expect no validation error even with high values (Capping moved to Settlement Job)
+    expect(err).toBeUndefined();
+    expect(investor.totalPiContributed).toBe(highValueContribution);
+  });
+
+  /**
    * TEST: Default Values
    * Requirement: New pioneers must initialize with clean equity states.
+   * Crucial for the Frontend Dashboard to display correct 'Zero-State' data.
    */
-  test('Defaults: Should initialize with 0 equity and COMPLIANT status', () => {
+  test('Defaults: Should initialize with 0 equity and non-whale status', () => {
     const investor = new Investor({ piAddress: 'GBV...ADDR' });
 
     expect(investor.totalPiContributed).toBe(0);
