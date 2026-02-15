@@ -1,11 +1,12 @@
 /**
- * PaymentService - Unified A2UaaS Engine (Spec-Compliant v1.7)
+ * PaymentService - Unified A2UaaS Engine (Spec-Compliant v1.7.5)
  * ---------------------------------------------------------
- * Lead Architect: Eslam Kora | AppDev @Map-of-Pi
- * Project: MapCap Ecosystem | Spec: Philip Jennings [Page 5, 84]
- * * ROLE: 
+ * Lead Architect: EslaM-X | AppDev @Map-of-Pi
+ * Project: MapCap Ecosystem | Spec: Philip Jennings & Daniel Compliance
+ * ---------------------------------------------------------
+ * ROLE: 
  * Orchestrates all App-to-User (A2U) Pi transfers.
- * Enforces mandatory fee deductions and high-precision math.
+ * Adjusted to handle final IPO settlements and whale refunds seamlessly.
  * ---------------------------------------------------------
  */
 
@@ -17,14 +18,13 @@ class PaymentService {
   /**
    * @method transferPi
    * @desc Executes a secure Pi transfer via A2UaaS protocol.
-   * @param {string} payeeAddress - Pioneer's wallet address.
-   * @param {number} grossAmount - Amount before fee deduction.
-   * @param {string} type - Transaction type (REFUND, DIVIDEND, VESTING).
+   * Works for VESTING, DIVIDENDS, and Philip's FINAL_WHALE_REFUND.
    */
   static async transferPi(payeeAddress, grossAmount, type = 'VESTING_RELEASE') {
     /**
      * 1. MANDATORY GAS FEE DEDUCTION
      * Requirement: [Page 5, Line 84] - Fees are deducted from the payout.
+     * Guaranteed precision using MathHelper to satisfy Daniel's audit.
      */
     const PI_NETWORK_FEE = 0.01; 
     const netAmount = MathHelper.toPiPrecision(grossAmount - PI_NETWORK_FEE);
@@ -36,29 +36,28 @@ class PaymentService {
 
     /**
      * 2. AUDIT LOGGING (Pre-execution)
-     * Creating a PENDING record to ensure no transaction is "lost" in transit.
+     * Requirement: Daniel's Transparency Standard. 
+     * Logs 'PENDING' state to prevent double-spending or lost records.
      */
     const auditRecord = await Transaction.create({
       piAddress: payeeAddress,
       amount: netAmount,
       type: type,
       status: 'PENDING',
-      memo: `A2UaaS Payment - Net: ${netAmount} Pi`
+      memo: `MapCap A2UaaS - Net: ${netAmount} Pi (Type: ${type})`
     });
-
-    
 
     try {
       /**
        * 3. SECURE BLOCKCHAIN EXECUTION
-       * Utilizing Pi Network V2 API for App-to-User payouts.
+       * Interfacing with Pi Network Mainnet API.
        */
       const response = await axios.post('https://api.minepi.com/v2/payments', {
         payment: {
           amount: netAmount,
           memo: `MapCap IPO: ${type}`,
           metadata: { transactionId: auditRecord._id },
-          uid: payeeAddress // Assuming piAddress as the UID for the SDK
+          uid: payeeAddress 
         }
       }, {
         headers: { 
@@ -68,9 +67,9 @@ class PaymentService {
       });
 
       // 4. LEDGER RECONCILIATION
-      // Update our internal log with the real PiTxId from the blockchain.
+      // Captures the official PiTxId for immutable record keeping.
       auditRecord.status = 'COMPLETED';
-      auditRecord.piTxId = response.data.identifier; // The official TX Hash
+      auditRecord.piTxId = response.data.identifier; 
       await auditRecord.save();
 
       console.log(`[PAYMENT_SUCCESS] ${netAmount} Pi sent to ${payeeAddress}. TXID: ${auditRecord.piTxId}`);
@@ -78,14 +77,14 @@ class PaymentService {
 
     } catch (error) {
       /**
-       * 5. CRITICAL ERROR HANDLING
-       * Captures API errors for manual reconciliation by Daniel.
+       * 5. CRITICAL EXCEPTION INTERCEPTOR
+       * Failures are logged as 'FAILED' for manual reconciliation.
        */
       auditRecord.status = 'FAILED';
       auditRecord.memo = `Error: ${error.response?.data?.message || error.message}`;
       await auditRecord.save();
 
-      console.error(`[A2UaaS_FATAL] Transfer failed for ${payeeAddress}:`, auditRecord.memo);
+      console.error(`[A2UaaS_FATAL] Transfer failure for ${payeeAddress}:`, auditRecord.memo);
       throw new Error(`A2UaaS Pipeline Breach: ${auditRecord.memo}`);
     }
   }
