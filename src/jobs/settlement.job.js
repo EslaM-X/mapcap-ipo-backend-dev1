@@ -1,13 +1,13 @@
 /**
- * SettlementJob - Anti-Whale Refund & Precision Engine v1.6
+ * SettlementJob - Final Post-IPO Whale-Shield & Reconciliation v1.6.5
  * ---------------------------------------------------------
- * Lead Architect: Eslam Kora | AppDev @Map-of-Pi
- * Project: MapCap Ecosystem | Spec: Philip Jennings & Daniel
- * * PURPOSE:
- * Strictly enforces the "10% Strategic Cap" rule. Integrates 
- * MathHelper for precision and PayoutService for the final 
- * App-to-User (A2U) payout execution.
+ * Lead Architect: EslaM-X | AppDev @Map-of-Pi
+ * Project: MapCap Ecosystem | Spec: Philip's Post-IPO Capping Logic
  * ---------------------------------------------------------
+ * PURPOSE: 
+ * Executes the 10% Decentralization Ceiling only after the IPO ends.
+ * This aligns with Philip's requirement to allow flexibility during 
+ * active participation while ensuring strict compliance before LP transfer.
  */
 
 import MathHelper from '../utils/math.helper.js';
@@ -17,44 +17,49 @@ import { writeAuditLog } from '../config/logger.js';
 class SettlementJob {
     /**
      * @method executeWhaleTrimBack
-     * @desc Executes the final trim-back process for all investors.
-     * Ensures no single Pioneer exceeds 10% of the total IPO pool.
-     * @param {Array} investors - List of all investor documents.
-     * @param {number} totalPool - Total Pi accumulated in the 4-week cycle.
+     * @desc Triggers the final audit and refund process for all participants.
+     * Enforces the 10% cap based on the FINAL total pool value.
+     * @param {Array} investors - Collection of investor documents from MongoDB.
+     * @param {number} totalPool - The finalized total Pi amount after IPO closure.
      */
     static async executeWhaleTrimBack(investors, totalPool) {
-        console.log("--- [COMPLIANCE] Starting Final Whale Settlement & Refund Cycle ---");
-        writeAuditLog('INFO', `Whale Settlement Initiated. Pool: ${totalPool} Pi`);
+        // Log initiation for transparency and audit trails
+        console.log("--- [COMPLIANCE] Initiating Post-IPO Final Settlement & Whale-Capping ---");
+        writeAuditLog('INFO', `Whale Settlement Triggered. Final Pool: ${totalPool} Pi`);
 
-        // PHILIP'S 10% STRATEGIC CAP RULE:
-        // No single entity should dominate the MapCap equity [Page 6, Sec 92].
+        /**
+         * PHILIP'S STRATEGIC CEILING (10%):
+         * Calculated based on the finalized pool to handle dynamic fluctuations 
+         * that occurred during the 4-week IPO period.
+         */
         const whaleThreshold = totalPool * 0.10;
         let totalRefundedInSession = 0;
         let whalesImpacted = 0;
 
         for (let investor of investors) {
-            // Check if investor exceeds the 10% pool limit
+            // Evaluates each investor against the final 10% threshold
             if (investor.totalPiContributed > whaleThreshold) {
                 
-                // 1. Calculate the exact excess amount to be returned
+                // 1. Calculate the exact surplus beyond the 10% ceiling
                 const excessAmount = investor.totalPiContributed - whaleThreshold;
                 
-                // 2. Apply MathHelper to prevent floating-point errors (Daniel's Value Protection)
+                // 2. Prevent precision loss using MathHelper (Daniel's Value Protection Standard)
                 const preciseRefund = MathHelper.toPiPrecision(excessAmount);
 
-                console.warn(`[WHALE_DETECTED] Wallet: ${investor.piAddress} | Excess: ${preciseRefund} Pi`);
+                console.warn(`[WHALE_CAP_TRIGGERED] Wallet: ${investor.piAddress} | Surplus to Refund: ${preciseRefund} Pi`);
 
                 try {
                     /**
-                     * 3. AUTOMATED PAYOUT EXECUTION (A2UaaS)
-                     * Triggering the automated App-to-User payout pipeline.
-                     * Fee logic is handled within the PayoutService as per Philip's specs.
+                     * 3. AUTOMATED A2U REFUND PIPELINE
+                     * Returns the surplus Pi back to the Pioneer's original wallet.
+                     * This ensures the investor only holds exactly 10% of the final equity.
                      */
                     await PayoutService.executeA2UPayout(investor.piAddress, preciseRefund);
                     
                     /**
-                     * 4. LEDGER RECONCILIATION
-                     * Truncate contribution to the max limit and flag the account for auditing.
+                     * 4. LEDGER FINALIZATION
+                     * Caps the contribution at the threshold and marks the 'isWhale' flag
+                     * for final transparent reporting in the Frontend Dashboard.
                      */
                     investor.totalPiContributed = whaleThreshold;
                     investor.isWhale = true;
@@ -65,23 +70,22 @@ class SettlementJob {
                     totalRefundedInSession = MathHelper.toPiPrecision(totalRefundedInSession + preciseRefund);
                     whalesImpacted++;
 
-                    writeAuditLog('INFO', `Settlement Success: ${preciseRefund} Pi refunded to ${investor.piAddress}. Capped at 10%.`);
+                    writeAuditLog('INFO', `Settlement Success: ${preciseRefund} Pi returned to ${investor.piAddress}. Threshold maintained.`);
 
                 } catch (error) {
                     /**
-                     * CRITICAL AUDIT LOGGING:
-                     * Failures here block the 10-month vesting cycle. Manual review required.
+                     * CRITICAL EXCEPTION HANDLING:
+                     * Any failure here triggers an audit alert. The vesting cycle 
+                     * will not proceed for this user until manual reconciliation.
                      */
-                    writeAuditLog('CRITICAL', `SETTLEMENT_FAILURE for ${investor.piAddress}: ${error.message}`);
-                    console.error(`[CRITICAL_SETTLEMENT_FAILURE]`, error.message);
+                    writeAuditLog('CRITICAL', `SETTLEMENT_ERROR for ${investor.piAddress}: ${error.message}`);
+                    console.error(`[CRITICAL_ERROR] Settlement failed for ${investor.piAddress}:`, error.message);
                 }
             }
         }
 
-        
-
-        const summaryLog = `Settlement Complete. Total Recovered: ${totalRefundedInSession} Pi | Whales Impacted: ${whalesImpacted}`;
-        console.log(`--- [SUMMARY] ${summaryLog} ---`);
+        const summaryLog = `Final Settlement Complete. Total Pi Refunded: ${totalRefundedInSession} | Whales Capped: ${whalesImpacted}`;
+        console.log(`--- [FINAL SUMMARY] ${summaryLog} ---`);
         writeAuditLog('INFO', summaryLog);
 
         return { 
