@@ -1,22 +1,23 @@
 /**
- * White-Label Branding Configuration v1.5
+ * White-Label Branding Configuration v1.5.5
  * ---------------------------------------------------------
- * Lead Architect: Eslam Kora | AppDev @Map-of-Pi
+ * Lead Architect: EslaM-X | AppDev @Map-of-Pi
  * Project: MapCap Ecosystem | Spec: Multi-Tenant Scalability
- * * PURPOSE:
+ * ---------------------------------------------------------
+ * PURPOSE:
  * Centralizes application identity, visual branding, and core 
- * IPO parameters. This file allows for rapid re-branding and 
- * deployment of the MapCap ecosystem for future partners.
+ * IPO parameters. This configuration powers both the UI theme 
+ * and the mathematical engine (PriceService/Pulse).
  * ---------------------------------------------------------
  */
 
 const brandingConfig = {
     // --- Project Identity ---
     projectName: "MapCap IPO",
-    dashboardTitle: "IPO Pulse Dashboard", // Core UX Hook
+    dashboardTitle: "IPO Pulse Dashboard", 
     providerName: "Map-of-Pi",
     
-    // --- Visual Identity System ---
+    // --- Visual Identity System (Frontend Theme Sync) ---
     theme: {
         primaryColor: "#d4af37", // MapCap Signature Gold
         secondaryColor: "#1a1a1a", // Deep Onyx for contrast
@@ -25,13 +26,13 @@ const brandingConfig = {
         fontFamily: "'Inter', sans-serif"
     },
     
-    // --- IPO Core Mechanics (Philip's Spec) ---
-    // These constants power the PriceService and Pulse Engine.
+    // --- IPO Core Mechanics (Philip's Strategic Specs) ---
+    // These constants drive the Scarcity Model and Settlement Job.
     mechanics: {
         ipoDurationWeeks: 4, 
-        totalMapCapSupply: 2181818, // Fixed supply for scarcity modeling
+        totalMapCapSupply: 2181818, // Fixed supply for scarcity modeling (Value 2)
         vestingPeriodMonths: 10, // Linear monthly release schedule
-        whaleCapPercentage: 10, // 10% Anti-Whale Ceiling
+        whaleCapPercentage: 10, // 10% Anti-Whale Ceiling (Post-IPO enforcement)
     },
     
     // --- Ecosystem & Support Links ---
@@ -44,15 +45,15 @@ const brandingConfig = {
     
     // --- Deployment & Compliance Metadata ---
     metadata: {
-        isLive: false, // Critical toggle for the 4-week execution window
-        version: "1.5.0-WhiteLabel",
-        complianceAudit: "Daniel_Standard_v1",
+        isLive: false, // Deployment status for the 4-week window
+        version: "1.5.5-Enterprise",
+        complianceAudit: "Daniel_Standard_v2", // Updated to reflect new settlement logic
         engineType: "A2UaaS_Standard"
     }
 };
 
 /**
- * Exporting as a constant object to ensure immutability 
- * across the application lifecycle.
+ * Object.freeze ensures immutability, preventing runtime 
+ * changes to core financial and branding parameters.
  */
 export default Object.freeze(brandingConfig);
