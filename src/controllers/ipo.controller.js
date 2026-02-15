@@ -1,12 +1,13 @@
 /**
- * MapCap IPO Controller - High-Precision Financial Engine v1.7
+ * MapCap IPO Controller - High-Precision Financial Engine v1.7.5
  * ---------------------------------------------------------
- * Lead Architect: Eslam Kora | AppDev @Map-of-Pi
- * Project: MapCap Ecosystem | Spec: Philip Jennings & Daniel
- * * OPERATIONAL OVERVIEW:
- * Powers the 'Pulse Dashboard' by aggregating global liquidity 
- * and enforcing the 10% Anti-Whale compliance protocol.
+ * Lead Architect: EslaM-X | AppDev @Map-of-Pi
+ * Project: MapCap Ecosystem | Spec: Philip's Post-IPO Compliance
  * ---------------------------------------------------------
+ * OPERATIONAL OVERVIEW:
+ * Powers the 'Pulse Dashboard' by aggregating global liquidity.
+ * Adjusted to support dynamic whale monitoring without hard-locking 
+ * contributions during the IPO phase, per Philip's requirement.
  */
 
 import Investor from '../models/investor.model.js';
@@ -23,8 +24,7 @@ class IpoController {
         try {
             /**
              * IDENTITY RESOLUTION:
-             * In production, req.user is populated by the AuthMiddleware 
-             * after verifying the Pi Network Scopes.
+             * Pi Network wallet identification for real-time ledger sync.
              */
             const piAddress = req.user?.uid || req.user?.username; 
 
@@ -56,16 +56,17 @@ class IpoController {
                 : 0; 
 
             /**
-             * 4. ALPHA GAIN & WHALE-SHIELD MONITORING
-             * Leveraging MathHelper for audit-ready precision.
+             * 4. ALPHA GAIN & DYNAMIC WHALE MONITORING
+             * Compliance labels adjusted to allow IPO-phase flexibility.
              */
             const userCapitalGain = MathHelper.calculateAlphaGain(userPiBalance);
             const userSharePct = MathHelper.getPercentage(userPiBalance, totalPiInvested);
+            
+            // Per Philip's Use Case: isWhale is a notification flag, not a restriction here.
             const isWhale = userSharePct > 10.0;
 
-            
-
             // 5. SUCCESS RESPONSE: Data Delivery for Dashboard.jsx
+            // Structure preserved for full Frontend compatibility.
             return ResponseHelper.success(res, "Financial Ledger Synchronized", {
                 values: {
                     v1_totalInvestors: totalInvestors,            
@@ -77,7 +78,8 @@ class IpoController {
                 compliance: {
                     isWhale,
                     sharePercentage: `${userSharePct}%`,
-                    status: isWhale ? "WHALE_CAP_ACTIVE" : "COMPLIANT"
+                    // Changed label to reflect that enforcement is pending until IPO ends.
+                    status: isWhale ? "PENDING_FINAL_SETTLEMENT" : "COMPLIANT"
                 },
                 vesting: {
                     completed: pioneer?.vestingMonthsCompleted || 0,
