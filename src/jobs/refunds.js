@@ -1,60 +1,54 @@
 /**
- * Whale Refund Job - Anti-Whale Enforcement Protocol
+ * Whale Refund Job - Anti-Whale Enforcement Protocol v1.7.5
  * ---------------------------------------------------------
- * Architect: Eslam Kora | Spec: Philip Jennings & Daniel
- * * PURPOSE:
- * Enforces the 10% investment cap as per the "Anti-Whale Processes" 
- * defined in the MapCapIPO Use Case [Page 5, Section 6].
- * * LOGIC:
- * 1. Identifies pioneers exceeding 10% of the total IPO pool.
- * 2. Calculates the excess Pi balance.
- * 3. Triggers A2UaaS refunds for the excess amount.
- * 4. Compliance: Transaction fees are deducted during the transfer.
+ * Lead Architect: EslaM-X | AppDev @Map-of-Pi
+ * Project: MapCap Ecosystem | Spec: Philip's Dynamic Post-IPO Settlement
+ * ---------------------------------------------------------
+ * LOGIC:
+ * Executed ONLY after the 4-week IPO period. It calculates the final 
+ * 'Water-Level' and trims back any stake exceeding the 10% ceiling.
  */
 
-const PaymentService = require('../services/payment.service');
+import PaymentService from '../services/payment.service.js';
 
 /**
  * Executes the Whale Refund logic at the end of the IPO phase.
- * * @param {number} totalPiPool - The aggregate Pi collected from all pioneers.
- * @param {Array} investors - Dataset of IPO pioneers (Address, Contribution).
+ * @param {number} totalPiPool - The final aggregate Pi collected.
+ * @param {Array} investors - Dataset of IPO pioneers.
  */
-const runWhaleRefunds = async (totalPiPool, investors) => {
-    // Requirement [90]: Cap set at 10% of the total balance in the MapCapIPO wallet.
+export const runWhaleRefunds = async (totalPiPool, investors) => {
+    // Requirement [90]: Cap set at 10% of the FINAL total balance.
+    // This allows flexibility during the IPO as per Philip's requirement.
     const WHALE_CAP_LIMIT = totalPiPool * 0.10; 
 
-    console.log(`--- [AUDIT] Initiating Anti-Whale Refund Sequence ---`);
-    console.log(`--- [POOL STATS] Total: ${totalPiPool} Pi | Cap: ${WHALE_CAP_LIMIT} Pi ---`);
+    console.log(`--- [AUDIT] Initiating Post-IPO Anti-Whale Refund Sequence ---`);
+    console.log(`--- [POOL STATS] Final Pool: ${totalPiPool} Pi | 10% Cap: ${WHALE_CAP_LIMIT} Pi ---`);
 
     for (let investor of investors) {
-        // Evaluate against the 10% threshold [Requirement 90]
-        if (investor.amountPi > WHALE_CAP_LIMIT) {
-            const excessAmount = investor.amountPi - WHALE_CAP_LIMIT;
+        // Use totalPiContributed from the model to check against the final limit
+        const contribution = investor.totalPiContributed || investor.amountPi;
+
+        if (contribution > WHALE_CAP_LIMIT) {
+            const excessAmount = contribution - WHALE_CAP_LIMIT;
             
-            console.log(`[WHALE DETECTED] Pioneer: ${investor.piAddress} | Excess: ${excessAmount} Pi`);
+            console.log(`[WHALE_TRIM_REQUIRED] Pioneer: ${investor.piAddress} | Excess: ${excessAmount} Pi`);
             
             try {
                 /**
-                 * Executing the refund using the unified A2UaaS service.
-                 * * SPEC COMPLIANCE [Page 5, Line 84]: 
-                 * "Transaction/gas fees are deducted from the amount transferred."
-                 * The PaymentService handles this deduction to ensure ledger accuracy.
+                 * Executing the refund via A2UaaS (App-to-User).
+                 * SPEC COMPLIANCE: Fees (0.01 Pi) are deducted from this refund amount.
                  */
-                await PaymentService.transferPi(investor.piAddress, excessAmount);
+                await PaymentService.transferPi(investor.piAddress, excessAmount, 'WHALE_EXCESS_REFUND');
                 
-                console.log(`[SUCCESS] Refunded net amount (Excess - Fees) to ${investor.piAddress}`);
+                console.log(`[SUCCESS] Trim-back refund dispatched to ${investor.piAddress}`);
             } catch (error) {
-                /**
-                 * ERROR HANDLING [Daniel's Audit Requirement]:
-                 * Failed refunds must be logged for manual reconciliation prior 
-                 * to the commencement of the vesting process.
-                 */
-                console.error(`[CRITICAL] Refund failure for ${investor.piAddress}:`, error.message);
+                // Daniel's Requirement: Log for manual audit if blockchain transfer fails.
+                console.error(`[CRITICAL_REFUND_FAIL] ${investor.piAddress}:`, error.message);
             }
         }
     }
     
-    console.log("--- [SYSTEM] Anti-Whale Refund Process Completed Successfully ---");
+    console.log("--- [SYSTEM] Post-IPO Settlement Sequence Finalized ---");
 };
 
-module.exports = { runWhaleRefunds };
+export default { runWhaleRefunds };
