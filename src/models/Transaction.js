@@ -1,47 +1,99 @@
 /**
- * Transaction Schema - Financial Audit Log
+ * Transaction Schema - Financial Audit Ledger v1.4.6
  * ---------------------------------------------------------
- * Records every Pi movement (Investments, Whale Refunds, and Dividends).
- * This ensures transparency as requested by Daniel and Philip.
+ * Lead Architect: EslaM-X | AppDev @Map-of-Pi
+ * Project: MapCap Ecosystem | Spec: Daniel's Transparency Standard
+ * ---------------------------------------------------------
+ * PURPOSE:
+ * Provides an immutable, high-precision record of every Pi movement.
+ * Essential for the 'Pulse Dashboard' history and A2UaaS reconciliation.
+ * ---------------------------------------------------------
  */
-const mongoose = require('mongoose');
+
+import mongoose from 'mongoose';
 
 const TransactionSchema = new mongoose.Schema({
-    // Wallet address involved in the transaction
+    /**
+     * @property {String} piAddress
+     * The unique identifier for the Pioneer's wallet. 
+     * Indexed for rapid audit trail retrieval.
+     */
     piAddress: { 
         type: String, 
-        required: true,
-        index: true 
+        required: [true, 'Transaction must be linked to a Pi Address'],
+        index: true,
+        trim: true
     },
     
-    // Amount of Pi moved in this specific transaction
+    /**
+     * @property {Number} amount
+     * Volume of Pi involved. Supports 6-decimal precision (Pi Standard).
+     */
     amount: { 
         type: Number, 
-        required: true 
+        required: [true, 'Transaction amount is required'],
+        min: [0, 'Transaction amount cannot be negative']
     },
     
-    // Type of transaction based on Philip's standardized flows
+    /**
+     * @property {String} type
+     * Standardized flow categorization as per Philip's Specifications.
+     * KEY: 'REFUND' tracks the post-IPO Whale-Shield trim-backs.
+     */
     type: { 
         type: String, 
-        enum: ['INVESTMENT', 'REFUND', 'DIVIDEND'], 
+        enum: [
+            'INVESTMENT',      // Inbound from Pioneer
+            'REFUND',          // Outbound Whale-Shield adjustment (10% Cap)
+            'DIVIDEND',        // Global Profit Sharing
+            'VESTING_RELEASE'  // Monthly 10% Tranche release
+        ], 
         required: true 
     },
     
-    // Status of the transaction via Pi Network API
+    /**
+     * @property {String} status
+     * Lifecycle state within the Pi Network / A2UaaS pipeline.
+     */
     status: { 
         type: String, 
         enum: ['PENDING', 'COMPLETED', 'FAILED'], 
-        default: 'COMPLETED' 
+        default: 'PENDING' 
     },
     
-    // The official Transaction ID returned from Pi Network
+    /**
+     * @property {String} piTxId
+     * The official Blockchain Hash. Unique to prevent double-counting.
+     */
     piTxId: { 
         type: String,
         unique: true,
-        sparse: true 
+        sparse: true,
+        trim: true
+    },
+
+    /**
+     * @property {String} memo
+     * Audit notes (e.g., "Whale-Shield 10% Cap Adjustment").
+     */
+    memo: {
+        type: String,
+        default: ""
     }
 }, { 
+    /**
+     * Timestamps ensure Daniel has an exact 'Date/Time' for every 
+     * financial event in the system audit logs.
+     */
     timestamps: true 
 });
 
-module.exports = mongoose.model('Transaction', TransactionSchema);
+/**
+ * INDEXING STRATEGY:
+ * Optimized for Dashboard queries: "Fetch all completed dividends for this user".
+ */
+TransactionSchema.index({ piAddress: 1, type: 1, createdAt: -1 });
+
+// Compatibility Fix: Exporting as ES Module
+const Transaction = mongoose.model('Transaction', TransactionSchema);
+export default Transaction;
