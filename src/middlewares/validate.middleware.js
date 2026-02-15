@@ -1,12 +1,13 @@
 /**
- * Validation Middleware - Financial Logic Guard v1.2
+ * Validation Middleware - Financial Logic Guard v1.2.5
  * ---------------------------------------------------------
- * Lead Architect: Eslam Kora | AppDev @Map-of-Pi
+ * Lead Architect: EslaM-X | AppDev @Map-of-Pi
  * Project: MapCap Ecosystem | Spec: Philip's Financial Compliance
- * * PURPOSE:
+ * ---------------------------------------------------------
+ * ARCHITECTURAL ROLE:
  * Intercepts incoming requests to validate financial parameters 
- * before they reach the service layer. Prevents logical errors 
- * and ensures data integrity within the IPO Pulse Engine.
+ * before they reach the service layer. This ensures the integrity 
+ * of the 'Water-Level' and prevents logic-based exploits.
  * ---------------------------------------------------------
  */
 
@@ -14,37 +15,42 @@ import ResponseHelper from '../utils/response.helper.js';
 
 /**
  * @function validateWithdrawal
- * @desc Ensures withdrawal percentage is within the legal 0.01% - 100% range.
- * This is a core requirement for Philip's flexible withdrawal specs [Page 5].
+ * @desc Ensures withdrawal parameters adhere to the legal 0.01% - 100% range.
+ * This supports Philip's flexible withdrawal specification [Page 5].
+ * @access Global Pipeline
  */
 export const validateWithdrawal = (req, res, next) => {
     const { percentage, userWallet } = req.body;
 
-    // 1. Mandatory Fields Check
-    if (!percentage || !userWallet) {
-        return ResponseHelper.error(res, "Missing mandatory parameters: 'percentage' and 'userWallet' are required.", 400);
+    // 1. DATA INTEGRITY CHECK: Verify all required fields are present
+    if (percentage === undefined || !userWallet) {
+        return ResponseHelper.error(res, "Compliance Error: 'percentage' and 'userWallet' are mandatory.", 400);
     }
 
-    // 2. Numerical Range Validation
+    // 2. RANGE VALIDATION: Enforce numerical boundaries for Pi liquidity safety
     const percentNum = parseFloat(percentage);
     
     if (isNaN(percentNum) || percentNum <= 0 || percentNum > 100) {
         /**
-         * SECURITY LOG: 
-         * Daniel's Audit requirement: Log out-of-range attempts for monitoring.
+         * DANIEL'S AUDIT TRAIL: 
+         * Logs out-of-range attempts to identify potential bot activity or UI bugs.
          */
-        console.warn(`[VALIDATION_REJECTED] Invalid withdrawal percentage: ${percentage} from ${userWallet}`);
+        console.warn(`[VALIDATION_REJECTED] Out-of-range withdrawal: ${percentage}% from ${userWallet}`);
         
-        return ResponseHelper.error(res, "Invalid range: Withdrawal percentage must be between 0.01% and 100%.", 400);
+        return ResponseHelper.error(res, "Protocol Violation: Withdrawal must be within 0.01% to 100% range.", 400);
     }
 
-    // Pass the cleaned number back to the request for service use
+    /**
+     * 3. DATA CLEANING:
+     * Sanitize the input by passing the parsed number back to the request object.
+     */
     req.body.percentage = percentNum;
     
     next();
 };
 
 /**
- * FUTURE SCALABILITY:
- * Add additional validators here (e.g., validateInvestment, validateAdminLogin).
+ * SCALABILITY NOTE: 
+ * Centralized for future validation modules (e.g., validateInvestment, validateAdminActions).
  */
+export default { validateWithdrawal };
