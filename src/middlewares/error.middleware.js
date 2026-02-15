@@ -1,12 +1,13 @@
 /**
- * Global Error Handling Middleware v1.3
+ * Global Error Handling Middleware v1.3.5
  * ---------------------------------------------------------
- * Lead Architect: Eslam Kora | AppDev @Map-of-Pi
+ * Lead Architect: EslaM-X | AppDev @Map-of-Pi
  * Project: MapCap Ecosystem | Spec: High-Availability Standards
- * * PURPOSE:
+ * ---------------------------------------------------------
+ * ARCHITECTURAL ROLE:
  * Catches all unhandled exceptions across the API lifecycle.
- * Prevents application crashes in the Pi Browser/Mobile UI and 
- * ensures a standardized, professional error response to Pioneers.
+ * Prevents application crashes within the Pi Browser and ensures 
+ * a professional, standardized error response for Pioneers.
  * ---------------------------------------------------------
  */
 
@@ -14,36 +15,43 @@ import ResponseHelper from '../utils/response.helper.js';
 
 /**
  * @function errorMiddleware
- * @desc Centralized error interceptor for Express.
+ * @desc Centralized error interceptor for the Express framework.
+ * @access Global System Layer
  */
 const errorMiddleware = (err, req, res, next) => {
     /**
-     * DETERMINING STATUS CODE:
-     * Defaults to 500 (Internal Server Error) if no specific status is set.
+     * STATUS CODE RESOLUTION:
+     * Defaults to 500 (Internal Server Error) if the preceding 
+     * controller failed to specify a status.
      */
     const statusCode = res.statusCode === 200 ? 500 : res.statusCode;
     
     /**
-     * AUDIT LOGGING:
-     * Critical for Daniel's oversight. Logs the exact error and timestamp 
-     * to the server console for backend debugging.
+     * DANIEL'S AUDIT PROTOCOL:
+     * Critical for compliance monitoring. Logs the exact error trace 
+     * to the server console for real-time backend debugging.
      */
     console.error(`[FATAL_SYSTEM_ERROR] ${new Date().toISOString()}: ${err.message}`);
 
     /**
-     * PRODUCTION PRIVACY:
-     * The 'stack' trace (line numbers/code logic) is hidden in production 
-     * to prevent exposing system vulnerabilities to the public.
+     * PRODUCTION PRIVACY & SECURITY:
+     * The code 'stack' trace is strictly hidden in production environments 
+     * to prevent exposing system internals or vulnerabilities to end-users.
      */
-    const errorResponse = {
-        message: err.message || "An unexpected system error occurred. Please try again later.",
+    const errorPayload = {
+        message: err.message || "An unexpected system anomaly occurred. Pipeline offline.",
+        // Stack trace is only visible in development for EslaM-X's debugging
         ...(process.env.NODE_ENV !== 'production' && { stack: err.stack }),
         errorCode: statusCode,
-        path: req.originalUrl
+        requestPath: req.originalUrl
     };
 
-    // Utilizing our standardized ResponseHelper to deliver the error
-    return ResponseHelper.error(res, errorResponse.message, statusCode);
+    /**
+     * STANDARDIZED RESPONSE:
+     * Dispatches the error via ResponseHelper to maintain consistent 
+     * JSON structures for the Frontend 'Pulse Dashboard'.
+     */
+    return ResponseHelper.error(res, errorPayload.message, statusCode);
 };
 
 export default errorMiddleware;
