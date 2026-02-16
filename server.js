@@ -1,5 +1,5 @@
 /**
- * MapCap IPO - Core Server Orchestrator v1.6.7 (Stabilized)
+ * MapCap IPO - Core Server Orchestrator v1.7.0 (Stabilized)
  * -------------------------------------------------------------------------
  * Lead Architect: EslaM-X | AppDev @Map-of-Pi
  * Project: MapCap Ecosystem | Spec: Philip Jennings & Daniel Compliance
@@ -24,6 +24,7 @@ import ResponseHelper from './src/utils/response.helper.js';
 // Routing Layers
 import ipoRoutes from './src/routes/ipo.routes.js';
 import adminRoutes from './src/routes/admin/admin.routes.js';
+import apiRoutes from './src/routes/api.js'; // IMPORTED: Core API Bridge for metrics/sync
 
 // Load Environment Configuration
 dotenv.config();
@@ -37,7 +38,6 @@ const app = express();
 app.use(morgan('combined', { stream: auditLogStream }));
 app.use(express.json());
 
-// UPDATED: Added 'x-admin-token' to allowedHeaders for Frontend-to-Backend security handshake
 app.use(cors({
     origin: '*', 
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -46,7 +46,7 @@ app.use(cors({
 
 /**
  * 2. DATABASE PERSISTENCE LAYER
- * Logic refined to allow Test Suites (v1.1.1) to manage lifecycle.
+ * Logic refined to allow Test Suites to manage lifecycle via environmental guards.
  */
 const connectDB = async () => {
     try {
@@ -59,8 +59,7 @@ const connectDB = async () => {
         writeAuditLog('INFO', 'Database Connection Established.');
 
         /**
-         * CRON INITIALIZATION:
-         * Strictly isolated from the 'test' environment to prevent ledger pollution.
+         * CRON INITIALIZATION: Isolated from 'test' to prevent ledger pollution.
          */
         if (process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'development') {
             CronScheduler.init();
@@ -71,82 +70,62 @@ const connectDB = async () => {
     }
 };
 
-/**
- * 3. EXECUTION GUARD: DATABASE INITIALIZATION
- */
 if (process.env.NODE_ENV !== 'test') {
     connectDB();
 }
 
 /**
- * 4. SYSTEM PULSE CHECK (Real-Time Metrics)
- * High-performance aggregation for the Pulse Dashboard 'Water-Level' Graph.
+ * 3. CORE ROUTE ARCHITECTURE
+ * Multi-prefix support for Frontend stability and API versioning.
  */
-app.get('/', async (req, res) => {
-    try {
-        const globalStats = await Investor.aggregate([
-            { 
-                $group: { 
-                    _id: null, 
-                    totalPiInPool: { $sum: "$totalPiContributed" }, 
-                    pioneerCount: { $sum: 1 } 
-                } 
-            }
-        ]);
 
-        const waterLevel = globalStats[0]?.totalPiInPool || 0;
-        const pioneers = globalStats[0]?.pioneerCount || 0;
-        const IPO_MAX_CAPACITY = 2181818; 
+// A. Global Bridge Routes (Fixes 404 for metrics.sync.test.js)
+app.use('/api/v1', apiRoutes); 
+app.use('/api', apiRoutes);
 
-        return res.status(200).json({
-            success: true,
-            message: "MapCap IPO Pulse Engine - Operational",
-            data: {
-                live_metrics: {
-                    total_investors: pioneers,
-                    total_pi_invested: waterLevel,
-                    ipo_capacity_fill: `${((waterLevel / IPO_MAX_CAPACITY) * 100).toFixed(2)}%`
-                },
-                status: "Whale-Shield Level 4 Active",
-                environment: process.env.NODE_ENV
-            },
-            timestamp: new Date().toISOString()
-        });
-    } catch (error) {
-        writeAuditLog('ERROR', `Pulse check failure: ${error.message}`);
-        return ResponseHelper.error(res, "Pulse check failed: Pipeline disrupted.", 500);
-    }
-});
-
-/**
- * 5. ROUTE ARCHITECTURE
- * Dual-prefix support for Frontend stability across version transitions.
- */
+// B. Domain Specific Routes
 app.use('/api/v1/ipo', ipoRoutes);
 app.use('/api/v1/admin', adminRoutes);
 app.use('/api/ipo', ipoRoutes);     
 app.use('/api/admin', adminRoutes); 
 
 /**
- * 6. GLOBAL EXCEPTION INTERCEPTOR
+ * 4. SYSTEM PULSE CHECK (Root Endpoint)
+ * Legacy support for direct heartbeat monitoring.
+ */
+app.get('/', async (req, res) => {
+    try {
+        const globalStats = await Investor.aggregate([
+            { $group: { _id: null, totalPiInPool: { $sum: "$totalPiContributed" }, pioneerCount: { $sum: 1 } } }
+        ]);
+        const waterLevel = globalStats[0]?.totalPiInPool || 0;
+        return res.status(200).json({
+            success: true,
+            message: "MapCap IPO Pulse Engine - Operational",
+            data: { total_pi_invested: waterLevel },
+            timestamp: new Date().toISOString()
+        });
+    } catch (error) {
+        return ResponseHelper.error(res, "Pulse check failed.", 500);
+    }
+});
+
+/**
+ * 5. GLOBAL EXCEPTION INTERCEPTOR
+ * Final safety net to prevent process crashes and log anomalies.
  */
 app.use((err, req, res, next) => {
     writeAuditLog('CRITICAL', `FATAL EXCEPTION: ${err.stack}`);
     return res.status(500).json({
         success: false,
-        error: "Internal System Anomaly",
-        message: "Financial audit log generated."
+        error: "Internal System Anomaly"
     });
 });
 
-/**
- * 7. SERVER EXECUTION (ENVIRONMENTAL GUARD)
- * Optimized for Termux / CI-CD execution.
- */
 const PORT = process.env.PORT || 3000;
 if (process.env.NODE_ENV !== 'test') {
     app.listen(PORT, () => {
-        console.log(`🚀 [ENGINE] MapCap IPO Pulse v1.6.7 deployed on port ${PORT}`);
+        console.log(`🚀 [ENGINE] MapCap IPO Pulse v1.7.0 deployed on port ${PORT}`);
     });
 }
 
