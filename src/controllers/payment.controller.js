@@ -1,65 +1,49 @@
 /**
- * Payment Controller - Financial Operations v1.6.6
+ * Payment Controller - Financial Operations v1.6.7
  * -------------------------------------------------------------------------
  * Lead Architect: EslaM-X | AppDev @Map-of-Pi
- * Project: MapCap Ecosystem | Spec: Philip's Dynamic IPO Flexibility
- * -------------------------------------------------------------------------
- * ARCHITECTURAL ROLE:
- * Processes incoming investment payments (U2A). Updated to allow 
- * contributions to flow freely during the IPO phase, deferring 
- * whale capping to the final settlement stage per Philip's Spec.
- * -------------------------------------------------------------------------
  */
 
 import Investor from '../models/investor.model.js';
-import Transaction from '../models/Transaction.js'; // PATH FIXED: Pointing to the unified Transaction model
+import Transaction from '../models/Transaction.js';
 import ResponseHelper from '../utils/response.helper.js';
 import { writeAuditLog } from '../config/logger.js';
 
 class PaymentController {
     /**
      * @method processInvestment
-     * @desc Records transaction and updates Pioneer stake.
-     * Logic: Accepts all valid Pi transfers without hard-capping at 10% 
-     * during this phase to account for pool fluctuations.
-     * @access Public (User-to-App payment flow)
+     * @desc Standardizes incoming metadata from Frontend and Pi SDK.
      */
     static async processInvestment(req, res) {
-        const { piAddress, amount, piTxId } = req.body;
+        // REFINEMENT: Support both flat body and nested metadata structures
+        const piAddress = req.body.piAddress || req.body.uid;
+        const amount = req.body.amount;
+        const piTxId = req.body.piTxId || req.body.paymentId || (req.body.metadata && req.body.metadata.txid);
 
-        // 1. INPUT VALIDATION: Ensure all mandatory blockchain metadata is present
+        // 1. INPUT VALIDATION: Standardized for Map-of-Pi Protocol
         if (!piAddress || !amount || !piTxId) {
-            return ResponseHelper.error(res, "Missing transaction metadata: 'piAddress', 'amount', and 'piTxId' are required.", 400);
+            return ResponseHelper.error(res, "Missing Metadata: 'piAddress', 'amount', and 'piTxId' are required for ledger sync.", 400);
         }
 
         try {
-            /**
-             * 2. IDEMPOTENCY CHECK:
-             * Prevents double-crediting by verifying the Pi Network TXID uniqueness.
-             */
+            // 2. IDEMPOTENCY: Prevent double-spending
             const existingTx = await Transaction.findOne({ piTxId });
             if (existingTx) {
-                return ResponseHelper.error(res, "Duplicate Transaction: TXID already processed in the ledger.", 409);
+                return ResponseHelper.error(res, "Duplicate Transaction: This TXID is already recorded.", 409);
             }
 
-            /**
-             * 3. ATOMIC LEDGER UPDATE:
-             * Per Philip's requirement: We increment the total contribution 
-             * WITHOUT enforcing the 10% ceiling at this stage. This allows the 
-             * "Water-Level" to fluctuate naturally until the final settlement.
-             */
             const investmentAmount = Number(amount);
 
+            // 3. ATOMIC UPDATES: Ledger and Investor Balance
             const newTransaction = await Transaction.create({
                 piAddress,
                 amount: investmentAmount,
                 type: 'INVESTMENT',
                 status: 'COMPLETED',
                 piTxId,
-                memo: `IPO Contribution - Dynamic Sync`
+                memo: `IPO Contribution - Dynamic Water-Level`
             });
 
-            // Update Investor Balance - Upsert creates the investor record if it's their first time.
             const investor = await Investor.findOneAndUpdate(
                 { piAddress },
                 { 
@@ -69,17 +53,11 @@ class PaymentController {
                 { upsert: true, new: true }
             );
 
-            /**
-             * 4. DANIEL'S AUDIT LOGGING:
-             * Logs every successful contribution for the final 4-week cycle audit.
-             */
-            writeAuditLog('INFO', `Investment Processed: ${investmentAmount} Pi from ${piAddress} (TX: ${piTxId})`);
+            // 4. COMPLIANCE: Daniel's Audit Log
+            writeAuditLog('INFO', `Investment Verified: ${investmentAmount} Pi | Tx: ${piTxId}`);
 
-            /**
-             * 5. SUCCESS RESPONSE: 
-             * Structure preserved for 'Dashboard.jsx' and 'PaymentHandler.jsx' compatibility.
-             */
-            return ResponseHelper.success(res, "Ledger Synchronized Successfully.", {
+            // 5. RESPONSE: Preserved structure for Frontend compatibility
+            return ResponseHelper.success(res, "Investment successfully synchronized.", {
                 pioneer: piAddress,
                 contribution: investmentAmount,
                 totalBalance: investor.totalPiContributed,
@@ -87,13 +65,8 @@ class PaymentController {
             });
 
         } catch (error) {
-            /**
-             * 6. EXCEPTION HANDLING:
-             * Vital for real-time monitoring. Ensures failures are logged with unique IDs.
-             */
-            writeAuditLog('CRITICAL', `Payment Processing Failed for ${piAddress}: ${error.message}`);
-            console.error(`[PAYMENT_FAILURE]: ${error.message}`);
-            return ResponseHelper.error(res, "Financial Pipeline Error. Support ID: " + Date.now(), 500);
+            writeAuditLog('CRITICAL', `Payment Pipeline Failure: ${error.message}`);
+            return ResponseHelper.error(res, "Internal Ledger Error. Reference ID: " + Date.now(), 500);
         }
     }
 }
