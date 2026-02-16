@@ -1,5 +1,5 @@
 /**
- * AdminController - Management & Settlement Operations v1.4.8
+ * AdminController - Management & Settlement Operations v1.4.9
  * -------------------------------------------------------------------------
  * Lead Architect: EslaM-X | AppDev @Map-of-Pi
  * Project: MapCap Ecosystem | Spec: Philip's Post-IPO Whale Enforcement
@@ -8,10 +8,6 @@
  * Orchestrates administrative-level financial operations, specifically the
  * final IPO settlement and anti-whale protocol enforcement.
  * -------------------------------------------------------------------------
- * UPDATES:
- * - Integration: Fully synchronized with SettlementJob v1.6.7 logic.
- * - Test Parity: Preserved 'refundsIssued' and 'totalRefundedPi' for Jest.
- * - Stability: Guaranteed 100% Frontend Dashboard key compatibility.
  */
 
 import Investor from '../../models/investor.model.js';
@@ -21,7 +17,7 @@ import ResponseHelper from '../../utils/response.helper.js';
 class AdminController {
     /**
      * @method triggerFinalSettlement
-     * @desc Orchestrates the manual IPO finalization based on final 'Water-Level'.
+     * @desc Orchestrates manual IPO finalization based on final 'Water-Level'.
      * Triggers the whale trim-back mechanism to enforce the 10% ceiling.
      * @access Private (Super Admin Only)
      */
@@ -44,13 +40,14 @@ class AdminController {
                 }
             ]);
             
+            // Safe extraction with default fallback to zero
             const totalPiPool = aggregation.length > 0 ? aggregation[0].total : 0;
             const investorCount = aggregation.length > 0 ? aggregation[0].count : 0;
 
             /**
              * STEP 2: INTEGRITY GATEKEEPER
              * Prevents execution if the pool is empty to avoid division-by-zero 
-             * anomalies in the settlement engine.
+             * anomalies in the settlement engine and ensure API stability.
              */
             if (totalPiPool === 0) {
                 return ResponseHelper.error(res, "Settlement Aborted: No liquidity detected in the IPO pool.", 400);
@@ -63,23 +60,24 @@ class AdminController {
              */
             const report = await SettlementJob.executeWhaleTrimBack(totalPiPool);
 
-            if (!report.success) {
-                throw new Error(report.error || "Internal Settlement Engine Disruption");
+            if (!report || !report.success) {
+                throw new Error(report?.error || "Internal Settlement Engine Disruption");
             }
 
             /**
              * STEP 4: FRONTEND & TEST SYNCHRONIZATION
              * Key mapping strictly maintained to support:
-             * 1. AdminDashboard.jsx (UI Metrics)
-             * 2. admin.ops.test.js (Integration Assertions)
+             * 1. AdminDashboard.jsx (UI Metrics display)
+             * 2. admin.ops.test.js (Integration Assertions for CI/CD)
              */
             return ResponseHelper.success(res, "Post-IPO settlement and Whale trim-back protocol executed.", {
                 executionTimestamp: new Date().toISOString(),
                 metrics: {
                     totalPoolProcessed: totalPiPool,
                     investorsAudited: investorCount,
-                    refundsIssued: report.whalesImpacted, // CRITICAL: Matches Integration Test expectations
-                    totalRefundedPi: report.totalRefunded    // CRITICAL: Matches Integration Test expectations
+                    // CRITICAL: Matches Integration Test expectations & Dashboard UI
+                    refundsIssued: report.whalesImpacted || 0, 
+                    totalRefundedPi: report.totalRefunded || 0    
                 },
                 status: "COMPLETED"
             });
@@ -87,7 +85,8 @@ class AdminController {
         } catch (error) {
             /**
              * CRITICAL FAILURE LOGGING:
-             * Vital for Daniel's security audit and financial forensic review.
+             * Vital for security audit and financial forensic review.
+             * Returns a structured error to prevent Frontend crashes.
              */
             console.error("[CRITICAL_SETTLEMENT_FAILURE]:", error.message);
             return ResponseHelper.error(res, `Settlement engine failure: ${error.message}`, 500);
@@ -96,11 +95,14 @@ class AdminController {
 
     /**
      * @method getAuditLogs
-     * @desc Future-proofed endpoint for Daniel's compliance monitoring interface.
+     * @desc Future-proofed endpoint for compliance monitoring interface.
      */
     static async getAuditLogs(req, res) {
         // Placeholder for real-time audit log stream integration
-        return ResponseHelper.success(res, "Administrative audit logs retrieved.", { logs: [] });
+        return ResponseHelper.success(res, "Administrative audit logs retrieved.", { 
+            logs: [],
+            count: 0 
+        });
     }
 }
 
