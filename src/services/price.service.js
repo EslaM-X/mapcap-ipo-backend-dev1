@@ -1,13 +1,12 @@
 /**
- * PriceService - Dynamic Pricing Engine v1.6.8
+ * PriceService - Dynamic Pricing Engine v1.6.9
  * -------------------------------------------------------------------------
  * Lead Architect: EslaM-X | AppDev @Map-of-Pi
  * Project: MapCap Ecosystem | Spec: Philip's "Water-Level" Model
  * -------------------------------------------------------------------------
  * DESIGN STRATEGY: 
- * Ensures non-breaking UI updates while providing robust error handling 
- * for the IPO price discovery mechanism.
- * -------------------------------------------------------------------------
+ * Optimized for stability in Termux environments. Added compatibility layer
+ * for integration tests to resolve 'fetchLatestPiPrice' dependency.
  */
 
 import Transaction from '../models/Transaction.js';
@@ -31,28 +30,29 @@ class PriceService {
     /**
      * @method getCurrentPrice
      * @desc Fetches aggregate data from DB to provide real-time valuation.
-     * Includes a fail-safe (0.0001) to ensure the UI Pulse Dashboard never crashes.
      */
     static async getCurrentPrice() {
         try {
-            // Aggregating completed investment transactions
             const stats = await Transaction.aggregate([
                 { $match: { type: 'INVESTMENT', status: 'COMPLETED' } },
                 { $group: { _id: null, total: { $sum: "$amount" } } }
             ]);
             
             const totalPi = stats.length > 0 ? stats[0].total : 0;
-            
-            // Return calculated price or base starting price if pool is empty
             return totalPi > 0 ? this.calculateDailySpotPrice(totalPi) : 0.0001; 
         } catch (error) {
-            /**
-             * LOGGING FOR DANIEL'S COMPLIANCE:
-             * Ensures system availability even during DB latency.
-             */
-            console.error("[PRICE_SERVICE_ERROR]: DB Aggregate failed, reverting to safety price.");
+            console.error("[PRICE_SERVICE_ERROR]: DB Aggregate failed, using fallback.");
             return 0.0001; 
         }
+    }
+
+    /**
+     * @method fetchLatestPiPrice
+     * @desc COMPATIBILITY LAYER: Essential for resolving Test Suite Error (metrics.sync.test.js).
+     * Acts as an alias for getCurrentPrice to satisfy the integration test expectations.
+     */
+    static async fetchLatestPiPrice() {
+        return await this.getCurrentPrice();
     }
 
     /**
