@@ -1,5 +1,5 @@
 /**
- * Investor Schema - Core Financial Equity Ledger v1.7.3
+ * Investor Schema - Core Financial Equity Ledger v1.7.4
  * -------------------------------------------------------------------------
  * Lead Architect: EslaM-X | AppDev @Map-of-Pi
  * Project: MapCap Ecosystem | Spec: Dynamic IPO Liquidity & Whale-Shield
@@ -24,6 +24,7 @@ const InvestorSchema = new mongoose.Schema({
     },
     
     // Aggregated Pi contribution throughout the 4-week IPO cycle
+    // CRITICAL: Used by AdminController aggregate and SettlementJob trim-back
     totalPiContributed: { 
         type: Number, 
         default: 0, 
@@ -52,20 +53,23 @@ const InvestorSchema = new mongoose.Schema({
     },
     
     // Advisory flag: Indicates if current stake exceeds the 10% decentralization ceiling.
-    // Logic: Active monitoring enabled; enforcement deferred to Final Settlement Job.
+    // Logic: Triggered by SettlementJob.executeWhaleTrimBack()
     isWhale: { 
         type: Boolean, 
         default: false 
     },
     
-    // Audit timestamp for the most recent contribution activity
+    // Audit timestamp for the most recent activity (Settlement or Contribution)
     lastContributionDate: { 
         type: Date, 
         default: Date.now 
+    },
+    
+    lastSettlementDate: {
+        type: Date
     }
 }, { 
     timestamps: true,
-    // Configuration to ensure virtual properties are serialized for Frontend API consumption
     toJSON: { virtuals: true },
     toObject: { virtuals: true }
 });
@@ -73,8 +77,7 @@ const InvestorSchema = new mongoose.Schema({
 /**
  * PRE-SAVE HOOK: Data Integrity & Overflow Protection
  * -------------------------------------------------------------------------
- * Ensures that released assets never exceed total allocation due to sync delays.
- * This hook maintains the database as a robust financial barrier.
+ * Ensures that released assets never exceed total allocation.
  */
 InvestorSchema.pre('save', function(next) {
     if (this.mapCapReleased > this.allocatedMapCap) {
@@ -86,34 +89,26 @@ InvestorSchema.pre('save', function(next) {
 /**
  * VIRTUAL: sharePct (Dynamic Scarcity Calculation)
  * -------------------------------------------------------------------------
- * Logic: Calculates the Pioneer's current proportional share against the 
- * total fixed supply (2,181,818). 
- * Design Note: This allows the percentage to shift dynamically in the UI 
- * as the 'Water-Level' of the pool fluctuates, satisfying Philip's Spec.
+ * Logic: Calculates proportional share against the fixed supply (2,181,818). 
  */
 InvestorSchema.virtual('sharePct').get(function() {
     const GLOBAL_SUPPLY = 2181818; 
     if (!this.allocatedMapCap || this.allocatedMapCap === 0) return 0;
-    
-    // Provides real-time percentage feedback for the 'Pulse Dashboard'
     return (this.allocatedMapCap / GLOBAL_SUPPLY) * 100;
 });
 
 /**
  * VIRTUAL: remainingVesting
  * -------------------------------------------------------------------------
- * Calculates the locked equity balance. Uses Math.max to prevent 
- * negative values from appearing on the Pioneer's UI during ledger updates.
+ * Calculates the locked equity balance for UI display.
  */
 InvestorSchema.virtual('remainingVesting').get(function() {
     return Math.max(0, this.allocatedMapCap - this.mapCapReleased);
 });
 
-// INDEXING STRATEGY: Optimized for high-speed leaderboard and audit queries
+// INDEXING STRATEGY: Optimized for high-speed leaderboard and Whale-Shield audit queries
 InvestorSchema.index({ totalPiContributed: -1, isWhale: 1 });
 
 const Investor = mongoose.model('Investor', InvestorSchema);
-
-
 
 export default Investor;
