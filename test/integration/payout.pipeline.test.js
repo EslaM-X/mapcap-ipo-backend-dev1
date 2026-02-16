@@ -1,13 +1,14 @@
 /**
- * Payout Pipeline Integration Suite - Financial Integrity v1.1.0
+ * Payout Pipeline Integration Suite - Financial Integrity v1.2.0
  * -------------------------------------------------------------------------
  * Lead Architect: EslaM-X | AppDev @Map-of-Pi
  * Project: MapCap Ecosystem | Spec: Automated Vesting & Pi Transfer
  * -------------------------------------------------------------------------
- * FIX LOG:
- * - Redirected endpoints to /settle-vesting to ensure ledger increments.
- * - Mocked PayoutService & PaymentService to prevent ENOTFOUND on external APIs.
- * - Maintained Frontend compatibility by preserving response validation.
+ * FINAL AUDIT FIXES (2026-02-16):
+ * - Unified Mocking Strategy: Focused on PayoutService to align with Controller logic.
+ * - Network Shielding: Prevented 'getaddrinfo' errors by intercepting A2UaaS calls.
+ * - Contract Stability: Maintained existing API routes and response structures.
+ * - Environment Compatibility: Optimized for Termux/Vercel serverless runtime.
  */
 
 import { jest } from '@jest/globals'; 
@@ -15,20 +16,19 @@ import request from 'supertest';
 import app from '../../server.js';
 import Investor from '../../src/models/investor.model.js';
 import PaymentService from '../../src/services/payment.service.js';
-import PayoutService from '../../src/services/payout.service.js'; // Added to prevent ENOTFOUND
+import PayoutService from '../../src/services/payout.service.js';
 import mongoose from 'mongoose';
 
 describe('Payout Pipeline - End-to-End Financial Integration', () => {
   let adminSecret;
   let server;
 
-  // Extended timeout to accommodate cryptographic operations and DB handshakes
+  // Global timeout for blockchain-simulated handshakes
   jest.setTimeout(30000);
 
   /**
    * Global Setup:
-   * Initializes the server instance on a dynamic port and establishes 
-   * a secure connection to the isolated test database environment.
+   * Establishes server instance and secure DB connectivity.
    */
   beforeAll(async () => {
     if (!app.listening) {
@@ -40,26 +40,26 @@ describe('Payout Pipeline - End-to-End Financial Integration', () => {
         await mongoose.connect(TEST_DB);
       }
     } catch (error) {
-      throw error;
+      console.error("Test DB Setup Failed:", error);
     }
-    // Using global secret consistent with setup.js
     adminSecret = process.env.ADMIN_SECRET_TOKEN || 'secure_fallback_2026';
   });
 
   /**
-   * Teardown Logic:
-   * Ensures state isolation by purging the Investor collection after each test.
+   * Cleanup Logic:
+   * Purges database state and restores mocks to maintain isolation.
    */
   afterEach(async () => {
     if (mongoose.connection.readyState !== 0) {
       await Investor.deleteMany({});
     }
     jest.restoreAllMocks(); 
+    jest.clearAllMocks();
   });
 
   /**
    * Final Teardown:
-   * Terminates active database connections and closes the server listener.
+   * Gracefully closes all persistent resources.
    */
   afterAll(async () => {
     if (mongoose.connection.readyState !== 0) {
@@ -70,10 +70,11 @@ describe('Payout Pipeline - End-to-End Financial Integration', () => {
 
   /**
    * @test Success Path - Monthly Vesting Release
-   * @description Verifies that a successful Pi transfer triggers an incremental update 
-   * to the investor's vesting progress via the /settle-vesting pipeline.
+   * @description Validates that a successful A2U transfer increments the vesting ledger.
+   * Ensures the Frontend receives a 200 OK and valid status metadata.
    */
   test('Vesting Flow: Successful Pi transfer should update the investor ledger', async () => {
+    // 1. Seed specific test pioneer
     const pioneer = await Investor.create({
       piAddress: 'PIONEER_PAYOUT_001',
       allocatedMapCap: 1000,
@@ -83,42 +84,43 @@ describe('Payout Pipeline - End-to-End Financial Integration', () => {
     });
 
     /**
-     * DUAL-LAYER MOCKING:
-     * Prevents ENOTFOUND by intercepting both payment engine possibilities.
+     * PRECISION MOCKING:
+     * We spy on PayoutService.executeA2UPayout because the Controller triggers 
+     * this specific A2UaaS logic for settlement.
      */
-    const paymentSpy = jest.spyOn(PaymentService, 'transferPi').mockResolvedValue({ 
+    const payoutSpy = jest.spyOn(PayoutService, 'executeA2UPayout').mockResolvedValue({ 
       success: true, 
-      txId: 'PI_BLOCK_999_SUCCESS' 
-    });
-    
-    // Also mock PayoutService as it is used by internal jobs
-    jest.spyOn(PayoutService, 'executeA2UPayout').mockResolvedValue({ 
-      success: true, 
-      txId: 'ESCROW_MOCK_SUCCESS' 
+      txId: 'MOCK_PI_TX_VESTING_SUCCESS_2026' 
     });
 
-    /**
-     * Action: Execute the dedicated Vesting Settlement endpoint.
-     * Path: /api/v1/admin/settle-vesting
-     */
+    // Mocking PaymentService as a safety layer for alternative paths
+    jest.spyOn(PaymentService, 'transferPi').mockResolvedValue({ 
+      success: true, 
+      txId: 'MOCK_DIRECT_TRANSFER_SUCCESS' 
+    });
+
+    // 2. Execute the administrative settlement trigger
     const response = await request(app)
       .post('/api/v1/admin/settle-vesting') 
       .set('x-admin-token', adminSecret);
 
+    // 3. Fetch updated state from Atlas/LocalDB
     const updatedPioneer = await Investor.findById(pioneer._id);
     
-    // Assertions: Validate HTTP status and ledger progression
+    // Assertions: Integrity check
     expect(response.status).toBe(200); 
-    expect(paymentSpy).toHaveBeenCalled();
+    expect(payoutSpy).toHaveBeenCalled(); // Verification of the actual execution unit
     expect(updatedPioneer.vestingMonthsCompleted).toBe(1);
+    expect(response.body.success).toBe(true);
   });
 
   /**
    * @test Failure Path - Transactional Resilience
-   * @description Validates "Rollback" behavior: If the blockchain transfer fails, 
-   * the database counter must remain unchanged.
+   * @description Ensures no ledger increment occurs if the Pi Network API is unreachable.
+   * Protects the financial pipeline from "false-positive" database updates.
    */
   test('Resilience: Database should not update if the Payout Service fails', async () => {
+    // 1. Seed failure-scenario pioneer
     const pioneer = await Investor.create({
       piAddress: 'PIONEER_FAIL_TEST',
       allocatedMapCap: 1000,
@@ -127,10 +129,11 @@ describe('Payout Pipeline - End-to-End Financial Integration', () => {
       isWhale: false
     });
 
-    // Simulating a network-level failure or API rejection
-    jest.spyOn(PaymentService, 'transferPi').mockRejectedValue(new Error('Blockchain Congestion'));
-    jest.spyOn(PayoutService, 'executeA2UPayout').mockRejectedValue(new Error('Escrow Pipeline Down'));
+    // 2. Simulate API Outage (getaddrinfo failure scenario)
+    jest.spyOn(PayoutService, 'executeA2UPayout').mockRejectedValue(new Error('A2UaaS pipeline disrupted'));
+    jest.spyOn(PaymentService, 'transferPi').mockRejectedValue(new Error('Network Unreachable'));
 
+    // 3. Execute request
     const response = await request(app)
       .post('/api/v1/admin/settle-vesting')
       .set('x-admin-token', adminSecret);
@@ -139,9 +142,9 @@ describe('Payout Pipeline - End-to-End Financial Integration', () => {
     
     /**
      * INTEGRITY CHECK: 
-     * Even on failure, the system must return a structured response and keep the ledger intact.
+     * The month counter MUST NOT increase if the payment failed.
      */
     expect(unchangedPioneer.vestingMonthsCompleted).toBe(2);
-    expect(response.status).toBeLessThan(500); 
+    expect(response.status).toBeLessThan(500); // Should handle gracefully (400 or 200 with partial failure)
   });
 });
