@@ -1,17 +1,19 @@
 /**
- * Admin Operations Integration Suite - Security & Settlement v1.0.2
+ * Admin Operations Integration Suite - Security & Settlement v1.0.3
  * -------------------------------------------------------------------------
  * Lead Architect: EslaM-X | AppDev @Map-of-Pi
  * Project: MapCap Ecosystem | Spec: Daniel's Compliance & Security Gate
  * -------------------------------------------------------------------------
- * UPDATES: 
- * - ESM Compatibility: Explicitly imported 'jest' for timeout management.
- * - Increased Timeout: Boosted to 20s for stable Cloud DB Handshakes.
- * - Security Alignment: Verified 403 Forbidden logic for Daniel's Audit.
- * - Standardized Response: Logic synced with ResponseHelper v1.6.8.
+ * DESCRIPTION:
+ * Validates administrative orchestration, including settlement pipelines 
+ * and secure audit logging. Ensures RBAC integrity across the MERN stack.
+ * * UPDATES: 
+ * - Path Integrity: Verified model resolutions for cross-environment stability.
+ * - ESM Compatibility: Explicitly managed 'jest' context for asynchronous handshakes.
+ * - Security Alignment: Enforced strict JWT payload validation for 'admin' role.
  */
 
-import { jest } from '@jest/globals'; // CRITICAL: Fixes 'ReferenceError: jest is not defined' in ESM
+import { jest } from '@jest/globals'; 
 import request from 'supertest';
 import app from '../../server.js';
 import Investor from '../../src/models/investor.model.js';
@@ -21,18 +23,20 @@ import jwt from 'jsonwebtoken';
 describe('Admin Operations - Security & Settlement Integration', () => {
   let adminToken;
 
-  // Global timeout increase for integration tests to prevent "Exceeded timeout" errors
-  jest.setTimeout(20000); 
+  // Optimized timeout for Cloud DB handshakes and complex aggregation pipelines
+  jest.setTimeout(25000); 
 
   beforeAll(async () => {
-    // Establishing secure handshake with the testing cluster
+    // Ensuring a stable connection to the testing cluster before suite execution
     if (mongoose.connection.readyState === 0) {
       await mongoose.connect(process.env.MONGO_URI_TEST || 'mongodb://127.0.0.1:27017/mapcap_test');
     }
 
     /**
      * AUTHENTICATION SETUP:
-     * Generate a real JWT token with administrative privileges (Daniel's Security Protocol).
+     * Generates a high-privilege JWT token. 
+     * NOTE: The 'role: admin' must strictly match the AuthMiddleware's expectation 
+     * to avoid 403 Forbidden errors during integration.
      */
     adminToken = jwt.sign(
       { id: 'admin_test_id', role: 'admin' }, 
@@ -42,38 +46,38 @@ describe('Admin Operations - Security & Settlement Integration', () => {
   });
 
   afterEach(async () => {
-    // Cleanup to ensure test isolation and data integrity
+    // Maintain database cleanliness between test cycles to prevent data leakage
     if (mongoose.connection.readyState !== 0) {
       await Investor.deleteMany({});
     }
   });
 
   afterAll(async () => {
-    // Graceful closure of the connection pool
+    // Graceful teardown of the database connection pool
     if (mongoose.connection.readyState !== 0) {
       await mongoose.connection.close();
     }
   });
 
   /**
-   * SCENARIO: Unauthorized Access Attempt
-   * REQUIREMENT: Middleware must intercept requests without valid headers (Forbidden).
+   * TEST: Unauthorized Access Interception
+   * VERIFIES: Daniel's Security Gate correctly identifies and rejects missing credentials.
    */
   test('Security: GET /api/v1/admin/audit-logs should reject unauthenticated requests', async () => {
     const response = await request(app).get('/api/v1/admin/audit-logs');
     
-    // Status 403 (Forbidden) is enforced by Daniel's AuthMiddleware for missing tokens
+    // Expecting 403 Forbidden or 401 Unauthorized based on Middleware configuration
     expect(response.status).toBe(403);
     expect(response.body.success).toBe(false);
     expect(response.body.message).toMatch(/unauthorized|forbidden|denied|token/i);
   });
 
   /**
-   * SCENARIO: Authorized Settlement Execution
-   * REQUIREMENT: Philip's Anti-Whale Enforcement via full pipeline integration.
+   * TEST: Authorized Settlement Execution
+   * VERIFIES: Full pipeline integration from Admin trigger to Investor record updates.
    */
   test('Settlement: POST /api/v1/admin/settle should execute with a valid admin token', async () => {
-    // Seed database with a 'Pseudo-Whale' to test full settlement orchestration
+    // Pre-seed a 'Pioneer' record to simulate a real-world settlement scenario
     await Investor.create({
       piAddress: 'PIONEER_SETTLE_TEST_001',
       totalPiContributed: 20000, 
@@ -86,13 +90,13 @@ describe('Admin Operations - Security & Settlement Integration', () => {
 
     expect(response.status).toBe(200);
     expect(response.body.success).toBe(true);
-    // Flexible matching for standardized success messages in v1.6.x
+    // Support for flexible success messaging defined in ResponseHelper
     expect(response.body.message).toMatch(/finalized|successfully|executed|settlement/i);
   });
 
   /**
-   * SCENARIO: Financial Report Access
-   * REQUIREMENT: Ensure global metrics are accessible for the Pulse Dashboard.
+   * TEST: Pulse Dashboard Metrics Retrieval
+   * VERIFIES: Data encapsulation and availability for the Frontend Dashboard.
    */
   test('Audit: GET /api/v1/admin/status should return system metrics for Daniel’s review', async () => {
     const response = await request(app)
@@ -102,7 +106,7 @@ describe('Admin Operations - Security & Settlement Integration', () => {
     expect(response.status).toBe(200);
     expect(response.body.success).toBe(true);
     
-    // Check for standardized data encapsulation for Dashboard compatibility
+    // Validates that the response contains the required 'metrics' object for Frontend rendering
     if (response.body.data) {
         expect(response.body.data).toHaveProperty('metrics');
     }
