@@ -1,14 +1,12 @@
 /**
- * MapCap IPO - Core Server Orchestrator v1.6.6
+ * MapCap IPO - Core Server Orchestrator v1.6.7 (Stabilized)
  * -------------------------------------------------------------------------
  * Lead Architect: EslaM-X | AppDev @Map-of-Pi
  * Project: MapCap Ecosystem | Spec: Philip Jennings & Daniel Compliance
  * -------------------------------------------------------------------------
  * ARCHITECTURAL ROLE:
- * This orchestrator initializes the Express pipeline, manages database 
- * persistence, and routes traffic through secured IPO and Admin gateways.
- * Optimized for seamless MERN integration and high-fidelity Web3 solutions.
- * -------------------------------------------------------------------------
+ * Orchestrates Express pipeline, database persistence, and security gateways.
+ * Optimized for MERN stack integration and stable Termux testing.
  */
 
 import dotenv from 'dotenv';
@@ -34,24 +32,24 @@ const app = express();
 
 /**
  * 1. GLOBAL MIDDLEWARE & SECURITY FRAMEWORK
- * Configures cross-origin policies and request logging for audit compliance.
+ * Configures cross-origin policies for Frontend Dashboard stability.
  */
 app.use(morgan('combined', { stream: auditLogStream }));
 app.use(express.json());
+
+// UPDATED: Added 'x-admin-token' to allowedHeaders for Frontend-to-Backend security handshake
 app.use(cors({
     origin: '*', 
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization']
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-admin-token'] 
 }));
 
 /**
  * 2. DATABASE PERSISTENCE LAYER
- * Orchestrates MongoDB connection with environment-specific logic.
+ * Logic refined to allow Test Suites (v1.1.1) to manage lifecycle.
  */
 const connectDB = async () => {
     try {
-        // ENFORCEMENT: Skip manual connection in 'test' mode to allow 
-        // test suites to manage their own database lifecycle.
         if (process.env.NODE_ENV === 'test') return;
 
         const dbUri = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/mapcap_dev';
@@ -60,7 +58,10 @@ const connectDB = async () => {
         console.log(`✅ [DATABASE] Ledger Connection: SUCCESS (${process.env.NODE_ENV || 'dev'})`);
         writeAuditLog('INFO', 'Database Connection Established.');
 
-        // Initialize Background Jobs (Only in Production or Dev, never in Tests)
+        /**
+         * CRON INITIALIZATION:
+         * Strictly isolated from the 'test' environment to prevent ledger pollution.
+         */
         if (process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'development') {
             CronScheduler.init();
         }
@@ -79,7 +80,7 @@ if (process.env.NODE_ENV !== 'test') {
 
 /**
  * 4. SYSTEM PULSE CHECK (Real-Time Metrics)
- * Provides an unauthenticated endpoint for monitoring IPO capacity and health.
+ * High-performance aggregation for the Pulse Dashboard 'Water-Level' Graph.
  */
 app.get('/', async (req, res) => {
     try {
@@ -119,12 +120,12 @@ app.get('/', async (req, res) => {
 
 /**
  * 5. ROUTE ARCHITECTURE
- * Maintains dual-prefix support (v1 and base) for Frontend/Mobile compatibility.
+ * Dual-prefix support for Frontend stability across version transitions.
  */
 app.use('/api/v1/ipo', ipoRoutes);
 app.use('/api/v1/admin', adminRoutes);
-app.use('/api/ipo', ipoRoutes);     // Legacy fallback for Frontend Stability
-app.use('/api/admin', adminRoutes); // Legacy fallback for Frontend Stability
+app.use('/api/ipo', ipoRoutes);     
+app.use('/api/admin', adminRoutes); 
 
 /**
  * 6. GLOBAL EXCEPTION INTERCEPTOR
@@ -134,21 +135,19 @@ app.use((err, req, res, next) => {
     return res.status(500).json({
         success: false,
         error: "Internal System Anomaly",
-        message: "Financial audit log generated for review."
+        message: "Financial audit log generated."
     });
 });
 
 /**
  * 7. SERVER EXECUTION (ENVIRONMENTAL GUARD)
- * Decouples app logic from the network port during automated testing.
- * The server only listens automatically if NOT in a testing environment.
+ * Optimized for Termux / CI-CD execution.
  */
 const PORT = process.env.PORT || 3000;
 if (process.env.NODE_ENV !== 'test') {
     app.listen(PORT, () => {
-        console.log(`🚀 [ENGINE] MapCap IPO Pulse v1.6.6 deployed on port ${PORT}`);
+        console.log(`🚀 [ENGINE] MapCap IPO Pulse v1.6.7 deployed on port ${PORT}`);
     });
 }
 
-// Module Export for Supertest & Integration Suites
 export default app;
