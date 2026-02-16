@@ -1,13 +1,13 @@
 /**
- * Metrics Synchronization Integration Suite - System Pulse v1.0.1
+ * Metrics Synchronization Integration Suite - System Pulse v1.0.2
  * -------------------------------------------------------------------------
  * Lead Architect: EslaM-X | AppDev @Map-of-Pi
  * Project: MapCap Ecosystem | Spec: Real-time Market Data Integration
  * -------------------------------------------------------------------------
  * ARCHITECTURAL ROLE:
- * This suite validates the automated data-fetching pipeline. It ensures that
- * external market metrics (like Pi price) are correctly ingested, 
- * standardized, and persisted to the global configuration ledger.
+ * Validates the automated data-fetching pipeline. It ensures that external 
+ * market metrics (Pi price) are ingested, standardized, and persisted 
+ * without breaking the Pulse Dashboard in the MERN Frontend.
  * -------------------------------------------------------------------------
  */
 
@@ -22,32 +22,39 @@ import jwt from 'jsonwebtoken';
 describe('Metrics Synchronization - System Pulse Integration', () => {
   let adminToken;
 
+  // Extended timeout to handle external service simulation & DB write latency
+  jest.setTimeout(20000);
+
   beforeAll(async () => {
-    // Ensure connectivity to the designated Cloud/Local Test Cluster
+    // Establishing secure handshake with the designated testing cluster
     if (mongoose.connection.readyState === 0) {
-      await mongoose.connect(process.env.MONGO_URI_TEST || 'mongodb://localhost:27017/mapcap_test');
+      await mongoose.connect(process.env.MONGO_URI_TEST || 'mongodb://127.0.0.1:27017/mapcap_test');
     }
     // Generate valid administrative payload for secure route access
-    adminToken = jwt.sign({ id: 'admin_id', role: 'admin' }, process.env.JWT_SECRET || 'test_secret');
+    adminToken = jwt.sign(
+      { id: 'admin_id_metrics', role: 'admin' }, 
+      process.env.JWT_SECRET || 'test_secret_key'
+    );
   });
 
   afterEach(async () => {
-    // Clean up collections and reset mocks to prevent cross-test contamination
-    await GlobalConfig.deleteMany({});
+    // Isolation: Clean up configurations and reset spies after each test case
+    if (mongoose.connection.readyState !== 0) {
+      await GlobalConfig.deleteMany({});
+    }
     jest.restoreAllMocks();
   });
 
   afterAll(async () => {
-    // Graceful teardown of the database connection
+    // Graceful teardown of the database connection pool
     if (mongoose.connection.readyState !== 0) {
       await mongoose.connection.close();
     }
   });
 
   /**
-   * SCENARIO: Successful Market Data Ingestion
-   * REQUIREMENT: When the PriceService fetches new data, the GlobalConfig 
-   * must reflect the updated Pi-to-USD rate and the timestamp.
+   * TEST: Successful Market Data Ingestion
+   * VERIFIES: GlobalConfig correctly reflects updated Pi-to-USD rate for Frontend consumption.
    */
   test('Sync: Should fetch external Pi price and update GlobalConfig pulse', async () => {
     // 1. Mocking the external API response (Simulation of Price Oracle)
@@ -60,7 +67,7 @@ describe('Metrics Synchronization - System Pulse Integration', () => {
     const priceSpy = jest.spyOn(PriceService, 'fetchLatestPiPrice')
       .mockResolvedValue(mockPriceData);
 
-    // 2. Trigger the sync via the Admin/Cron endpoint
+    // 2. Trigger the sync via the Admin/Cron protected endpoint
     const response = await request(app)
       .post('/api/v1/admin/sync/metrics')
       .set('Authorization', `Bearer ${adminToken}`);
@@ -75,9 +82,8 @@ describe('Metrics Synchronization - System Pulse Integration', () => {
   });
 
   /**
-   * SCENARIO: Faulty External API Response
-   * REQUIREMENT: If the external price source is down, the system must 
-   * retain the last known good price (Stale-While-Revalidate pattern).
+   * TEST: Faulty External API Response (Resilience)
+   * VERIFIES: System retains last known good price to prevent UI breakage (Stale Data Strategy).
    */
   test('Resilience: Should retain last known price if external sync fails', async () => {
     // 1. Seed the database with a "Last Known Good" price for recovery testing
@@ -94,10 +100,10 @@ describe('Metrics Synchronization - System Pulse Integration', () => {
       .post('/api/v1/admin/sync/metrics')
       .set('Authorization', `Bearer ${adminToken}`);
 
-    // 3. Verify stability: Ensure the stale price remains consistent
+    // 3. Verify stability: Ensure the stale price remains consistent in the ledger
     const retainedPulse = await GlobalConfig.findOne({ key: 'SYSTEM_PULSE' });
 
-    // Expecting 500 status as the service failed, but data must persist
+    // Expecting 500 status due to service failure, but data integrity must be preserved
     expect(response.status).toBe(500); 
     expect(retainedPulse.value.piPrice).toBe(3.10); 
   });
