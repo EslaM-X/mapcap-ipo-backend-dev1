@@ -1,13 +1,13 @@
 /**
- * Metrics Synchronization Integration Suite - System Pulse v1.0.3
+ * Metrics Synchronization Integration Suite - System Pulse v1.0.4
  * -------------------------------------------------------------------------
  * Lead Architect: EslaM-X | AppDev @Map-of-Pi
  * Project: MapCap Ecosystem | Spec: Real-time Market Data Integration
  * -------------------------------------------------------------------------
- * FIX LOG:
- * - Environment Alignment: Direct local MongoDB connection for Termux compatibility.
- * - Security Update: Switched to 'x-admin-token' to match v1.5.4 Middleware.
- * - Dependency Resolution: Fully compatible with PriceService.fetchLatestPiPrice().
+ * ARCHITECTURAL ALIGNMENT:
+ * This suite validates the synchronization between PriceService and the 
+ * Global Aggregate Pulse endpoint. Optimized for Termux & MERN stack.
+ * -------------------------------------------------------------------------
  */
 
 import { jest } from '@jest/globals'; 
@@ -20,16 +20,15 @@ import mongoose from 'mongoose';
 describe('Metrics Synchronization - System Pulse Integration', () => {
   let adminSecret;
 
-  // Stability timeout for Termux environment
+  // Stability timeout for Termux environment and complex math operations
   jest.setTimeout(30000);
 
   beforeAll(async () => {
-    // 1. Database Handshake: Bypassing memory-server binary issues
+    // 1. Database Handshake: Direct connection for environment compatibility
     try {
       if (mongoose.connection.readyState === 0) {
         const TEST_DB = process.env.MONGO_URI_TEST || 'mongodb://127.0.0.1:27017/mapcap_test';
         await mongoose.connect(TEST_DB);
-        console.log(`[METRICS_TEST]: Connected to ${TEST_DB}`);
       }
     } catch (error) {
       console.error("[METRICS_DB_ERROR]: Database connection failed.");
@@ -54,53 +53,44 @@ describe('Metrics Synchronization - System Pulse Integration', () => {
   });
 
   /**
-   * TEST: Successful Market Data Ingestion
-   * Uses the newly implemented 'fetchLatestPiPrice' alias in PriceService.
+   * TEST: Successful Market Data Aggregation
+   * ALIGNMENT: Updated to match GET /api/v1/stats defined in api.js
    */
-  test('Sync: Should fetch external Pi price and update GlobalConfig pulse', async () => {
-    // Simulation of Price Oracle (Mocking the service logic)
-    const mockPriceValue = 3.141592;
-
-    const priceSpy = jest.spyOn(PriceService, 'fetchLatestPiPrice')
-      .mockResolvedValue(mockPriceValue);
+  test('Sync: Should return synchronized global pulse with scarcity metrics', async () => {
+    // Simulation: Price data formatting check
+    const formattedPriceMock = "3.141592 Pi";
+    
+    // Spying on service layer to ensure it's called during the request
+    const priceSpy = jest.spyOn(PriceService, 'calculateDailySpotPrice');
 
     const response = await request(app)
-      .post('/api/v1/admin/sync/metrics')
-      .set('x-admin-token', adminSecret); // Aligned with our custom security gate
+      .get('/api/v1/stats') // FIX: Route updated from /admin/sync/metrics to /stats
+      .set('x-admin-token', adminSecret);
 
-    const currentPulse = await GlobalConfig.findOne({ key: 'SYSTEM_PULSE' });
-
+    // Assertions: Ensuring the API bridge is functional for Frontend consumption
     expect(response.status).toBe(200);
     expect(priceSpy).toHaveBeenCalled();
     expect(response.body.success).toBe(true);
-    
-    if (currentPulse) {
-      expect(currentPulse.value.piPrice).toBe(3.141592);
-    }
+    expect(response.body.data).toHaveProperty('spotPrice');
+    expect(response.body.data.compliance.precision).toBe("6-Decimal_Standard");
   });
 
   /**
-   * TEST: Faulty External API Response (Resilience)
+   * TEST: Faulty Internal Execution (Resilience)
+   * Ensures the system handles calculation or service errors gracefully.
    */
-  test('Resilience: Should retain last known price if external sync fails', async () => {
-    // Seed "Last Known Good" price
-    await GlobalConfig.create({
-      key: 'SYSTEM_PULSE',
-      value: { piPrice: 3.10, lastUpdated: new Date() }
-    });
-
-    // Simulate Oracle Connectivity Error
-    jest.spyOn(PriceService, 'fetchLatestPiPrice')
-      .mockRejectedValue(new Error('Oracle Offline'));
+  test('Resilience: Should return 500 error if the Scarcity Engine fails', async () => {
+    // Simulate an internal service crash
+    jest.spyOn(PriceService, 'calculateDailySpotPrice')
+      .mockImplementation(() => { throw new Error('Engine Failure'); });
 
     const response = await request(app)
-      .post('/api/v1/admin/sync/metrics')
+      .get('/api/v1/stats')
       .set('x-admin-token', adminSecret);
 
-    const retainedPulse = await GlobalConfig.findOne({ key: 'SYSTEM_PULSE' });
-
-    // Status 500 is expected on sync failure, but data must remain stable
+    // Integrity Assertion: Frontend must receive a proper error status
     expect(response.status).toBe(500); 
-    expect(retainedPulse.value.piPrice).toBe(3.10); 
+    expect(response.body.success).toBe(false);
+    expect(response.body.message).toContain('Global Sync Failure');
   });
 });
