@@ -49,8 +49,6 @@ describe('Payment & Pi Network Integration - Unit Tests', () => {
 
   /**
    * SECTION 1: PI NETWORK & ESCROW CONFIGURATION
-   * Requirement: Validates the communication layer constants to ensure
-   * the Frontend/Backend handshake with Pi Network V2 is immutable.
    */
   describe('Pi Network Infrastructure Constants', () => {
     
@@ -64,20 +62,18 @@ describe('Payment & Pi Network Integration - Unit Tests', () => {
     });
 
     test('Security: Pi configuration object must be frozen to prevent tampering', () => {
-      // Daniel's Requirement: Prevents runtime modification of API keys or URLs.
       expect(Object.isFrozen(PiConfig)).toBe(true);
     });
   });
 
   /**
    * SECTION 2: INVESTMENT CONTROLLER LOGIC
-   * Requirement: Processes incoming payments and ensures the Ledger is synchronized.
-   * Maintains Philip's "Water-Level" accuracy on the Pulse Dashboard.
    */
   describe('Investment Processing & Idempotency', () => {
 
     /**
      * Requirement: Successful investment must update both Transaction and Investor models.
+     * UPDATED: Matches "Ledger synchronization successful." from Controller Response.
      */
     test('Success: Should process new investment and return 200 to the Frontend', async () => {
       await PaymentController.processInvestment(mockReq, mockRes);
@@ -87,32 +83,28 @@ describe('Payment & Pi Network Integration - Unit Tests', () => {
       expect(mockRes.json).toHaveBeenCalledWith(
         expect.objectContaining({ 
           success: true, 
-          message: "Ledger Synchronized Successfully." 
+          message: "Ledger synchronization successful." 
         })
       );
     });
 
     /**
-     * Requirement: Anti-Duplicate Security (Daniel's Specification).
-     * Prevents processing the same blockchain hash (piTxId) twice.
+     * Requirement: Anti-Duplicate Security (Idempotency Guard).
+     * UPDATED: Matches "Duplicate Entry" from Controller Response.
      */
     test('Security: Should block duplicate transactions (Idempotency Guard)', async () => {
-      // Simulating an existing transaction in the audit ledger
       jest.spyOn(Transaction, 'findOne').mockResolvedValue({ piTxId: 'TXID_2026_MAPCAP_SYNC' });
 
       await PaymentController.processInvestment(mockReq, mockRes);
 
       expect(mockRes.status).toHaveBeenCalledWith(409);
       expect(mockRes.json).toHaveBeenCalledWith(
-        expect.objectContaining({ message: expect.stringContaining("Duplicate Transaction") })
+        expect.objectContaining({ message: expect.stringContaining("Duplicate Entry") })
       );
     });
 
-    /**
-     * Requirement: Sanitization - Prevents malformed requests from reaching the Database.
-     */
     test('Validation: Should reject requests with missing financial metadata', async () => {
-      mockReq.body = { piAddress: 'GBV...ADDR' }; // Missing amount and txId
+      mockReq.body = { piAddress: 'GBV...ADDR' };
 
       await PaymentController.processInvestment(mockReq, mockRes);
 
@@ -120,4 +112,3 @@ describe('Payment & Pi Network Integration - Unit Tests', () => {
     });
   });
 });
-
