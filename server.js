@@ -7,6 +7,7 @@
  * ARCHITECTURAL ROLE:
  * This orchestrator initializes the Express pipeline, manages database 
  * persistence, and routes traffic through secured IPO and Admin gateways.
+ * Optimized for seamless MERN integration and high-fidelity Web3 solutions.
  * -------------------------------------------------------------------------
  */
 
@@ -33,7 +34,7 @@ const app = express();
 
 /**
  * 1. GLOBAL MIDDLEWARE & SECURITY FRAMEWORK
- * Implements standard logging and Cross-Origin Resource Sharing (CORS) policies.
+ * Configures cross-origin policies and request logging for audit compliance.
  */
 app.use(morgan('combined', { stream: auditLogStream }));
 app.use(express.json());
@@ -45,19 +46,21 @@ app.use(cors({
 
 /**
  * 2. DATABASE PERSISTENCE LAYER
- * Dynamically switches between Production and Test Databases based on environment.
+ * Orchestrates MongoDB connection with environment-specific logic.
  */
 const connectDB = async () => {
     try {
-        // RATIONALE: MONGO_URI is injected by test/setup.js during Integration Suites
-        const dbUri = (process.env.NODE_ENV === 'test') ? process.env.MONGO_URI : process.env.MONGO_URI;
-        
-        await mongoose.connect(dbUri || 'mongodb://127.0.0.1:27017/mapcap_dev');
+        // ENFORCEMENT: Skip manual connection in 'test' mode to allow 
+        // test/setup.js to manage the MongoMemoryServer lifecycle.
+        if (process.env.NODE_ENV === 'test') return;
+
+        const dbUri = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/mapcap_dev';
+        await mongoose.connect(dbUri);
         
         console.log(`✅ [DATABASE] Ledger Connection: SUCCESS (${process.env.NODE_ENV || 'dev'})`);
         writeAuditLog('INFO', 'Database Connection Established.');
 
-        // Initialize Scheduled Tasks (Bypassed during Testing & Production)
+        // Initialize Background Jobs (Delayed until DB is stable)
         if (process.env.NODE_ENV !== 'production' && process.env.NODE_ENV !== 'test') {
             CronScheduler.init();
         }
@@ -67,11 +70,16 @@ const connectDB = async () => {
     }
 };
 
-// Initiate Persistence
-connectDB();
+/**
+ * 3. EXECUTION GUARD: DATABASE INITIALIZATION
+ * Ensures persistence is only triggered outside of the testing framework.
+ */
+if (process.env.NODE_ENV !== 'test') {
+    connectDB();
+}
 
 /**
- * 3. SYSTEM PULSE CHECK (Real-Time Metrics)
+ * 4. SYSTEM PULSE CHECK (Real-Time Metrics)
  * Provides an unauthenticated endpoint for monitoring IPO capacity and health.
  */
 app.get('/', async (req, res) => {
@@ -111,19 +119,17 @@ app.get('/', async (req, res) => {
 });
 
 /**
- * 4. ROUTE ARCHITECTURE
- * v1 endpoints are standardized for API consumption and Integration Testing.
+ * 5. ROUTE ARCHITECTURE
+ * Maintains dual-prefix support (v1 and base) for Frontend/Mobile compatibility.
  */
 app.use('/api/v1/ipo', ipoRoutes);
 app.use('/api/v1/admin', adminRoutes);
-
-// LEGACY SUPPORT: Ensures existing frontend integrations remain functional
-app.use('/api/ipo', ipoRoutes);     
-app.use('/api/admin', adminRoutes); 
+app.use('/api/ipo', ipoRoutes);     // Legacy fallback for Frontend Stability
+app.use('/api/admin', adminRoutes); // Legacy fallback for Frontend Stability
 
 /**
- * 5. GLOBAL EXCEPTION INTERCEPTOR
- * Final safety net for unhandled errors to maintain system stability.
+ * 6. GLOBAL EXCEPTION INTERCEPTOR
+ * Final safety net for unhandled errors to maintain system uptime.
  */
 app.use((err, req, res, next) => {
     writeAuditLog('CRITICAL', `FATAL EXCEPTION: ${err.stack}`);
@@ -135,8 +141,8 @@ app.use((err, req, res, next) => {
 });
 
 /**
- * 6. SERVER EXECUTION (ENVIRONMENTAL GUARD)
- * Prevents the server from auto-starting during Jest runs to avoid EADDRINUSE errors.
+ * 7. SERVER EXECUTION (ENVIRONMENTAL GUARD)
+ * Decouples app logic from the network port during automated testing sequences.
  */
 const PORT = process.env.PORT || 3000;
 if (process.env.NODE_ENV !== 'test') {
@@ -145,5 +151,5 @@ if (process.env.NODE_ENV !== 'test') {
     });
 }
 
-// Export for Supertest compatibility
+// Module Export for Supertest & Integration Suites
 export default app;
