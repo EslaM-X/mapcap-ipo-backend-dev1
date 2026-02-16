@@ -2,7 +2,7 @@
  * FINANCIAL SETTLEMENT & ANTI-WHALE ENFORCEMENT ENGINE
  * -------------------------------------------------------------------------
  * LEAD ARCHITECT: EslaM-X | AppDev @Map-of-Pi
- * VERSION: 1.6.7 (Stable - Post-IPO Compliance)
+ * VERSION: 1.6.8 (Stable - Post-IPO Compliance)
  * -------------------------------------------------------------------------
  * ARCHITECTURAL ROLE:
  * This engine enforces the "10% Ceiling Rule" mandated for system liquidity 
@@ -21,28 +21,28 @@ import MathHelper from '../utils/math.helper.js';
 
 class SettlementJob {
     /**
-     * EXECUTE WHALE TRIM-BACK
+     * @method executeWhaleTrimBack
      * @param {Number} totalPoolAmount - The total aggregated Pi in the IPO pool.
-     * Logic: Trims individual holdings to 10% of the total pool and refunds excess.
+     * @desc Trims individual holdings to 10% of the total pool and refunds excess.
      */
     static async executeWhaleTrimBack(totalPoolAmount) {
         console.log('--- [COMPLIANCE] Initiating Post-IPO Final Settlement Sequence ---');
         
-        // Data Sanitization: Ensure totalPoolAmount is a valid number to prevent NaN propagation
+        // Data Sanitization: Prevent NaN propagation
         const sanitizedPool = Number(totalPoolAmount) || 0;
         writeAuditLog('INFO', `Whale Settlement Triggered. Final Water-Level: ${sanitizedPool} Pi`);
 
-        // Mandatory 10% Ceiling: No single entity can own more than 10% of the circulating IPO supply
+        // Mandatory 10% Ceiling Rule
         const threshold = sanitizedPool * 0.10; 
         let totalRefunded = 0;
         let whalesImpacted = 0;
 
         try {
             // 1. Identification: Fetch investors who exceeded the calculated ceiling
+            // Using 'totalPiContributed' to match the AdminController's aggregation field
             const whales = await Investor.find({ totalPiContributed: { $gt: threshold } });
 
             for (const investor of whales) {
-                // Calculation: Determine surplus amount with high decimal precision
                 const currentContribution = Number(investor.totalPiContributed) || 0;
                 const excessAmount = currentContribution - threshold;
                 const preciseRefund = MathHelper.toPiPrecision(excessAmount);
@@ -53,21 +53,21 @@ class SettlementJob {
 
                 try {
                     /**
-                     * 2. Execution: Refund surplus Pi back to the Pioneer's wallet.
-                     * 'WHALE_EXCESS_REFUND' metadata is critical for Daniel's financial audit.
+                     * 2. Execution: Refund surplus Pi via A2U Protocol.
+                     * Metadata 'WHALE_EXCESS_REFUND' is required for financial forensic audits.
                      */
                     await PayoutService.executeA2UPayout(investor.piAddress, preciseRefund, 'WHALE_EXCESS_REFUND');
 
-                    // 3. Ledger Update: Cap the investment at threshold and flag for UI badges
+                    // 3. Ledger Update: Atomic update to maintain threshold
                     investor.totalPiContributed = threshold;
-                    investor.isWhale = true; // Maintains badge visibility on Frontend
+                    investor.isWhale = true; // Enables Frontend 'Whale' badge/status
                     investor.lastSettlementDate = new Date();
                     await investor.save();
 
                     totalRefunded = MathHelper.toPiPrecision(totalRefunded + preciseRefund);
                     whalesImpacted++;
 
-                    writeAuditLog('INFO', `Settlement Success: ${preciseRefund} Pi returned to ${investor.piAddress}. Threshold maintained.`);
+                    writeAuditLog('INFO', `Settlement Success: ${preciseRefund} Pi returned to ${investor.piAddress}.`);
                 } catch (payoutError) {
                     writeAuditLog('CRITICAL', `PAYOUT_FAILED for ${investor.piAddress}: ${payoutError.message}`);
                     console.error(`[CRITICAL_FAILURE] Settlement execution error for ${investor.piAddress}`);
@@ -79,7 +79,7 @@ class SettlementJob {
 
             /**
              * COMPATIBILITY LAYER:
-             * Returning standardized keys to prevent breaking Admin Controller or Frontend Dashboards.
+             * Strictly maintaining keys to ensure AdminController and Frontend stability.
              */
             return {
                 success: true,
