@@ -1,66 +1,78 @@
 /**
- * GLOBAL TEST SETUP & DATABASE TEARDOWN (In-Memory Implementation)
+ * UNIVERSAL TEST SETUP & DATABASE LIFECYCLE (Cross-Platform)
  * -------------------------------------------------------------------------
  * ARCHITECTURAL ROLE:
- * This suite orchestrates the lifecycle of a virtualized MongoDB instance. 
- * It ensures that Integration Tests run in an isolated, idempotent environment 
- * without side effects on production or local disk-based databases.
+ * Orchestrates database connectivity for Integration Tests. Designed to be 
+ * platform-agnostic, supporting Termux (via Cloud URI) and Desktop OS 
+ * (via Local/Memory URI). Ensures idempotent test environments.
  * -------------------------------------------------------------------------
  */
 
-import { MongoMemoryServer } from 'mongodb-memory-server';
 import mongoose from 'mongoose';
+import dotenv from 'dotenv';
 
-let mongod;
+// Load environment variables for test configuration
+dotenv.config();
 
 /**
  * PRE-FLIGHT INITIALIZATION:
- * Spins up an ephemeral MongoDB server and injects test-specific 
- * environment variables before the test suite execution begins.
+ * Establishes a connection to the test database. Priority is given to 
+ * MONGO_URI_TEST (Cloud/Atlas) for Termux compatibility, with a 
+ * local fallback for standard development environments.
  */
 beforeAll(async () => {
-  // Initialize the MongoDB Memory Server instance
-  mongod = await MongoMemoryServer.create();
-  const uri = mongod.getUri();
+  // CONFIGURATION: Priority 1: Environment Variable | Priority 2: Local Fallback
+  const TEST_URI = process.env.MONGO_URI_TEST || "mongodb://127.0.0.1:27017/mapcap_test";
   
-  // Inject the dynamic URI and security secrets into the runtime environment
-  process.env.MONGO_URI = uri;
-  process.env.JWT_SECRET = 'test_secret_key_123';
+  // Inject critical test-specific environment variables
+  process.env.MONGO_URI = TEST_URI;
+  process.env.JWT_SECRET = process.env.JWT_SECRET || 'test_secret_key_123';
   process.env.NODE_ENV = 'test';
 
-  // Establish connection if the ODM (Mongoose) is not already active
+  // Initialize connection if Mongoose is idle
   if (mongoose.connection.readyState === 0) {
-    await mongoose.connect(uri);
+    try {
+      await mongoose.connect(TEST_URI, {
+        serverSelectionTimeoutMS: 5000, // Rapid failure if DB is unreachable
+      });
+      console.log(`\n🚀 Test Engine Connected: ${TEST_URI.includes('atlassian') || TEST_URI.includes('mongodb.net') ? 'Remote Cloud' : 'Local Instance'}`);
+    } catch (err) {
+      console.error("\n❌ CRITICAL: Test Database Connection Failed.");
+      console.error(`Details: ${err.message}`);
+      process.exit(1); // Force-stop tests to prevent false positives
+    }
   }
 });
 
 /**
  * STATE HYGIENE:
- * Wipes all collections after each test execution.
- * Crucial for financial logic to prevent cross-test data pollution (e.g., duplicate txIds).
+ * Wipes all database collections after each test case.
+ * Mandatory for Web3 financial logic to prevent data pollution and 
+ * ensure each test starts with a clean ledger state.
  */
 afterEach(async () => {
   if (mongoose.connection.readyState !== 0) {
     const collections = mongoose.connection.collections;
     for (const key in collections) {
-      await collections[key].deleteMany();
+      const collection = collections[key];
+      await collection.deleteMany();
     }
   }
 });
 
 /**
  * GRACEFUL SHUTDOWN:
- * Terminates the Mongoose connection and stops the Memory Server
- * to prevent memory leaks and release system resources.
+ * Properly closes the Mongoose connection to prevent memory leaks 
+ * and ensures the test process terminates cleanly.
  */
 afterAll(async () => {
   if (mongoose.connection.readyState !== 0) {
-    // Purge the virtual database before closing the channel
-    await mongoose.connection.dropDatabase();
+    // Optional: Drop database for a complete purge on environments that allow it
+    try {
+      await mongoose.connection.dropDatabase();
+    } catch (e) {
+      // Ignore errors during drop in constrained environments
+    }
     await mongoose.connection.close();
-  }
-  
-  if (mongod) {
-    await mongod.stop();
   }
 });
