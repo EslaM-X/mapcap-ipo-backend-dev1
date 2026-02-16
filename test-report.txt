@@ -1,0 +1,1852 @@
+
+> mapcap-ipo-backend@1.7.0 test
+> cross-env NODE_ENV=test NODE_OPTIONS='--experimental-vm-modules' jest --runInBand --detectOpenHandles
+
+  console.log
+    [32m[AUDIT_INFO] 2026-02-16T20:02:21.072Z - [INFO]: MapCap Audit Engine v1.5.5 Synchronized for Cloud Deployment.
+    [0m
+
+      at writeAuditLog (src/config/logger.js:68:17)
+
+(node:3171) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+  console.log
+    🛑 TEST_ENGINE_OFFLINE: Resources deallocated.
+
+      at Object.<anonymous> (test/setup.js:99:13)
+
+FAIL test/unit/utils/system.health.test.js (8.758 s)
+  System Health & Cloud Infrastructure - Unit Tests
+    Server Engine - Heartbeat Integration
+      ✕ Heartbeat: GET / should return 200 and live financial metrics for UI (1359 ms)
+      ✓ Security: Should verify CORS headers for cross-origin dashboard access (321 ms)
+    Audit Logger - Transparency & Alerts
+      ✓ INFO Logs: Should format operational entries with [AUDIT_INFO] tag (173 ms)
+      ✓ CRITICAL Alerts: Should elevate priority for security/pipeline failures (141 ms)
+    Vercel Config - Serverless Security
+      ✓ Configuration: vercel.json must exist and be valid JSON (129 ms)
+      ✓ Security: Should enforce no-store headers to prevent stale financial data (370 ms)
+      ✓ Environment: Should enable experimental-modules for Node runtime support (126 ms)
+
+  ● System Health & Cloud Infrastructure - Unit Tests › Server Engine - Heartbeat Integration › Heartbeat: GET / should return 200 and live financial metrics for UI
+
+    TypeError: Cannot read properties of undefined (reading 'total_pi_invested')
+
+      59 |       expect(res.statusCode).toEqual(200);
+      60 |       expect(res.body.success).toBe(true);
+    > 61 |       expect(res.body.data.live_metrics.total_pi_invested).toBe(1000000);
+         |                                         ^
+      62 |       
+      63 |       aggregateSpy.mockRestore();
+      64 |     });
+
+      at Object.<anonymous> (test/unit/utils/system.health.test.js:61:41)
+
+  console.log
+    [32m[AUDIT_INFO] 2026-02-16T20:02:28.106Z - [INFO]: MapCap Audit Engine v1.5.5 Synchronized for Cloud Deployment.
+    [0m
+
+      at writeAuditLog (src/config/logger.js:68:17)
+
+  console.log
+    
+    ✅ TEST_ENGINE_READY: Connected to Remote Atlas
+
+      at Object.<anonymous> (test/setup.js:52:15)
+
+  console.log
+    🔒 NETWORK_LOCKDOWN: External API calls disabled (Nock Active).
+
+      at Object.<anonymous> (test/setup.js:53:15)
+
+  console.log
+    [SECURITY_LOG] Admin Privilege Elevated | Time: 2026-02-16T20:02:30.312Z | IP: ::ffff:127.0.0.1
+
+      at adminAuth (src/middlewares/auth.middleware.js:45:17)
+
+  console.log
+    [ADMIN_ACTION] Manual Vesting Cycle Triggered at 2026-02-16T20:02:30.324Z
+
+      at triggerVestingCycle (src/controllers/admin/admin.controller.js:92:21)
+
+  console.log
+    🕒 --- [VESTING_ENGINE] Monthly Distribution Cycle Started ---
+
+      at VestingJob.executeMonthlyVesting (src/jobs/vesting.job.js:27:17)
+
+  console.log
+    [32m[AUDIT_INFO] 2026-02-16T20:02:30.343Z - [INFO]: Vesting Engine: Monthly Tranche Release Initiated.
+    [0m
+
+      at writeAuditLog (src/config/logger.js:68:17)
+
+  console.log
+    [32m[AUDIT_INFO] 2026-02-16T20:02:30.606Z - [INFO]: [TRANCHE_RELEASED] 1/10 to PIONEER_PAYOUT_001
+    [0m
+
+      at writeAuditLog (src/config/logger.js:68:17)
+
+  console.log
+    🏁 --- [SUCCESS] Monthly Vesting Cycle Finalized ---
+
+      at VestingJob.executeMonthlyVesting (src/jobs/vesting.job.js:77:21)
+
+  console.log
+    [SECURITY_LOG] Admin Privilege Elevated | Time: 2026-02-16T20:02:31.286Z | IP: ::ffff:127.0.0.1
+
+      at adminAuth (src/middlewares/auth.middleware.js:45:17)
+
+  console.log
+    [ADMIN_ACTION] Manual Vesting Cycle Triggered at 2026-02-16T20:02:31.295Z
+
+      at triggerVestingCycle (src/controllers/admin/admin.controller.js:92:21)
+
+  console.log
+    🕒 --- [VESTING_ENGINE] Monthly Distribution Cycle Started ---
+
+      at VestingJob.executeMonthlyVesting (src/jobs/vesting.job.js:27:17)
+
+  console.log
+    [32m[AUDIT_INFO] 2026-02-16T20:02:31.312Z - [INFO]: Vesting Engine: Monthly Tranche Release Initiated.
+    [0m
+
+      at writeAuditLog (src/config/logger.js:68:17)
+
+  console.error
+    [31m[AUDIT_ALERT] 2026-02-16T20:02:31.402Z - [CRITICAL]: [PAYOUT_FAILURE] PIONEER_FAIL_TEST: Network Unreachable
+    [0m
+
+      64 |     // Real-time Console Output for Log Streaming (Vercel Dashboard Visibility)
+      65 |     if (level === 'CRITICAL' || level === 'ERROR' || level === 'WARN') {
+    > 66 |         console.error(`\x1b[31m[AUDIT_ALERT] ${entry}\x1b[0m`); // ANSI Red for Errors
+         |                 ^
+      67 |     } else {
+      68 |         console.log(`\x1b[32m[AUDIT_INFO] ${entry}\x1b[0m`); // ANSI Green for Info
+      69 |     }
+
+      at writeAuditLog (src/config/logger.js:66:17)
+      at VestingJob.executeMonthlyVesting (src/jobs/vesting.job.js:71:25)
+      at triggerVestingCycle (src/controllers/admin/admin.controller.js:95:13)
+
+  console.error
+    ❌ [PIPELINE_ERROR] Payment failed for PIONEER_FAIL_TEST
+
+      70 |                     } catch (err) {
+      71 |                         writeAuditLog('CRITICAL', `[PAYOUT_FAILURE] ${investor.piAddress}: ${err.message}`);
+    > 72 |                         console.error(`❌ [PIPELINE_ERROR] Payment failed for ${investor.piAddress}`);
+         |                                 ^
+      73 |                     }
+      74 |                 }
+      75 |             }
+
+      at VestingJob.executeMonthlyVesting (src/jobs/vesting.job.js:72:33)
+      at triggerVestingCycle (src/controllers/admin/admin.controller.js:95:13)
+
+  console.log
+    🏁 --- [SUCCESS] Monthly Vesting Cycle Finalized ---
+
+      at VestingJob.executeMonthlyVesting (src/jobs/vesting.job.js:77:21)
+
+FAIL test/integration/payout.pipeline.test.js (6.197 s)
+  Payout Pipeline - End-to-End Financial Integration
+    ✕ Vesting Flow: Successful Pi transfer should update the investor ledger (1444 ms)
+    ✓ Resilience: Database should not update if the Payout Service fails (719 ms)
+
+  ● Payout Pipeline - End-to-End Financial Integration › Vesting Flow: Successful Pi transfer should update the investor ledger
+
+    expect(jest.fn()).toHaveBeenCalled()
+
+    Expected number of calls: >= 1
+    Received number of calls:    0
+
+      110 |     // Assertions: Integrity check
+      111 |     expect(response.status).toBe(200); 
+    > 112 |     expect(payoutSpy).toHaveBeenCalled(); // Verification of the actual execution unit
+          |                       ^
+      113 |     expect(updatedPioneer.vestingMonthsCompleted).toBe(1);
+      114 |     expect(response.body.success).toBe(true);
+      115 |   });
+
+      at Object.<anonymous> (test/integration/payout.pipeline.test.js:112:23)
+
+  console.log
+    [32m[AUDIT_INFO] 2026-02-16T20:02:34.539Z - [INFO]: MapCap Audit Engine v1.5.5 Synchronized for Cloud Deployment.
+    [0m
+
+      at writeAuditLog (src/config/logger.js:68:17)
+
+  console.log
+    
+    ✅ TEST_ENGINE_READY: Connected to Remote Atlas
+
+      at Object.<anonymous> (test/setup.js:52:15)
+
+  console.log
+    🔒 NETWORK_LOCKDOWN: External API calls disabled (Nock Active).
+
+      at Object.<anonymous> (test/setup.js:53:15)
+
+  console.log
+    [32m[AUDIT_INFO] 2026-02-16T20:02:36.997Z - [INFO]: Investment Success: 750.55 Pi | Tx: TX_ID_999_INTEGRATION_TEST | Pioneer: GBVXXXX_TEST_PIONEER_NODE
+    [0m
+
+      at writeAuditLog (src/config/logger.js:68:17)
+
+  console.log
+    [32m[AUDIT_INFO] 2026-02-16T20:02:38.052Z - [INFO]: Investment Success: 100 Pi | Tx: STRICTLY_UNIQUE_TX_101 | Pioneer: PIONEER_UNIQUE_STAKE
+    [0m
+
+      at writeAuditLog (src/config/logger.js:68:17)
+
+  console.error
+    [31m[AUDIT_ALERT] 2026-02-16T20:02:38.246Z - [ERROR]: [ERR-MLPLPKBQ-CUD] Code: 409 | Message: Duplicate Entry: This transaction has already been synchronized.
+    [0m
+
+      64 |     // Real-time Console Output for Log Streaming (Vercel Dashboard Visibility)
+      65 |     if (level === 'CRITICAL' || level === 'ERROR' || level === 'WARN') {
+    > 66 |         console.error(`\x1b[31m[AUDIT_ALERT] ${entry}\x1b[0m`); // ANSI Red for Errors
+         |                 ^
+      67 |     } else {
+      68 |         console.log(`\x1b[32m[AUDIT_INFO] ${entry}\x1b[0m`); // ANSI Green for Info
+      69 |     }
+
+      at writeAuditLog (src/config/logger.js:66:17)
+      at ResponseHelper.error (src/utils/response.helper.js:57:7)
+      at processInvestment (src/controllers/payment.controller.js:45:39)
+
+  console.error
+    [31m[AUDIT_ALERT] 2026-02-16T20:02:38.724Z - [ERROR]: [ERR-MLPLPKP0-MVE] Code: 400 | Message: Missing Metadata: Transaction credentials (Address/Amount/TXID) are required.
+    [0m
+
+      64 |     // Real-time Console Output for Log Streaming (Vercel Dashboard Visibility)
+      65 |     if (level === 'CRITICAL' || level === 'ERROR' || level === 'WARN') {
+    > 66 |         console.error(`\x1b[31m[AUDIT_ALERT] ${entry}\x1b[0m`); // ANSI Red for Errors
+         |                 ^
+      67 |     } else {
+      68 |         console.log(`\x1b[32m[AUDIT_INFO] ${entry}\x1b[0m`); // ANSI Green for Info
+      69 |     }
+
+      at writeAuditLog (src/config/logger.js:66:17)
+      at ResponseHelper.error (src/utils/response.helper.js:57:7)
+      at processInvestment (src/controllers/payment.controller.js:35:35)
+      at Layer.handle [as handle_request] (node_modules/express/lib/router/layer.js:95:5)
+      at next (node_modules/express/lib/router/route.js:149:13)
+      at Route.dispatch (node_modules/express/lib/router/route.js:119:3)
+      at Layer.handle [as handle_request] (node_modules/express/lib/router/layer.js:95:5)
+      at node_modules/express/lib/router/index.js:284:15
+      at router.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at router.handle (node_modules/express/lib/router/index.js:175:3)
+      at router (node_modules/express/lib/router/index.js:47:12)
+      at Layer.handle [as handle_request] (node_modules/express/lib/router/layer.js:95:5)
+      at trim_prefix (node_modules/express/lib/router/index.js:328:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at router.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at router.handle (node_modules/express/lib/router/index.js:175:3)
+      at router (node_modules/express/lib/router/index.js:47:12)
+      at Layer.handle [as handle_request] (node_modules/express/lib/router/layer.js:95:5)
+      at trim_prefix (node_modules/express/lib/router/index.js:328:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at router.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at cors (node_modules/cors/lib/index.js:188:7)
+      at node_modules/cors/lib/index.js:224:17
+      at originCallback (node_modules/cors/lib/index.js:214:15)
+      at node_modules/cors/lib/index.js:219:13
+      at optionsCallback (node_modules/cors/lib/index.js:199:9)
+      at corsMiddleware (node_modules/cors/lib/index.js:204:7)
+      at Layer.handle [as handle_request] (node_modules/express/lib/router/layer.js:95:5)
+      at trim_prefix (node_modules/express/lib/router/index.js:328:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at router.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at node_modules/body-parser/lib/read.js:137:5
+      at invokeCallback (node_modules/raw-body/index.js:238:16)
+      at done (node_modules/raw-body/index.js:227:7)
+      at IncomingMessage.onEnd (node_modules/raw-body/index.js:287:7)
+
+PASS test/integration/ipo.contribution.test.js (7.21 s)
+  IPO Contribution Pipeline - End-to-End Integration
+    ✓ Success: POST /api/v1/ipo/invest should persist high-fidelity data and return 200 OK (1768 ms)
+    ✓ Security: Should trigger 409 Conflict when a duplicate piTxId is detected (944 ms)
+    ✓ Guard: Should reject malformed requests missing critical blockchain metadata (530 ms)
+
+  console.log
+    [32m[AUDIT_INFO] 2026-02-16T20:02:41.543Z - [INFO]: MapCap Audit Engine v1.5.5 Synchronized for Cloud Deployment.
+    [0m
+
+      at writeAuditLog (src/config/logger.js:68:17)
+
+  console.log
+    
+    ✅ TEST_ENGINE_READY: Connected to Remote Atlas
+
+      at Object.<anonymous> (test/setup.js:52:15)
+
+  console.log
+    🔒 NETWORK_LOCKDOWN: External API calls disabled (Nock Active).
+
+      at Object.<anonymous> (test/setup.js:53:15)
+
+  console.warn
+    [SECURITY_ALERT] Unauthorized Admin access blocked | IP: ::ffff:127.0.0.1 | Ref: MAPCAP-SEC-1RU41
+
+      53 |      */
+      54 |     const auditRef = `MAPCAP-SEC-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
+    > 55 |     console.warn(`[SECURITY_ALERT] Unauthorized Admin access blocked | IP: ${req.ip} | Ref: ${auditRef}`);
+         |             ^
+      56 |
+      57 |     return res.status(403).json({ 
+      58 |         success: false, 
+
+      at adminAuth (src/middlewares/auth.middleware.js:55:13)
+      at Layer.handle [as handle_request] (node_modules/express/lib/router/layer.js:95:5)
+      at next (node_modules/express/lib/router/route.js:149:13)
+      at Route.dispatch (node_modules/express/lib/router/route.js:119:3)
+      at Layer.handle [as handle_request] (node_modules/express/lib/router/layer.js:95:5)
+      at node_modules/express/lib/router/index.js:284:15
+      at router.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at router.handle (node_modules/express/lib/router/index.js:175:3)
+      at router (node_modules/express/lib/router/index.js:47:12)
+      at Layer.handle [as handle_request] (node_modules/express/lib/router/layer.js:95:5)
+      at trim_prefix (node_modules/express/lib/router/index.js:328:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at router.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at node_modules/express/lib/router/index.js:646:15
+      at next (node_modules/express/lib/router/index.js:265:14)
+      at router.handle (node_modules/express/lib/router/index.js:175:3)
+      at router (node_modules/express/lib/router/index.js:47:12)
+      at Layer.handle [as handle_request] (node_modules/express/lib/router/layer.js:95:5)
+      at trim_prefix (node_modules/express/lib/router/index.js:328:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at router.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at node_modules/express/lib/router/index.js:646:15
+      at next (node_modules/express/lib/router/index.js:265:14)
+      at router.handle (node_modules/express/lib/router/index.js:175:3)
+      at router (node_modules/express/lib/router/index.js:47:12)
+      at Layer.handle [as handle_request] (node_modules/express/lib/router/layer.js:95:5)
+      at trim_prefix (node_modules/express/lib/router/index.js:328:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at router.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at cors (node_modules/cors/lib/index.js:188:7)
+      at node_modules/cors/lib/index.js:224:17
+      at originCallback (node_modules/cors/lib/index.js:214:15)
+      at node_modules/cors/lib/index.js:219:13
+      at optionsCallback (node_modules/cors/lib/index.js:199:9)
+      at corsMiddleware (node_modules/cors/lib/index.js:204:7)
+      at Layer.handle [as handle_request] (node_modules/express/lib/router/layer.js:95:5)
+      at trim_prefix (node_modules/express/lib/router/index.js:328:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at router.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at jsonParser (node_modules/body-parser/lib/types/json.js:113:7)
+      at Layer.handle [as handle_request] (node_modules/express/lib/router/layer.js:95:5)
+      at trim_prefix (node_modules/express/lib/router/index.js:328:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at router.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at logger (node_modules/morgan/index.js:144:5)
+      at Layer.handle [as handle_request] (node_modules/express/lib/router/layer.js:95:5)
+      at trim_prefix (node_modules/express/lib/router/index.js:328:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at router.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at expressInit (node_modules/express/lib/middleware/init.js:40:5)
+      at Layer.handle [as handle_request] (node_modules/express/lib/router/layer.js:95:5)
+      at trim_prefix (node_modules/express/lib/router/index.js:328:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at router.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at query (node_modules/express/lib/middleware/query.js:45:5)
+      at Layer.handle [as handle_request] (node_modules/express/lib/router/layer.js:95:5)
+      at trim_prefix (node_modules/express/lib/router/index.js:328:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at router.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at router.handle (node_modules/express/lib/router/index.js:175:3)
+      at app.handle (node_modules/express/lib/application.js:181:10)
+      at Server.app (node_modules/express/lib/express.js:39:9)
+
+  console.log
+    [SECURITY_LOG] Admin Privilege Elevated | Time: 2026-02-16T20:02:45.432Z | IP: ::ffff:127.0.0.1
+
+      at adminAuth (src/middlewares/auth.middleware.js:45:17)
+
+  console.log
+    [ADMIN_ACTION] Manual Post-IPO Settlement sequence initiated at 2026-02-16T20:02:45.441Z
+
+      at triggerFinalSettlement (src/controllers/admin/admin.controller.js:30:21)
+
+  console.log
+    --- [COMPLIANCE] Initiating Post-IPO Final Settlement Sequence ---
+
+      at SettlementJob.executeWhaleTrimBack (src/jobs/settlement.job.js:29:17)
+
+  console.log
+    [32m[AUDIT_INFO] 2026-02-16T20:02:45.647Z - [INFO]: Whale Settlement Triggered. Final Water-Level: 20000 Pi
+    [0m
+
+      at writeAuditLog (src/config/logger.js:68:17)
+
+  console.warn
+    [WHALE_CAP_TRIGGERED] Wallet: PIONEER_SETTLE_TEST_001 | Surplus: 18000 Pi
+
+      50 |                 if (preciseRefund <= 0) continue;
+      51 |
+    > 52 |                 console.warn(`[WHALE_CAP_TRIGGERED] Wallet: ${investor.piAddress} | Surplus: ${preciseRefund} Pi`);
+         |                         ^
+      53 |
+      54 |                 try {
+      55 |                     /**
+
+      at SettlementJob.executeWhaleTrimBack (src/jobs/settlement.job.js:52:25)
+      at triggerFinalSettlement (src/controllers/admin/admin.controller.js:57:28)
+
+  console.error
+    [CRITICAL_A2U_FAILURE]: Nock: Disallowed net connect for "api.escrowpi.com:443/v1/a2uaas"
+
+      73 |              */
+      74 |             const errorDetails = error.response?.data || error.message;
+    > 75 |             console.error("[CRITICAL_A2U_FAILURE]:", errorDetails);
+         |                     ^
+      76 |             
+      77 |             // Critical failures are thrown to stop automated jobs and prevent inconsistent states
+      78 |             throw new Error(`A2UaaS pipeline disrupted: ${JSON.stringify(errorDetails)}`);
+
+      at PayoutService.executeA2UPayout (src/services/payout.service.js:75:21)
+      at SettlementJob.executeWhaleTrimBack (src/jobs/settlement.job.js:59:21)
+      at triggerFinalSettlement (src/controllers/admin/admin.controller.js:57:28)
+
+  console.error
+    [31m[AUDIT_ALERT] 2026-02-16T20:02:46.114Z - [CRITICAL]: PAYOUT_FAILED for PIONEER_SETTLE_TEST_001: A2UaaS pipeline disrupted: "Nock: Disallowed net connect for \"api.escrowpi.com:443/v1/a2uaas\""
+    [0m
+
+      64 |     // Real-time Console Output for Log Streaming (Vercel Dashboard Visibility)
+      65 |     if (level === 'CRITICAL' || level === 'ERROR' || level === 'WARN') {
+    > 66 |         console.error(`\x1b[31m[AUDIT_ALERT] ${entry}\x1b[0m`); // ANSI Red for Errors
+         |                 ^
+      67 |     } else {
+      68 |         console.log(`\x1b[32m[AUDIT_INFO] ${entry}\x1b[0m`); // ANSI Green for Info
+      69 |     }
+
+      at writeAuditLog (src/config/logger.js:66:17)
+      at SettlementJob.executeWhaleTrimBack (src/jobs/settlement.job.js:72:21)
+      at triggerFinalSettlement (src/controllers/admin/admin.controller.js:57:28)
+
+  console.error
+    [CRITICAL_FAILURE] Settlement execution error for PIONEER_SETTLE_TEST_001
+
+      71 |                 } catch (payoutError) {
+      72 |                     writeAuditLog('CRITICAL', `PAYOUT_FAILED for ${investor.piAddress}: ${payoutError.message}`);
+    > 73 |                     console.error(`[CRITICAL_FAILURE] Settlement execution error for ${investor.piAddress}`);
+         |                             ^
+      74 |                 }
+      75 |             }
+      76 |
+
+      at SettlementJob.executeWhaleTrimBack (src/jobs/settlement.job.js:73:29)
+      at triggerFinalSettlement (src/controllers/admin/admin.controller.js:57:28)
+
+  console.log
+    --- [SUMMARY] Settlement Finalized. Total Refunded: 0 | Accounts Capped: 0 ---
+
+      at SettlementJob.executeWhaleTrimBack (src/jobs/settlement.job.js:77:21)
+
+  console.log
+    [32m[AUDIT_INFO] 2026-02-16T20:02:46.122Z - [INFO]: Settlement Finalized. Total Refunded: 0 | Accounts Capped: 0
+    [0m
+
+      at writeAuditLog (src/config/logger.js:68:17)
+
+  console.log
+    [SECURITY_LOG] Admin Privilege Elevated | Time: 2026-02-16T20:02:46.701Z | IP: ::ffff:127.0.0.1
+
+      at adminAuth (src/middlewares/auth.middleware.js:45:17)
+
+PASS test/integration/admin.ops.test.js (8.189 s)
+  Admin Operations - Security & Settlement Integration
+    ✓ Security: GET /api/v1/admin/audit-logs should reject unauthenticated requests (976 ms)
+    ✓ Settlement: POST /api/v1/admin/settle should execute with a valid admin token (1466 ms)
+    ✓ Audit: GET /api/v1/admin/status should return system metrics for real-time review (764 ms)
+
+  console.log
+    [32m[AUDIT_INFO] 2026-02-16T20:02:49.496Z - [INFO]: MapCap Audit Engine v1.5.5 Synchronized for Cloud Deployment.
+    [0m
+
+      at writeAuditLog (src/config/logger.js:68:17)
+
+  console.log
+    
+    ✅ TEST_ENGINE_READY: Connected to Remote Atlas
+
+      at Object.<anonymous> (test/setup.js:52:15)
+
+  console.log
+    🔒 NETWORK_LOCKDOWN: External API calls disabled (Nock Active).
+
+      at Object.<anonymous> (test/setup.js:53:15)
+
+  console.log
+    🛑 TEST_ENGINE_OFFLINE: Resources deallocated.
+
+      at Object.<anonymous> (test/setup.js:99:13)
+
+PASS test/unit/scripts/manual_trigger.test.js
+  Manual Trigger - CLI Command Logic
+    ✓ CLI Logic: Should accurately aggregate total pool from distributed records (545 ms)
+    ✓ Action: WHALE_REFUND trigger should pass validated data to SettlementJob (105 ms)
+    ✓ Safety: Should bypass settlement execution if total aggregated pool is zero (174 ms)
+
+  console.log
+    [32m[AUDIT_INFO] 2026-02-16T20:02:53.529Z - [INFO]: MapCap Audit Engine v1.5.5 Synchronized for Cloud Deployment.
+    [0m
+
+      at writeAuditLog (src/config/logger.js:68:17)
+
+  console.log
+    
+    ✅ TEST_ENGINE_READY: Connected to Remote Atlas
+
+      at Object.<anonymous> (test/setup.js:52:15)
+
+  console.log
+    🔒 NETWORK_LOCKDOWN: External API calls disabled (Nock Active).
+
+      at Object.<anonymous> (test/setup.js:53:15)
+
+  console.log
+    --- [MARKET_ENGINE] Starting Daily Price Recalibration Cycle ---
+
+      at DailyPriceJob.updatePrice (src/jobs/daily-price-update.js:26:17)
+
+  console.log
+    [32m[AUDIT_INFO] 2026-02-16T20:02:54.834Z - [INFO]: [MARKET_SNAPSHOT] Pool: 100000 Pi | Spot Price: 21.818180
+    [0m
+
+      at writeAuditLog (src/config/logger.js:68:17)
+
+  console.log
+    [AUDIT] Current Water-Level: 100000 Pi
+
+      at DailyPriceJob.updatePrice (src/jobs/daily-price-update.js:54:21)
+
+  console.log
+    [AUDIT] Market Spot Price: 21.818180
+
+      at DailyPriceJob.updatePrice (src/jobs/daily-price-update.js:55:21)
+
+  console.log
+    --- [SUCCESS] Market Recalibration Cycle Finalized ---
+
+      at DailyPriceJob.updatePrice (src/jobs/daily-price-update.js:62:21)
+
+  console.log
+    --- [MARKET_ENGINE] Starting Daily Price Recalibration Cycle ---
+
+      at DailyPriceJob.updatePrice (src/jobs/daily-price-update.js:26:17)
+
+  console.log
+    [32m[AUDIT_INFO] 2026-02-16T20:02:55.461Z - [INFO]: [MARKET_SNAPSHOT] Pool: 0 Pi | Spot Price: 0.000000
+    [0m
+
+      at writeAuditLog (src/config/logger.js:68:17)
+
+  console.log
+    [AUDIT] Current Water-Level: 0 Pi
+
+      at DailyPriceJob.updatePrice (src/jobs/daily-price-update.js:54:21)
+
+  console.log
+    [AUDIT] Market Spot Price: 0.000000
+
+      at DailyPriceJob.updatePrice (src/jobs/daily-price-update.js:55:21)
+
+  console.log
+    --- [SUCCESS] Market Recalibration Cycle Finalized ---
+
+      at DailyPriceJob.updatePrice (src/jobs/daily-price-update.js:62:21)
+
+  console.log
+    --- [MARKET_ENGINE] Starting Daily Price Recalibration Cycle ---
+
+      at DailyPriceJob.updatePrice (src/jobs/daily-price-update.js:26:17)
+
+  console.log
+    [32m[AUDIT_INFO] 2026-02-16T20:02:55.625Z - [INFO]: [MARKET_SNAPSHOT] Pool: 100000 Pi | Spot Price: 21.818180
+    [0m
+
+      at writeAuditLog (src/config/logger.js:68:17)
+
+  console.log
+    [AUDIT] Current Water-Level: 100000 Pi
+
+      at DailyPriceJob.updatePrice (src/jobs/daily-price-update.js:54:21)
+
+  console.log
+    [AUDIT] Market Spot Price: 21.818180
+
+      at DailyPriceJob.updatePrice (src/jobs/daily-price-update.js:55:21)
+
+  console.log
+    --- [SUCCESS] Market Recalibration Cycle Finalized ---
+
+      at DailyPriceJob.updatePrice (src/jobs/daily-price-update.js:62:21)
+
+  console.log
+    --- [SYSTEM] Cron Scheduler Engine Initialized (UTC Mode) ---
+
+      at CronScheduler.init (src/jobs/cron.scheduler.js:27:17)
+
+  console.log
+    [32m[AUDIT_INFO] 2026-02-16T20:02:55.778Z - [INFO]: Cron Scheduler Engine Online.
+    [0m
+
+      at writeAuditLog (src/config/logger.js:68:17)
+
+  console.log
+    --- [SYSTEM] Cron Scheduler Engine Initialized (UTC Mode) ---
+
+      at CronScheduler.init (src/jobs/cron.scheduler.js:27:17)
+
+  console.log
+    [32m[AUDIT_INFO] 2026-02-16T20:02:55.912Z - [INFO]: Cron Scheduler Engine Online.
+    [0m
+
+      at writeAuditLog (src/config/logger.js:68:17)
+
+  console.log
+    --- [SYSTEM] Cron Scheduler Engine Initialized (UTC Mode) ---
+
+      at CronScheduler.init (src/jobs/cron.scheduler.js:27:17)
+
+  console.log
+    [32m[AUDIT_INFO] 2026-02-16T20:02:56.060Z - [INFO]: Cron Scheduler Engine Online.
+    [0m
+
+      at writeAuditLog (src/config/logger.js:68:17)
+
+  console.log
+    --- [SYSTEM] Cron Scheduler Engine Initialized (UTC Mode) ---
+
+      at CronScheduler.init (src/jobs/cron.scheduler.js:27:17)
+
+  console.log
+    [32m[AUDIT_INFO] 2026-02-16T20:02:56.236Z - [INFO]: Cron Scheduler Engine Online.
+    [0m
+
+      at writeAuditLog (src/config/logger.js:68:17)
+
+  console.log
+    🛑 TEST_ENGINE_OFFLINE: Resources deallocated.
+
+      at Object.<anonymous> (test/setup.js:99:13)
+
+PASS test/unit/jobs/daily_price.job.test.js
+  Daily Automation & Market Logic - Unit Tests
+    Daily Price Job - Financial Precision
+      ✓ Recalibration: Should calculate correct spot price with 6-decimal precision (625 ms)
+      ✓ Safety: Should return a 0.000000 price when total liquidity is zero (162 ms)
+      ✓ Audit: Should include a valid ISO timestamp for the price snapshot (151 ms)
+    Cron Scheduler - Task Orchestration
+      ✓ Orchestration: Should initialize exactly 3 core automated tasks on boot (135 ms)
+      ✓ Scheduling: Daily Price Job must be set for Midnight UTC (147 ms)
+      ✓ Scheduling: Monthly Vesting must be set for the 1st of each month (166 ms)
+      ✓ Scheduling: Final Whale Settlement must trigger on the 28th day (149 ms)
+
+  console.log
+    [32m[AUDIT_INFO] 2026-02-16T20:02:58.012Z - [INFO]: MapCap Audit Engine v1.5.5 Synchronized for Cloud Deployment.
+    [0m
+
+      at writeAuditLog (src/config/logger.js:68:17)
+
+  console.log
+    
+    ✅ TEST_ENGINE_READY: Connected to Remote Atlas
+
+      at Object.<anonymous> (test/setup.js:52:15)
+
+  console.log
+    🔒 NETWORK_LOCKDOWN: External API calls disabled (Nock Active).
+
+      at Object.<anonymous> (test/setup.js:53:15)
+
+  console.log
+    [32m[AUDIT_INFO] 2026-02-16T20:03:00.271Z - [INFO]: Investment Success: 100 Pi | Tx: TXID_2026_MAPCAP_SYNC | Pioneer: GBV...PIONEER_ADDR
+    [0m
+
+      at writeAuditLog (src/config/logger.js:68:17)
+
+  console.error
+    [31m[AUDIT_ALERT] 2026-02-16T20:03:00.450Z - [ERROR]: [ERR-MLPLQ1GI-VBK] Code: 409 | Message: Duplicate Entry: This transaction has already been synchronized.
+    [0m
+
+      64 |     // Real-time Console Output for Log Streaming (Vercel Dashboard Visibility)
+      65 |     if (level === 'CRITICAL' || level === 'ERROR' || level === 'WARN') {
+    > 66 |         console.error(`\x1b[31m[AUDIT_ALERT] ${entry}\x1b[0m`); // ANSI Red for Errors
+         |                 ^
+      67 |     } else {
+      68 |         console.log(`\x1b[32m[AUDIT_INFO] ${entry}\x1b[0m`); // ANSI Green for Info
+      69 |     }
+
+      at writeAuditLog (src/config/logger.js:66:17)
+      at ResponseHelper.error (src/utils/response.helper.js:57:7)
+      at PaymentController.processInvestment (src/controllers/payment.controller.js:45:39)
+      at Object.<anonymous> (test/unit/controllers/payment.controller.test.js:98:7)
+
+  console.error
+    [31m[AUDIT_ALERT] 2026-02-16T20:03:00.635Z - [ERROR]: [ERR-MLPLQ1LN-BM7] Code: 400 | Message: Missing Metadata: Transaction credentials (Address/Amount/TXID) are required.
+    [0m
+
+      64 |     // Real-time Console Output for Log Streaming (Vercel Dashboard Visibility)
+      65 |     if (level === 'CRITICAL' || level === 'ERROR' || level === 'WARN') {
+    > 66 |         console.error(`\x1b[31m[AUDIT_ALERT] ${entry}\x1b[0m`); // ANSI Red for Errors
+         |                 ^
+      67 |     } else {
+      68 |         console.log(`\x1b[32m[AUDIT_INFO] ${entry}\x1b[0m`); // ANSI Green for Info
+      69 |     }
+
+      at writeAuditLog (src/config/logger.js:66:17)
+      at ResponseHelper.error (src/utils/response.helper.js:57:7)
+      at PaymentController.processInvestment (src/controllers/payment.controller.js:35:35)
+      at Object.<anonymous> (test/unit/controllers/payment.controller.test.js:109:31)
+
+  console.log
+    🛑 TEST_ENGINE_OFFLINE: Resources deallocated.
+
+      at Object.<anonymous> (test/setup.js:99:13)
+
+PASS test/unit/controllers/payment.controller.test.js
+  Payment & Pi Network Integration - Unit Tests
+    Pi Network Infrastructure Constants
+      ✓ API: Should verify Pi Network V2 and EscrowPi A2UaaS base endpoints (667 ms)
+      ✓ Financials: Should enforce the mandatory 0.01 Pi network gas fee (189 ms)
+      ✓ Security: Pi configuration object must be frozen to prevent tampering (146 ms)
+    Investment Processing & Idempotency
+      ✓ Success: Should process new investment and return 200 to the Frontend (178 ms)
+      ✓ Security: Should block duplicate transactions (Idempotency Guard) (183 ms)
+      ✓ Validation: Should reject requests with missing financial metadata (154 ms)
+
+  console.log
+    [32m[AUDIT_INFO] 2026-02-16T20:03:03.006Z - [INFO]: MapCap Audit Engine v1.5.5 Synchronized for Cloud Deployment.
+    [0m
+
+      at writeAuditLog (src/config/logger.js:68:17)
+
+  console.log
+    
+    ✅ TEST_ENGINE_READY: Connected to Remote Atlas
+
+      at Object.<anonymous> (test/setup.js:52:15)
+
+  console.log
+    🔒 NETWORK_LOCKDOWN: External API calls disabled (Nock Active).
+
+      at Object.<anonymous> (test/setup.js:53:15)
+
+  console.log
+    [ADMIN_ACTION] Manual Post-IPO Settlement sequence initiated at 2026-02-16T20:03:04.309Z
+
+      at AdminController.triggerFinalSettlement (src/controllers/admin/admin.controller.js:30:21)
+
+  console.log
+    [ADMIN_ACTION] Manual Post-IPO Settlement sequence initiated at 2026-02-16T20:03:05.055Z
+
+      at AdminController.triggerFinalSettlement (src/controllers/admin/admin.controller.js:30:21)
+
+  console.error
+    [31m[AUDIT_ALERT] 2026-02-16T20:03:05.065Z - [ERROR]: [ERR-MLPLQ50O-E1T] Code: 400 | Message: Settlement Aborted: No liquidity detected in the IPO pool.
+    [0m
+
+      64 |     // Real-time Console Output for Log Streaming (Vercel Dashboard Visibility)
+      65 |     if (level === 'CRITICAL' || level === 'ERROR' || level === 'WARN') {
+    > 66 |         console.error(`\x1b[31m[AUDIT_ALERT] ${entry}\x1b[0m`); // ANSI Red for Errors
+         |                 ^
+      67 |     } else {
+      68 |         console.log(`\x1b[32m[AUDIT_INFO] ${entry}\x1b[0m`); // ANSI Green for Info
+      69 |     }
+
+      at writeAuditLog (src/config/logger.js:66:17)
+      at ResponseHelper.error (src/utils/response.helper.js:57:7)
+      at AdminController.triggerFinalSettlement (src/controllers/admin/admin.controller.js:50:39)
+      at Object.<anonymous> (test/unit/controllers/admin.controller.test.js:84:7)
+
+  console.log
+    [ADMIN_ACTION] Manual Post-IPO Settlement sequence initiated at 2026-02-16T20:03:05.254Z
+
+      at AdminController.triggerFinalSettlement (src/controllers/admin/admin.controller.js:30:21)
+
+  console.log
+    🛑 TEST_ENGINE_OFFLINE: Resources deallocated.
+
+      at Object.<anonymous> (test/setup.js:99:13)
+
+PASS test/unit/controllers/admin.controller.test.js (5.095 s)
+  Admin Command Center - Unified Integrity Tests
+    Settlement Engine - Logic & Safety
+      ✓ Execution: Should successfully trigger the Whale-Trim-Back protocol and return status (736 ms)
+      ✓ Safety: Should abort settlement and return 400 if total Pi pool is empty (196 ms)
+      ✓ Audit: Should report execution metrics within the data object for the Dashboard (194 ms)
+    Admin Gateway - Security & Route Verification
+      ✓ Auth: POST /login must be reachable for administrator entry (213 ms)
+      ✓ Security: High-stakes endpoints like /status and /settle must be protected (184 ms)
+      ✓ Compliance: GET /audit-logs must be accessible for Daniel’s review (142 ms)
+
+  console.log
+    [32m[AUDIT_INFO] 2026-02-16T20:03:08.042Z - [INFO]: MapCap Audit Engine v1.5.5 Synchronized for Cloud Deployment.
+    [0m
+
+      at writeAuditLog (src/config/logger.js:68:17)
+
+  console.log
+    
+    ✅ TEST_ENGINE_READY: Connected to Remote Atlas
+
+      at Object.<anonymous> (test/setup.js:52:15)
+
+  console.log
+    🔒 NETWORK_LOCKDOWN: External API calls disabled (Nock Active).
+
+      at Object.<anonymous> (test/setup.js:53:15)
+
+  console.log
+    --- [COMPLIANCE] Initiating Post-IPO Final Settlement Sequence ---
+
+      at SettlementJob.executeWhaleTrimBack (src/jobs/settlement.job.js:29:17)
+
+  console.log
+    [32m[AUDIT_INFO] 2026-02-16T20:03:09.243Z - [INFO]: Whale Settlement Triggered. Final Water-Level: 100000 Pi
+    [0m
+
+      at writeAuditLog (src/config/logger.js:68:17)
+
+  console.warn
+    [WHALE_CAP_TRIGGERED] Wallet: Whale_001 | Surplus: 5000.555555 Pi
+
+      50 |                 if (preciseRefund <= 0) continue;
+      51 |
+    > 52 |                 console.warn(`[WHALE_CAP_TRIGGERED] Wallet: ${investor.piAddress} | Surplus: ${preciseRefund} Pi`);
+         |                         ^
+      53 |
+      54 |                 try {
+      55 |                     /**
+
+      at SettlementJob.executeWhaleTrimBack (src/jobs/settlement.job.js:52:25)
+      at Object.<anonymous> (test/unit/jobs/settlement.job.test.js:56:22)
+
+  console.log
+    [32m[AUDIT_INFO] 2026-02-16T20:03:09.251Z - [INFO]: Settlement Success: 5000.555555 Pi returned to Whale_001.
+    [0m
+
+      at writeAuditLog (src/config/logger.js:68:17)
+
+  console.log
+    --- [SUMMARY] Settlement Finalized. Total Refunded: 5000.555555 | Accounts Capped: 1 ---
+
+      at SettlementJob.executeWhaleTrimBack (src/jobs/settlement.job.js:77:21)
+
+  console.log
+    [32m[AUDIT_INFO] 2026-02-16T20:03:09.254Z - [INFO]: Settlement Finalized. Total Refunded: 5000.555555 | Accounts Capped: 1
+    [0m
+
+      at writeAuditLog (src/config/logger.js:68:17)
+
+  console.log
+    --- [COMPLIANCE] Initiating Post-IPO Final Settlement Sequence ---
+
+      at SettlementJob.executeWhaleTrimBack (src/jobs/settlement.job.js:29:17)
+
+  console.log
+    [32m[AUDIT_INFO] 2026-02-16T20:03:10.042Z - [INFO]: Whale Settlement Triggered. Final Water-Level: 100000 Pi
+    [0m
+
+      at writeAuditLog (src/config/logger.js:68:17)
+
+  console.warn
+    [WHALE_CAP_TRIGGERED] Wallet: Whale_A | Surplus: 2000 Pi
+
+      50 |                 if (preciseRefund <= 0) continue;
+      51 |
+    > 52 |                 console.warn(`[WHALE_CAP_TRIGGERED] Wallet: ${investor.piAddress} | Surplus: ${preciseRefund} Pi`);
+         |                         ^
+      53 |
+      54 |                 try {
+      55 |                     /**
+
+      at SettlementJob.executeWhaleTrimBack (src/jobs/settlement.job.js:52:25)
+      at Object.<anonymous> (test/unit/jobs/settlement.job.test.js:81:22)
+
+  console.log
+    [32m[AUDIT_INFO] 2026-02-16T20:03:10.052Z - [INFO]: Settlement Success: 2000 Pi returned to Whale_A.
+    [0m
+
+      at writeAuditLog (src/config/logger.js:68:17)
+
+  console.warn
+    [WHALE_CAP_TRIGGERED] Wallet: Whale_B | Surplus: 3000 Pi
+
+      50 |                 if (preciseRefund <= 0) continue;
+      51 |
+    > 52 |                 console.warn(`[WHALE_CAP_TRIGGERED] Wallet: ${investor.piAddress} | Surplus: ${preciseRefund} Pi`);
+         |                         ^
+      53 |
+      54 |                 try {
+      55 |                     /**
+
+      at SettlementJob.executeWhaleTrimBack (src/jobs/settlement.job.js:52:25)
+      at Object.<anonymous> (test/unit/jobs/settlement.job.test.js:81:22)
+
+  console.log
+    [32m[AUDIT_INFO] 2026-02-16T20:03:10.057Z - [INFO]: Settlement Success: 3000 Pi returned to Whale_B.
+    [0m
+
+      at writeAuditLog (src/config/logger.js:68:17)
+
+  console.log
+    --- [SUMMARY] Settlement Finalized. Total Refunded: 5000 | Accounts Capped: 2 ---
+
+      at SettlementJob.executeWhaleTrimBack (src/jobs/settlement.job.js:77:21)
+
+  console.log
+    [32m[AUDIT_INFO] 2026-02-16T20:03:10.061Z - [INFO]: Settlement Finalized. Total Refunded: 5000 | Accounts Capped: 2
+    [0m
+
+      at writeAuditLog (src/config/logger.js:68:17)
+
+  console.log
+    🕒 --- [VESTING_ENGINE] Monthly Distribution Cycle Started ---
+
+      at VestingJob.executeMonthlyVesting (src/jobs/vesting.job.js:27:17)
+
+  console.log
+    [32m[AUDIT_INFO] 2026-02-16T20:03:10.238Z - [INFO]: Vesting Engine: Monthly Tranche Release Initiated.
+    [0m
+
+      at writeAuditLog (src/config/logger.js:68:17)
+
+  console.log
+    [32m[AUDIT_INFO] 2026-02-16T20:03:10.246Z - [INFO]: [TRANCHE_RELEASED] 1/10 to Pioneer_001
+    [0m
+
+      at writeAuditLog (src/config/logger.js:68:17)
+
+  console.log
+    🏁 --- [SUCCESS] Monthly Vesting Cycle Finalized ---
+
+      at VestingJob.executeMonthlyVesting (src/jobs/vesting.job.js:77:21)
+
+  console.log
+    🕒 --- [VESTING_ENGINE] Monthly Distribution Cycle Started ---
+
+      at VestingJob.executeMonthlyVesting (src/jobs/vesting.job.js:27:17)
+
+  console.log
+    [32m[AUDIT_INFO] 2026-02-16T20:03:10.446Z - [INFO]: Vesting Engine: Monthly Tranche Release Initiated.
+    [0m
+
+      at writeAuditLog (src/config/logger.js:68:17)
+
+  console.log
+    ℹ️ [SYSTEM] Idle State: No pending vesting tranches detected.
+
+      at VestingJob.executeMonthlyVesting (src/jobs/vesting.job.js:43:25)
+
+  console.log
+    --- [COMPLIANCE] Initiating Post-IPO Final Settlement Sequence ---
+
+      at SettlementJob.executeWhaleTrimBack (src/jobs/settlement.job.js:29:17)
+
+  console.log
+    [32m[AUDIT_INFO] 2026-02-16T20:03:10.682Z - [INFO]: Whale Settlement Triggered. Final Water-Level: 100000 Pi
+    [0m
+
+      at writeAuditLog (src/config/logger.js:68:17)
+
+  console.warn
+    [WHALE_CAP_TRIGGERED] Wallet: Whale_Fail | Surplus: 10000 Pi
+
+      50 |                 if (preciseRefund <= 0) continue;
+      51 |
+    > 52 |                 console.warn(`[WHALE_CAP_TRIGGERED] Wallet: ${investor.piAddress} | Surplus: ${preciseRefund} Pi`);
+         |                         ^
+      53 |
+      54 |                 try {
+      55 |                     /**
+
+      at SettlementJob.executeWhaleTrimBack (src/jobs/settlement.job.js:52:25)
+      at Object.<anonymous> (test/unit/jobs/settlement.job.test.js:147:7)
+
+  console.error
+    [31m[AUDIT_ALERT] 2026-02-16T20:03:10.702Z - [CRITICAL]: PAYOUT_FAILED for Whale_Fail: A2U Gateway Timeout
+    [0m
+
+      64 |     // Real-time Console Output for Log Streaming (Vercel Dashboard Visibility)
+      65 |     if (level === 'CRITICAL' || level === 'ERROR' || level === 'WARN') {
+    > 66 |         console.error(`\x1b[31m[AUDIT_ALERT] ${entry}\x1b[0m`); // ANSI Red for Errors
+         |                 ^
+      67 |     } else {
+      68 |         console.log(`\x1b[32m[AUDIT_INFO] ${entry}\x1b[0m`); // ANSI Green for Info
+      69 |     }
+
+      at writeAuditLog (src/config/logger.js:66:17)
+      at SettlementJob.executeWhaleTrimBack (src/jobs/settlement.job.js:72:21)
+      at Object.<anonymous> (test/unit/jobs/settlement.job.test.js:147:7)
+
+  console.error
+    [CRITICAL_FAILURE] Settlement execution error for Whale_Fail
+
+      71 |                 } catch (payoutError) {
+      72 |                     writeAuditLog('CRITICAL', `PAYOUT_FAILED for ${investor.piAddress}: ${payoutError.message}`);
+    > 73 |                     console.error(`[CRITICAL_FAILURE] Settlement execution error for ${investor.piAddress}`);
+         |                             ^
+      74 |                 }
+      75 |             }
+      76 |
+
+      at SettlementJob.executeWhaleTrimBack (src/jobs/settlement.job.js:73:29)
+      at Object.<anonymous> (test/unit/jobs/settlement.job.test.js:147:7)
+
+  console.warn
+    [WHALE_CAP_TRIGGERED] Wallet: Whale_Success | Surplus: 10000 Pi
+
+      50 |                 if (preciseRefund <= 0) continue;
+      51 |
+    > 52 |                 console.warn(`[WHALE_CAP_TRIGGERED] Wallet: ${investor.piAddress} | Surplus: ${preciseRefund} Pi`);
+         |                         ^
+      53 |
+      54 |                 try {
+      55 |                     /**
+
+      at SettlementJob.executeWhaleTrimBack (src/jobs/settlement.job.js:52:25)
+      at Object.<anonymous> (test/unit/jobs/settlement.job.test.js:147:7)
+
+  console.log
+    [32m[AUDIT_INFO] 2026-02-16T20:03:10.720Z - [INFO]: Settlement Success: 10000 Pi returned to Whale_Success.
+    [0m
+
+      at writeAuditLog (src/config/logger.js:68:17)
+
+  console.log
+    --- [SUMMARY] Settlement Finalized. Total Refunded: 10000 | Accounts Capped: 1 ---
+
+      at SettlementJob.executeWhaleTrimBack (src/jobs/settlement.job.js:77:21)
+
+  console.log
+    [32m[AUDIT_INFO] 2026-02-16T20:03:10.728Z - [INFO]: Settlement Finalized. Total Refunded: 10000 | Accounts Capped: 1
+    [0m
+
+      at writeAuditLog (src/config/logger.js:68:17)
+
+  console.log
+    🕒 --- [VESTING_ENGINE] Monthly Distribution Cycle Started ---
+
+      at VestingJob.executeMonthlyVesting (src/jobs/vesting.job.js:27:17)
+
+  console.log
+    [32m[AUDIT_INFO] 2026-02-16T20:03:10.935Z - [INFO]: Vesting Engine: Monthly Tranche Release Initiated.
+    [0m
+
+      at writeAuditLog (src/config/logger.js:68:17)
+
+  console.log
+    🏁 --- [SUCCESS] Monthly Vesting Cycle Finalized ---
+
+      at VestingJob.executeMonthlyVesting (src/jobs/vesting.job.js:77:21)
+
+  console.log
+    🛑 TEST_ENGINE_OFFLINE: Resources deallocated.
+
+      at Object.<anonymous> (test/setup.js:99:13)
+
+PASS test/unit/jobs/settlement.job.test.js (5.263 s)
+  Financial Lifecycle - Settlement & Vesting Unified Tests
+    Whale Trim-Back - Precision & Enforcement
+      ✓ Precision: Should refund excess Pi with 6-decimal floor truncation (790 ms)
+      ✓ Aggregation: Should track total refunded Pi across multiple whales (190 ms)
+    Monthly Vesting - Release Logic
+      ✓ Calculation: Should release exactly 10% of allocated equity per month (200 ms)
+      ✓ Security: Should strictly exclude whales from the vesting distribution queue (216 ms)
+    System Fault Tolerance
+      ✓ Recovery: Should maintain queue processing if a single payout fails (256 ms)
+      ✓ Atomicity: Should not increment vesting state if Pi transfer fails (248 ms)
+
+  console.log
+    [32m[AUDIT_INFO] 2026-02-16T20:03:13.106Z - [INFO]: MapCap Audit Engine v1.5.5 Synchronized for Cloud Deployment.
+    [0m
+
+      at writeAuditLog (src/config/logger.js:68:17)
+
+  console.log
+    
+    ✅ TEST_ENGINE_READY: Connected to Remote Atlas
+
+      at Object.<anonymous> (test/setup.js:52:15)
+
+  console.log
+    🔒 NETWORK_LOCKDOWN: External API calls disabled (Nock Active).
+
+      at Object.<anonymous> (test/setup.js:53:15)
+
+  console.log
+    --- [FINANCIAL_JOB] Initiating Monthly Dividend Distribution ---
+
+      at DividendJob.distributeDividends (src/jobs/dividend.job.js:25:17)
+
+  console.log
+    [32m[AUDIT_INFO] 2026-02-16T20:03:15.748Z - [INFO]: Dividend Cycle Started. Total Pot: 10000 Pi
+    [0m
+
+      at writeAuditLog (src/config/logger.js:68:17)
+
+  console.error
+    [31m[AUDIT_ALERT] 2026-02-16T20:03:15.757Z - [WARN]: Anti-Whale Ceiling hit for Whale_Pioneer. Payout capped at 1000 Pi.
+    [0m
+
+      64 |     // Real-time Console Output for Log Streaming (Vercel Dashboard Visibility)
+      65 |     if (level === 'CRITICAL' || level === 'ERROR' || level === 'WARN') {
+    > 66 |         console.error(`\x1b[31m[AUDIT_ALERT] ${entry}\x1b[0m`); // ANSI Red for Errors
+         |                 ^
+      67 |     } else {
+      68 |         console.log(`\x1b[32m[AUDIT_INFO] ${entry}\x1b[0m`); // ANSI Green for Info
+      69 |     }
+
+      at writeAuditLog (src/config/logger.js:66:17)
+      at DividendJob.distributeDividends (src/jobs/dividend.job.js:57:21)
+      at Object.<anonymous> (test/unit/jobs/dividend.job.test.js:70:7)
+
+  console.log
+    [32m[AUDIT_INFO] 2026-02-16T20:03:15.761Z - [INFO]: Dividend Cycle Finalized. Total Pi Dispatched: 1100
+    [0m
+
+      at writeAuditLog (src/config/logger.js:68:17)
+
+  console.log
+    --- [SUCCESS] Distribution Cycle Complete. Total: 1100 Pi ---
+
+      at DividendJob.distributeDividends (src/jobs/dividend.job.js:77:21)
+
+  console.log
+    --- [FINANCIAL_JOB] Initiating Monthly Dividend Distribution ---
+
+      at DividendJob.distributeDividends (src/jobs/dividend.job.js:25:17)
+
+  console.log
+    [32m[AUDIT_INFO] 2026-02-16T20:03:15.933Z - [INFO]: Dividend Cycle Started. Total Pot: 10000 Pi
+    [0m
+
+      at writeAuditLog (src/config/logger.js:68:17)
+
+  console.error
+    [31m[AUDIT_ALERT] 2026-02-16T20:03:15.940Z - [WARN]: Anti-Whale Ceiling hit for Whale_Pioneer. Payout capped at 1000 Pi.
+    [0m
+
+      64 |     // Real-time Console Output for Log Streaming (Vercel Dashboard Visibility)
+      65 |     if (level === 'CRITICAL' || level === 'ERROR' || level === 'WARN') {
+    > 66 |         console.error(`\x1b[31m[AUDIT_ALERT] ${entry}\x1b[0m`); // ANSI Red for Errors
+         |                 ^
+      67 |     } else {
+      68 |         console.log(`\x1b[32m[AUDIT_INFO] ${entry}\x1b[0m`); // ANSI Green for Info
+      69 |     }
+
+      at writeAuditLog (src/config/logger.js:66:17)
+      at DividendJob.distributeDividends (src/jobs/dividend.job.js:57:21)
+      at Object.<anonymous> (test/unit/jobs/dividend.job.test.js:84:7)
+
+  console.log
+    [32m[AUDIT_INFO] 2026-02-16T20:03:15.945Z - [INFO]: Dividend Cycle Finalized. Total Pi Dispatched: 1100
+    [0m
+
+      at writeAuditLog (src/config/logger.js:68:17)
+
+  console.log
+    --- [SUCCESS] Distribution Cycle Complete. Total: 1100 Pi ---
+
+      at DividendJob.distributeDividends (src/jobs/dividend.job.js:77:21)
+
+  console.log
+    --- [FINANCIAL_JOB] Initiating Monthly Dividend Distribution ---
+
+      at DividendJob.distributeDividends (src/jobs/dividend.job.js:25:17)
+
+  console.log
+    [32m[AUDIT_INFO] 2026-02-16T20:03:16.123Z - [INFO]: Dividend Cycle Started. Total Pot: 10000 Pi
+    [0m
+
+      at writeAuditLog (src/config/logger.js:68:17)
+
+  console.error
+    [31m[AUDIT_ALERT] 2026-02-16T20:03:16.135Z - [CRITICAL]: Dividend Transfer FAILED for Normal_Pioneer: Network Timeout
+    [0m
+
+      64 |     // Real-time Console Output for Log Streaming (Vercel Dashboard Visibility)
+      65 |     if (level === 'CRITICAL' || level === 'ERROR' || level === 'WARN') {
+    > 66 |         console.error(`\x1b[31m[AUDIT_ALERT] ${entry}\x1b[0m`); // ANSI Red for Errors
+         |                 ^
+      67 |     } else {
+      68 |         console.log(`\x1b[32m[AUDIT_INFO] ${entry}\x1b[0m`); // ANSI Green for Info
+      69 |     }
+
+      at writeAuditLog (src/config/logger.js:66:17)
+      at DividendJob.distributeDividends (src/jobs/dividend.job.js:71:25)
+      at Object.<anonymous> (test/unit/jobs/dividend.job.test.js:99:7)
+
+  console.error
+    [31m[AUDIT_ALERT] 2026-02-16T20:03:16.141Z - [WARN]: Anti-Whale Ceiling hit for Whale_Pioneer. Payout capped at 1000 Pi.
+    [0m
+
+      64 |     // Real-time Console Output for Log Streaming (Vercel Dashboard Visibility)
+      65 |     if (level === 'CRITICAL' || level === 'ERROR' || level === 'WARN') {
+    > 66 |         console.error(`\x1b[31m[AUDIT_ALERT] ${entry}\x1b[0m`); // ANSI Red for Errors
+         |                 ^
+      67 |     } else {
+      68 |         console.log(`\x1b[32m[AUDIT_INFO] ${entry}\x1b[0m`); // ANSI Green for Info
+      69 |     }
+
+      at writeAuditLog (src/config/logger.js:66:17)
+      at DividendJob.distributeDividends (src/jobs/dividend.job.js:57:21)
+      at Object.<anonymous> (test/unit/jobs/dividend.job.test.js:99:7)
+
+  console.log
+    [32m[AUDIT_INFO] 2026-02-16T20:03:16.148Z - [INFO]: Dividend Cycle Finalized. Total Pi Dispatched: 1000
+    [0m
+
+      at writeAuditLog (src/config/logger.js:68:17)
+
+  console.log
+    --- [SUCCESS] Distribution Cycle Complete. Total: 1000 Pi ---
+
+      at DividendJob.distributeDividends (src/jobs/dividend.job.js:77:21)
+
+  console.log
+    🛑 TEST_ENGINE_OFFLINE: Resources deallocated.
+
+      at Object.<anonymous> (test/setup.js:99:13)
+
+PASS test/unit/jobs/dividend.job.test.js (5.011 s)
+  Tokenomics & Dividends - Unified Financial Tests
+    Mint Configuration - Scarcity & Balance
+      ✓ Supply: Should enforce 4M Hard-Cap and 2.18M IPO Pool target (663 ms)
+      ✓ Balance: IPO and LP pools must mathematically equal the total mint (153 ms)
+      ✓ Precision: Should strictly follow the 6-decimal global financial standard (168 ms)
+      ✓ Security: Mint configuration object must be frozen at runtime (170 ms)
+    Dividend Job - Proportional Payouts
+      ✓ Distribution: Should calculate 1% share accurately for normal pioneers (193 ms)
+      ✓ Anti-Whale: Should truncate whale dividends at 10% of the profit pot (178 ms)
+      ✓ Fault Tolerance: Should continue processing if a single payment fails (221 ms)
+
+  console.log
+    [32m[AUDIT_INFO] 2026-02-16T20:03:18.360Z - [INFO]: MapCap Audit Engine v1.5.5 Synchronized for Cloud Deployment.
+    [0m
+
+      at writeAuditLog (src/config/logger.js:68:17)
+
+  console.log
+    
+    ✅ TEST_ENGINE_READY: Connected to Remote Atlas
+
+      at Object.<anonymous> (test/setup.js:52:15)
+
+  console.log
+    🔒 NETWORK_LOCKDOWN: External API calls disabled (Nock Active).
+
+      at Object.<anonymous> (test/setup.js:53:15)
+
+  console.error
+    [31m[AUDIT_ALERT] 2026-02-16T20:03:20.759Z - [ERROR]: [ERR-MLPLQH4N-F3D] Code: 400 | Message: Mandatory fields required: userWallet & amount.
+    [0m
+
+      64 |     // Real-time Console Output for Log Streaming (Vercel Dashboard Visibility)
+      65 |     if (level === 'CRITICAL' || level === 'ERROR' || level === 'WARN') {
+    > 66 |         console.error(`\x1b[31m[AUDIT_ALERT] ${entry}\x1b[0m`); // ANSI Red for Errors
+         |                 ^
+      67 |     } else {
+      68 |         console.log(`\x1b[32m[AUDIT_INFO] ${entry}\x1b[0m`); // ANSI Green for Info
+      69 |     }
+
+      at writeAuditLog (src/config/logger.js:66:17)
+      at ResponseHelper.error (src/utils/response.helper.js:57:7)
+      at src/routes/api.js:72:31
+      at Object.<anonymous> (test/unit/routes/api.routes.test.js:96:13)
+
+  console.log
+    🛑 TEST_ENGINE_OFFLINE: Resources deallocated.
+
+      at Object.<anonymous> (test/setup.js:99:13)
+
+PASS test/unit/routes/api.routes.test.js
+  API & IPO Routing Architecture - Integrity Tests
+    Global Stats & Health Endpoints
+      ✓ Pulse: GET /stats should deliver synchronized scarcity engine metrics (653 ms)
+      ✓ Health: GET /status should confirm "Daniel_Audit_Ready" operational state (154 ms)
+    Financial Transaction Mapping
+      ✓ Payment: POST /invest must map to PaymentController logic (154 ms)
+      ✓ A2UaaS: POST /withdraw should securely trigger PayoutService sequence (153 ms)
+      ✓ Security: POST /withdraw should intercept and reject missing wallet parameters (142 ms)
+
+  console.log
+    [32m[AUDIT_INFO] 2026-02-16T20:03:23.662Z - [INFO]: MapCap Audit Engine v1.5.5 Synchronized for Cloud Deployment.
+    [0m
+
+      at writeAuditLog (src/config/logger.js:68:17)
+
+  console.log
+    
+    ✅ TEST_ENGINE_READY: Connected to Remote Atlas
+
+      at Object.<anonymous> (test/setup.js:52:15)
+
+  console.log
+    🔒 NETWORK_LOCKDOWN: External API calls disabled (Nock Active).
+
+      at Object.<anonymous> (test/setup.js:53:15)
+
+  console.error
+    [31m[AUDIT_ALERT] 2026-02-16T20:03:25.748Z - [ERROR]: [ERR-MLPLQKZ8-D76] Code: 500 | Message: Global Sync Failure: Engine Failure
+    [0m
+
+      64 |     // Real-time Console Output for Log Streaming (Vercel Dashboard Visibility)
+      65 |     if (level === 'CRITICAL' || level === 'ERROR' || level === 'WARN') {
+    > 66 |         console.error(`\x1b[31m[AUDIT_ALERT] ${entry}\x1b[0m`); // ANSI Red for Errors
+         |                 ^
+      67 |     } else {
+      68 |         console.log(`\x1b[32m[AUDIT_INFO] ${entry}\x1b[0m`); // ANSI Green for Info
+      69 |     }
+
+      at writeAuditLog (src/config/logger.js:66:17)
+      at ResponseHelper.error (src/utils/response.helper.js:57:7)
+      at src/routes/api.js:60:31
+      at Layer.handle [as handle_request] (node_modules/express/lib/router/layer.js:95:5)
+      at next (node_modules/express/lib/router/route.js:149:13)
+      at Route.dispatch (node_modules/express/lib/router/route.js:119:3)
+      at Layer.handle [as handle_request] (node_modules/express/lib/router/layer.js:95:5)
+      at node_modules/express/lib/router/index.js:284:15
+      at router.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at router.handle (node_modules/express/lib/router/index.js:175:3)
+      at router (node_modules/express/lib/router/index.js:47:12)
+      at Layer.handle [as handle_request] (node_modules/express/lib/router/layer.js:95:5)
+      at trim_prefix (node_modules/express/lib/router/index.js:328:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at router.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at cors (node_modules/cors/lib/index.js:188:7)
+      at node_modules/cors/lib/index.js:224:17
+      at originCallback (node_modules/cors/lib/index.js:214:15)
+      at node_modules/cors/lib/index.js:219:13
+      at optionsCallback (node_modules/cors/lib/index.js:199:9)
+      at corsMiddleware (node_modules/cors/lib/index.js:204:7)
+      at Layer.handle [as handle_request] (node_modules/express/lib/router/layer.js:95:5)
+      at trim_prefix (node_modules/express/lib/router/index.js:328:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at router.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at jsonParser (node_modules/body-parser/lib/types/json.js:113:7)
+      at Layer.handle [as handle_request] (node_modules/express/lib/router/layer.js:95:5)
+      at trim_prefix (node_modules/express/lib/router/index.js:328:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at router.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at logger (node_modules/morgan/index.js:144:5)
+      at Layer.handle [as handle_request] (node_modules/express/lib/router/layer.js:95:5)
+      at trim_prefix (node_modules/express/lib/router/index.js:328:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at router.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at expressInit (node_modules/express/lib/middleware/init.js:40:5)
+      at Layer.handle [as handle_request] (node_modules/express/lib/router/layer.js:95:5)
+      at trim_prefix (node_modules/express/lib/router/index.js:328:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at router.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at query (node_modules/express/lib/middleware/query.js:45:5)
+      at Layer.handle [as handle_request] (node_modules/express/lib/router/layer.js:95:5)
+      at trim_prefix (node_modules/express/lib/router/index.js:328:13)
+      at node_modules/express/lib/router/index.js:286:9
+      at router.process_params (node_modules/express/lib/router/index.js:346:12)
+      at next (node_modules/express/lib/router/index.js:280:10)
+      at router.handle (node_modules/express/lib/router/index.js:175:3)
+      at app.handle (node_modules/express/lib/application.js:181:10)
+      at Server.app (node_modules/express/lib/express.js:39:9)
+
+PASS test/integration/metrics.sync.test.js (5.141 s)
+  Metrics Synchronization - System Pulse Integration
+    ✓ Sync: Should return synchronized global pulse with scarcity metrics (753 ms)
+    ✓ Resilience: Should return 500 error if the Scarcity Engine fails (526 ms)
+
+  console.log
+    
+    ✅ TEST_ENGINE_READY: Connected to Remote Atlas
+
+      at Object.<anonymous> (test/setup.js:52:15)
+
+  console.log
+    🔒 NETWORK_LOCKDOWN: External API calls disabled (Nock Active).
+
+      at Object.<anonymous> (test/setup.js:53:15)
+
+  console.log
+    🛑 TEST_ENGINE_OFFLINE: Resources deallocated.
+
+      at Object.<anonymous> (test/setup.js:99:13)
+
+PASS test/unit/models/investor.model.test.js
+  Investor Ecosystem - Unified Logic & Integrity Tests
+    Core Schema Validation
+      ✓ Validation: Should require a unique piAddress and block negative contributions (550 ms)
+      ✓ Vesting: Should enforce the strict 10-month limit on completed tranches (81 ms)
+      ✓ Audit: Should automatically track lastContributionDate on record creation (91 ms)
+    Whale Identification & Boundary Logic
+      ✓ Audit: Should accurately flag accounts exceeding the 10% ceiling (218,181.8) (93 ms)
+      ✓ Boundary: Should not flag an account that is exactly at the 10% limit (88 ms)
+    Virtual Properties & UI Protection
+      ✓ Virtuals: sharePct must calculate correctly against the 2.18M supply (94 ms)
+      ✓ Safety: remainingVesting must use Math.max to prevent negative asset display (102 ms)
+    Provisioning & Seeding Logic
+      ✓ Seeding: Should verify data purge and insertion of strategic profiles (130 ms)
+
+  console.log
+    
+    ✅ TEST_ENGINE_READY: Connected to Remote Atlas
+
+      at Object.<anonymous> (test/setup.js:52:15)
+
+  console.log
+    🔒 NETWORK_LOCKDOWN: External API calls disabled (Nock Active).
+
+      at Object.<anonymous> (test/setup.js:53:15)
+
+  console.log
+    🛑 TEST_ENGINE_OFFLINE: Resources deallocated.
+
+      at Object.<anonymous> (test/setup.js:99:13)
+
+PASS test/unit/models/transaction.model.test.js
+  Transaction Model - Unified Audit Trail Integrity
+    Mandatory Metadata & Financial Guards
+      ✓ Validation: Should reject transactions missing address, amount, or type (564 ms)
+      ✓ Financials: Should strictly reject negative transaction amounts (104 ms)
+    Whale-Shield Compatibility & Lifecycle
+      ✓ Compliance: Should support REFUND type for post-IPO ceiling adjustments (81 ms)
+      ✓ Compliance: Should correctly categorize a VESTING_RELEASE transaction (70 ms)
+      ✓ Defaults: Should default to PENDING status for new ledger entries (86 ms)
+    Blockchain Traceability & Sync
+      ✓ Integrity: Should store unique Pi Network TxID and memo (75 ms)
+      ✓ Audit: Should verify that timestamps are enabled in the schema (74 ms)
+
+  console.log
+    [32m[AUDIT_INFO] 2026-02-16T20:03:36.498Z - [INFO]: MapCap Audit Engine v1.5.5 Synchronized for Cloud Deployment.
+    [0m
+
+      at writeAuditLog (src/config/logger.js:68:17)
+
+  console.log
+    
+    ✅ TEST_ENGINE_READY: Connected to Remote Atlas
+
+      at Object.<anonymous> (test/setup.js:52:15)
+
+  console.log
+    🔒 NETWORK_LOCKDOWN: External API calls disabled (Nock Active).
+
+      at Object.<anonymous> (test/setup.js:53:15)
+
+  console.error
+    [CRITICAL_CONTROLLER_ERROR]: DB_OFFLINE
+
+      113 |              * Ensures system anomalies are captured for Daniel's audit review.
+      114 |              */
+    > 115 |             console.error(`[CRITICAL_CONTROLLER_ERROR]: ${error.message}`);
+          |                     ^
+      116 |             return ResponseHelper.error(res, "Dashboard Sync Failed: Financial Pipeline Offline", 500);
+      117 |         }
+      118 |     }
+
+      at IpoController.getScreenStats (src/controllers/ipo.controller.js:115:21)
+      at Object.<anonymous> (test/unit/controllers/ipo.controller.test.js:101:7)
+
+  console.error
+    [31m[AUDIT_ALERT] 2026-02-16T20:03:38.983Z - [ERROR]: [ERR-MLPLQV6V-G92] Code: 500 | Message: Dashboard Sync Failed: Financial Pipeline Offline
+    [0m
+
+      64 |     // Real-time Console Output for Log Streaming (Vercel Dashboard Visibility)
+      65 |     if (level === 'CRITICAL' || level === 'ERROR' || level === 'WARN') {
+    > 66 |         console.error(`\x1b[31m[AUDIT_ALERT] ${entry}\x1b[0m`); // ANSI Red for Errors
+         |                 ^
+      67 |     } else {
+      68 |         console.log(`\x1b[32m[AUDIT_INFO] ${entry}\x1b[0m`); // ANSI Green for Info
+      69 |     }
+
+      at writeAuditLog (src/config/logger.js:66:17)
+      at ResponseHelper.error (src/utils/response.helper.js:57:7)
+      at IpoController.getScreenStats (src/controllers/ipo.controller.js:116:35)
+      at Object.<anonymous> (test/unit/controllers/ipo.controller.test.js:101:7)
+
+  console.log
+    🛑 TEST_ENGINE_OFFLINE: Resources deallocated.
+
+      at Object.<anonymous> (test/setup.js:99:13)
+
+PASS test/unit/controllers/ipo.controller.test.js
+  IPO Controller & Branding - Dashboard Logic Tests
+    Branding & Compliance Metadata
+      ✓ Identity: Should verify correct Project naming and UI Theme colors (611 ms)
+      ✓ Mechanics: Should align with Fixed Supply and Whale Cap specs (116 ms)
+      ✓ Security: Branding configuration must be frozen to prevent runtime tampering (149 ms)
+    Dashboard Logic & Whale-Shield Status
+      ✓ Financials: Should deliver accurate formatted values (V1-V4) for UI (204 ms)
+      ✓ Whale-Shield: Should return COMPLIANT status if share is within 10% cap (95 ms)
+      ✓ Resilience: Should fail gracefully with 500 status on DB pipeline collapse (105 ms)
+
+  console.log
+    
+    ✅ TEST_ENGINE_READY: Connected to Remote Atlas
+
+      at Object.<anonymous> (test/setup.js:52:15)
+
+  console.log
+    🔒 NETWORK_LOCKDOWN: External API calls disabled (Nock Active).
+
+      at Object.<anonymous> (test/setup.js:53:15)
+
+  console.log
+    🛑 TEST_ENGINE_OFFLINE: Resources deallocated.
+
+      at Object.<anonymous> (test/setup.js:99:13)
+
+PASS test/unit/scripts/cleanup.script.test.js
+  System Maintenance Scripts - Operational Logic Tests
+    DB Cleanup Script - Purge Protocol
+      ✓ Cleanup: Should execute deleteMany with empty filter to wipe all records (584 ms)
+      ✓ Safety: Should ensure environment context is evaluated for production protection (93 ms)
+    Vesting Reset Script - Global Override
+      ✓ Emergency: Should reset vesting progress and released balances globally (130 ms)
+      ✓ Integrity: Reset operation must not tamper with identity or contribution fields (87 ms)
+
+  console.log
+    
+    ✅ TEST_ENGINE_READY: Connected to Remote Atlas
+
+      at Object.<anonymous> (test/setup.js:52:15)
+
+  console.log
+    🔒 NETWORK_LOCKDOWN: External API calls disabled (Nock Active).
+
+      at Object.<anonymous> (test/setup.js:53:15)
+
+  console.log
+    🛑 TEST_ENGINE_OFFLINE: Resources deallocated.
+
+      at Object.<anonymous> (test/setup.js:99:13)
+
+PASS test/unit/services/price.service.test.js
+  PriceService - Dynamic Scarcity Engine Tests
+    ✓ Integrity: Should verify the IPO supply is locked at exactly 2,181,818 (586 ms)
+    ✓ Calculation: Should accurately calculate spot price as liquidity increases (114 ms)
+    ✓ Safety: Should return 0 for zero, null, or negative liquidity inputs (114 ms)
+    ✓ Formatting: Should standardize price to 6 decimal places for audit logs (116 ms)
+    ✓ UI/UX: Should format price to 4 decimal places for dashboard readability (114 ms)
+    ✓ Sanitization: Should handle invalid numerical strings gracefully (123 ms)
+
+  console.log
+    
+    ✅ TEST_ENGINE_READY: Connected to Remote Atlas
+
+      at Object.<anonymous> (test/setup.js:52:15)
+
+  console.log
+    🔒 NETWORK_LOCKDOWN: External API calls disabled (Nock Active).
+
+      at Object.<anonymous> (test/setup.js:53:15)
+
+  console.log
+    🛑 TEST_ENGINE_OFFLINE: Resources deallocated.
+
+      at Object.<anonymous> (test/setup.js:99:13)
+
+PASS test/unit/models/admin.model.test.js
+  Admin Model - Security & Role Integrity Tests
+    ✓ Security: Should validate authorized roles and reject arbitrary access levels (485 ms)
+    ✓ Privacy: Should confirm password exclusion from default data projection (105 ms)
+    ✓ Safety: Should default to active and support administrative revocation (123 ms)
+    ✓ Normalization: Should strictly lowercase usernames during model instantiation (105 ms)
+    ✓ Integrity: Username field must have unique constraint enabled (98 ms)
+
+  console.log
+    [32m[AUDIT_INFO] 2026-02-16T20:03:53.532Z - [INFO]: MapCap Audit Engine v1.5.5 Synchronized for Cloud Deployment.
+    [0m
+
+      at writeAuditLog (src/config/logger.js:68:17)
+
+  console.log
+    
+    ✅ TEST_ENGINE_READY: Connected to Remote Atlas
+
+      at Object.<anonymous> (test/setup.js:52:15)
+
+  console.log
+    🔒 NETWORK_LOCKDOWN: External API calls disabled (Nock Active).
+
+      at Object.<anonymous> (test/setup.js:53:15)
+
+  console.log
+    [AUTH_SUCCESS] Administrative session granted for: admin
+
+      at AuthController.adminLogin (src/controllers/admin/auth.controller.js:56:21)
+
+  console.warn
+    [SECURITY_ALERT] Unauthorized login attempt for: admin
+
+      71 |          * Standardized logging for unauthorized access attempts.
+      72 |          */
+    > 73 |         console.warn(`[SECURITY_ALERT] Unauthorized login attempt for: ${username}`);
+         |                 ^
+      74 |         
+      75 |         return ResponseHelper.error(res, "Authentication failed: Invalid credentials.", 401);
+      76 |     }
+
+      at AuthController.adminLogin (src/controllers/admin/auth.controller.js:73:17)
+      at Object.<anonymous> (test/unit/controllers/admin.auth.test.js:75:26)
+
+  console.error
+    [31m[AUDIT_ALERT] 2026-02-16T20:03:54.759Z - [ERROR]: [ERR-MLPLR7D3-BO1] Code: 401 | Message: Authentication failed: Invalid credentials.
+    [0m
+
+      64 |     // Real-time Console Output for Log Streaming (Vercel Dashboard Visibility)
+      65 |     if (level === 'CRITICAL' || level === 'ERROR' || level === 'WARN') {
+    > 66 |         console.error(`\x1b[31m[AUDIT_ALERT] ${entry}\x1b[0m`); // ANSI Red for Errors
+         |                 ^
+      67 |     } else {
+      68 |         console.log(`\x1b[32m[AUDIT_INFO] ${entry}\x1b[0m`); // ANSI Green for Info
+      69 |     }
+
+      at writeAuditLog (src/config/logger.js:66:17)
+      at ResponseHelper.error (src/utils/response.helper.js:57:7)
+      at AuthController.adminLogin (src/controllers/admin/auth.controller.js:75:31)
+      at Object.<anonymous> (test/unit/controllers/admin.auth.test.js:75:26)
+
+  console.log
+    🛑 TEST_ENGINE_OFFLINE: Resources deallocated.
+
+      at Object.<anonymous> (test/setup.js:99:13)
+
+PASS test/unit/controllers/admin.auth.test.js
+  Admin Auth Controller - Security & Integrity Tests
+    ✓ Login Success: Should generate a secure JWT for authorized administrative access (65 ms)
+    ✓ Security: Should enforce strict 401 Unauthorized status for invalid credentials (26 ms)
+    ✓ Telemetry: Should provide accurate operational status for the Pulse Dashboard (11 ms)
+
+  console.log
+    [32m[AUDIT_INFO] 2026-02-16T20:03:56.486Z - [INFO]: MapCap Audit Engine v1.5.5 Synchronized for Cloud Deployment.
+    [0m
+
+      at writeAuditLog (src/config/logger.js:68:17)
+
+  console.log
+    
+    ✅ TEST_ENGINE_READY: Connected to Remote Atlas
+
+      at Object.<anonymous> (test/setup.js:52:15)
+
+  console.log
+    🔒 NETWORK_LOCKDOWN: External API calls disabled (Nock Active).
+
+      at Object.<anonymous> (test/setup.js:53:15)
+
+  console.log
+    🛑 TEST_ENGINE_OFFLINE: Resources deallocated.
+
+      at Object.<anonymous> (test/setup.js:99:13)
+
+PASS test/unit/utils/api.response.test.js
+  Global API Consistency - Response & Error Resilience
+    ResponseHelper - Output Formatting
+      ✓ Success: Should return a 200 status with standardized data and timestamp (28 ms)
+      ✓ Error Handling: Should generate a unique Trace ID prefixed with ERR- (17 ms)
+    Error Middleware - Global Resilience & Privacy
+      ✓ Capture: Should normalize unhandled exceptions to a 500 JSON response (20 ms)
+      ✓ Security: Should hide sensitive stack traces in production mode (13 ms)
+      ✓ Propagation: Should maintain the existing HTTP status code (e.g., 403 Forbidden) (10 ms)
+
+  console.log
+    
+    ✅ TEST_ENGINE_READY: Connected to Remote Atlas
+
+      at Object.<anonymous> (test/setup.js:52:15)
+
+  console.log
+    🔒 NETWORK_LOCKDOWN: External API calls disabled (Nock Active).
+
+      at Object.<anonymous> (test/setup.js:53:15)
+
+  console.log
+    🛑 TEST_ENGINE_OFFLINE: Resources deallocated.
+
+      at Object.<anonymous> (test/setup.js:99:13)
+
+PASS test/unit/utils/project.integrity.test.js
+  Project Integrity - Architecture & Security Policy
+    Dependency & Metadata Guard
+      ✓ Metadata: Should align with stabilized v1.7.x and ESM standards (15 ms)
+      ✓ Runtime: Must enforce Node.js >=18.0.0 for Top-level Await support (6 ms)
+      ✓ Stack: Should verify presence of Core Financial & Security libraries (12 ms)
+      ✓ Scripts: Should define standardized Start/Dev entry points for Vercel/Termux (7 ms)
+    Version Control Security Policy
+      ✓ Security: Must strictly ignore .env files to prevent credential exposure (8 ms)
+      ✓ Architecture: Should exclude node_modules and bulky log files (6 ms)
+      ✓ Cleanliness: Should ignore IDE-specific metadata (.vscode, .DS_Store) (6 ms)
+
+  console.log
+    [32m[AUDIT_INFO] 2026-02-16T20:04:02.801Z - [INFO]: MapCap Audit Engine v1.5.5 Synchronized for Cloud Deployment.
+    [0m
+
+      at writeAuditLog (src/config/logger.js:68:17)
+
+  console.log
+    
+    ✅ TEST_ENGINE_READY: Connected to Remote Atlas
+
+      at Object.<anonymous> (test/setup.js:52:15)
+
+  console.log
+    🔒 NETWORK_LOCKDOWN: External API calls disabled (Nock Active).
+
+      at Object.<anonymous> (test/setup.js:53:15)
+
+  console.log
+    [SECURITY_LOG] Admin Privilege Elevated | Time: 2026-02-16T20:04:04.072Z | IP: 127.0.0.1
+
+      at adminAuth (src/middlewares/auth.middleware.js:45:17)
+
+  console.error
+    [31m[AUDIT_ALERT] 2026-02-16T20:04:04.125Z - [ERROR]: [ERR-MLPLREL9-OJ2] Code: 400 | Message: Protocol Violation: Withdrawal must be within 0.01% to 100% range.
+    [0m
+
+      64 |     // Real-time Console Output for Log Streaming (Vercel Dashboard Visibility)
+      65 |     if (level === 'CRITICAL' || level === 'ERROR' || level === 'WARN') {
+    > 66 |         console.error(`\x1b[31m[AUDIT_ALERT] ${entry}\x1b[0m`); // ANSI Red for Errors
+         |                 ^
+      67 |     } else {
+      68 |         console.log(`\x1b[32m[AUDIT_INFO] ${entry}\x1b[0m`); // ANSI Green for Info
+      69 |     }
+
+      at writeAuditLog (src/config/logger.js:66:17)
+      at ResponseHelper.error (src/utils/response.helper.js:57:7)
+      at validateWithdrawal (src/middlewares/validate.middleware.js:40:31)
+      at Object.<anonymous> (test/unit/middlewares/auth.middleware.test.js:88:7)
+
+  console.error
+    [31m[AUDIT_ALERT] 2026-02-16T20:04:04.132Z - [ERROR]: [ERR-MLPLRELG-B55] Code: 400 | Message: Protocol Violation: Withdrawal must be within 0.01% to 100% range.
+    [0m
+
+      64 |     // Real-time Console Output for Log Streaming (Vercel Dashboard Visibility)
+      65 |     if (level === 'CRITICAL' || level === 'ERROR' || level === 'WARN') {
+    > 66 |         console.error(`\x1b[31m[AUDIT_ALERT] ${entry}\x1b[0m`); // ANSI Red for Errors
+         |                 ^
+      67 |     } else {
+      68 |         console.log(`\x1b[32m[AUDIT_INFO] ${entry}\x1b[0m`); // ANSI Green for Info
+      69 |     }
+
+      at writeAuditLog (src/config/logger.js:66:17)
+      at ResponseHelper.error (src/utils/response.helper.js:57:7)
+      at validateWithdrawal (src/middlewares/validate.middleware.js:40:31)
+      at Object.<anonymous> (test/unit/middlewares/auth.middleware.test.js:93:7)
+
+  console.error
+    [31m[AUDIT_ALERT] 2026-02-16T20:04:04.147Z - [ERROR]: [ERR-MLPLRELV-RJH] Code: 400 | Message: Compliance Error: 'percentage' and 'userWallet' are mandatory.
+    [0m
+
+      64 |     // Real-time Console Output for Log Streaming (Vercel Dashboard Visibility)
+      65 |     if (level === 'CRITICAL' || level === 'ERROR' || level === 'WARN') {
+    > 66 |         console.error(`\x1b[31m[AUDIT_ALERT] ${entry}\x1b[0m`); // ANSI Red for Errors
+         |                 ^
+      67 |     } else {
+      68 |         console.log(`\x1b[32m[AUDIT_INFO] ${entry}\x1b[0m`); // ANSI Green for Info
+      69 |     }
+
+      at writeAuditLog (src/config/logger.js:66:17)
+      at ResponseHelper.error (src/utils/response.helper.js:57:7)
+      at validateWithdrawal (src/middlewares/validate.middleware.js:27:31)
+      at Object.<anonymous> (test/unit/middlewares/auth.middleware.test.js:99:7)
+
+  console.log
+    🛑 TEST_ENGINE_OFFLINE: Resources deallocated.
+
+      at Object.<anonymous> (test/setup.js:99:13)
+
+PASS test/unit/middlewares/auth.middleware.test.js
+  API Guard - Security & Validation Unit Tests
+    Admin Auth Middleware - Access Control
+      ✓ Access: Should grant entry (next()) when a valid x-admin-token is provided (27 ms)
+      ✓ Protection: Should return 403 Forbidden for invalid or missing tokens (16 ms)
+    Withdrawal Validation - Financial Guard
+      ✓ Integrity: Should parse and allow valid withdrawal percentages (e.g., 50%) (11 ms)
+      ✓ Safety: Should reject missing metadata or out-of-range percentages (>100% or <=0%) (22 ms)
+      ✓ Compliance: Should return 400 if the mandatory userWallet is missing (14 ms)
+
+  console.log
+    
+    ✅ TEST_ENGINE_READY: Connected to Remote Atlas
+
+      at Object.<anonymous> (test/setup.js:52:15)
+
+  console.log
+    🔒 NETWORK_LOCKDOWN: External API calls disabled (Nock Active).
+
+      at Object.<anonymous> (test/setup.js:53:15)
+
+  console.log
+    🛑 TEST_ENGINE_OFFLINE: Resources deallocated.
+
+      at Object.<anonymous> (test/setup.js:99:13)
+
+PASS test/unit/utils/math.test.js
+  MapCap Math Engine - Unit Tests
+    ✓ Alpha Gain: Should calculate exactly 20% increase (14 ms)
+    ✓ Whale-Shield: Should accurately flag stakes exceeding 10% threshold (6 ms)
+    ✓ Precision: Should round to 6 decimal places with zero artifacts (5 ms)
+    ✓ Resilience: Should return 0 for non-numerical inputs (6 ms)
+
+Summary of all failing tests
+FAIL test/unit/utils/system.health.test.js (8.758 s)
+  ● System Health & Cloud Infrastructure - Unit Tests › Server Engine - Heartbeat Integration › Heartbeat: GET / should return 200 and live financial metrics for UI
+
+    TypeError: Cannot read properties of undefined (reading 'total_pi_invested')
+
+      59 |       expect(res.statusCode).toEqual(200);
+      60 |       expect(res.body.success).toBe(true);
+    > 61 |       expect(res.body.data.live_metrics.total_pi_invested).toBe(1000000);
+         |                                         ^
+      62 |       
+      63 |       aggregateSpy.mockRestore();
+      64 |     });
+
+      at Object.<anonymous> (test/unit/utils/system.health.test.js:61:41)
+
+FAIL test/integration/payout.pipeline.test.js (6.197 s)
+  ● Payout Pipeline - End-to-End Financial Integration › Vesting Flow: Successful Pi transfer should update the investor ledger
+
+    expect(jest.fn()).toHaveBeenCalled()
+
+    Expected number of calls: >= 1
+    Received number of calls:    0
+
+      110 |     // Assertions: Integrity check
+      111 |     expect(response.status).toBe(200); 
+    > 112 |     expect(payoutSpy).toHaveBeenCalled(); // Verification of the actual execution unit
+          |                       ^
+      113 |     expect(updatedPioneer.vestingMonthsCompleted).toBe(1);
+      114 |     expect(response.body.success).toBe(true);
+      115 |   });
+
+      at Object.<anonymous> (test/integration/payout.pipeline.test.js:112:23)
+
+
+Test Suites: 2 failed, 21 passed, 23 total
+Tests:       2 failed, 115 passed, 117 total
+Snapshots:   0 total
+Time:        110.758 s
+Ran all test suites.
