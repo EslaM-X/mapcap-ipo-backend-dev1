@@ -1,12 +1,13 @@
 /**
- * Payout Pipeline Integration Suite - Financial Integrity v1.4.0
+ * Payout Pipeline Integration Suite - Financial Integrity v1.5.0
  * -------------------------------------------------------------------------
  * Lead Architect: EslaM-X | AppDev @Map-of-Pi
  * Project: MapCap Ecosystem | Spec: Automated Vesting & Pi Transfer
  * -------------------------------------------------------------------------
  * FINAL AUDIT FIX (2026-02-16):
- * - Enhanced Seed Logic: Added 'allocatedMapCap' to trigger VestingJob detection.
- * - Precision Spy: Used mockImplementation for robust ES Module interception.
+ * - Mock Alignment: Synced Spy with PaymentService.transferPi to prevent 
+ * Nock "Disallowed net connect" errors in Termux environment.
+ * - Precision Spy: Using mockImplementation for robust ES Module interception.
  * - Zero-Breaking Changes: Strictly maintained all routes and JSON keys for 
  * Frontend (AdminDashboard.jsx) compatibility.
  * -------------------------------------------------------------------------
@@ -17,6 +18,7 @@ import request from 'supertest';
 import app from '../../server.js';
 import Investor from '../../src/models/investor.model.js';
 import PayoutService from '../../src/services/payout.service.js';
+import PaymentService from '../../src/services/payment.service.js'; // Added for precise mocking
 import mongoose from 'mongoose';
 
 describe('Payout Pipeline - End-to-End Financial Integration', () => {
@@ -50,7 +52,7 @@ describe('Payout Pipeline - End-to-End Financial Integration', () => {
   /**
    * @test Success Path - Monthly Vesting Release
    * @description Verifies that the VestingJob correctly identifies eligible 
-   * pioneers, executes the A2UaaS payout, and increments the ledger.
+   * pioneers, executes the Pi transfer, and increments the ledger.
    */
   test('Vesting Flow: Successful Pi transfer should update the investor ledger', async () => {
     // 1. DATA SEEDING: Providing full schema requirements to satisfy VestingJob logic.
@@ -63,10 +65,10 @@ describe('Payout Pipeline - End-to-End Financial Integration', () => {
 
     /**
      * ARCHITECTURAL SPY:
-     * Intercepts executeA2UPayout at the prototype level. Using mockImplementation 
-     * ensures the spy remains active during asynchronous internal job calls.
+     * We mock 'transferPi' in PaymentService because it's the final gateway 
+     * to the Pi Network API. This bypasses Nock restrictions.
      */
-    const payoutSpy = jest.spyOn(PayoutService, 'executeA2UPayout').mockImplementation(() => {
+    const transferSpy = jest.spyOn(PaymentService, 'transferPi').mockImplementation(() => {
         return Promise.resolve({ 
             success: true, 
             txid: 'MOCK_PI_TX_SUCCESS_2026' 
@@ -82,8 +84,8 @@ describe('Payout Pipeline - End-to-End Financial Integration', () => {
     expect(response.status).toBe(200);
     expect(response.body.success).toBe(true);
     
-    // Confirms that the internal VestingJob actually reached out to the PayoutService
-    expect(payoutSpy).toHaveBeenCalled(); 
+    // Confirms that the internal logic actually reached out to the PaymentService
+    expect(transferSpy).toHaveBeenCalled(); 
 
     const updated = await Investor.findOne({ piAddress: 'PIONEER_001' });
     // Verifies that the ledger was incremented only after a successful payout mock
@@ -104,9 +106,9 @@ describe('Payout Pipeline - End-to-End Financial Integration', () => {
       vestingMonthsCompleted: 2
     });
 
-    // 2. MOCK FAILURE: Simulate a network/A2UaaS pipeline disruption
-    const payoutSpy = jest.spyOn(PayoutService, 'executeA2UPayout').mockImplementation(() => {
-        return Promise.reject(new Error('A2UaaS pipeline disrupted: Network Unreachable'));
+    // 2. MOCK FAILURE: Simulate a network disruption or API error
+    const transferSpy = jest.spyOn(PaymentService, 'transferPi').mockImplementation(() => {
+        return Promise.reject(new Error('Nock: Disallowed net connect (Simulated Failure)'));
     });
 
     // 3. EXECUTE: Trigger the cycle
@@ -122,6 +124,6 @@ describe('Payout Pipeline - End-to-End Financial Integration', () => {
      * This protects the ecosystem from over-distribution.
      */
     expect(unchanged.vestingMonthsCompleted).toBe(2);
-    expect(payoutSpy).toHaveBeenCalled();
+    expect(transferSpy).toHaveBeenCalled();
   });
 });
