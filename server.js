@@ -1,5 +1,5 @@
 /**
- * MapCap IPO - Core Server Orchestrator v1.7.0 (Stabilized)
+ * MapCap IPO - Core Server Orchestrator v1.7.5 (Audit-Ready)
  * -------------------------------------------------------------------------
  * Lead Architect: EslaM-X | AppDev @Map-of-Pi
  * Project: MapCap Ecosystem | Spec: Philip Jennings & Daniel Compliance
@@ -7,6 +7,10 @@
  * ARCHITECTURAL ROLE:
  * Orchestrates Express pipeline, database persistence, and security gateways.
  * Optimized for MERN stack integration and stable Termux testing.
+ * -------------------------------------------------------------------------
+ * FIX LOG:
+ * - Synchronized Root Heartbeat with system.health.test.js requirements.
+ * - Injected 'live_metrics' wrapper for test parity while maintaining legacy keys.
  */
 
 import dotenv from 'dotenv';
@@ -24,7 +28,7 @@ import ResponseHelper from './src/utils/response.helper.js';
 // Routing Layers
 import ipoRoutes from './src/routes/ipo.routes.js';
 import adminRoutes from './src/routes/admin/admin.routes.js';
-import apiRoutes from './src/routes/api.js'; // IMPORTED: Core API Bridge for metrics/sync
+import apiRoutes from './src/routes/api.js'; 
 
 // Load Environment Configuration
 dotenv.config();
@@ -58,9 +62,6 @@ const connectDB = async () => {
         console.log(`✅ [DATABASE] Ledger Connection: SUCCESS (${process.env.NODE_ENV || 'dev'})`);
         writeAuditLog('INFO', 'Database Connection Established.');
 
-        /**
-         * CRON INITIALIZATION: Isolated from 'test' to prevent ledger pollution.
-         */
         if (process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'development') {
             CronScheduler.init();
         }
@@ -78,12 +79,8 @@ if (process.env.NODE_ENV !== 'test') {
  * 3. CORE ROUTE ARCHITECTURE
  * Multi-prefix support for Frontend stability and API versioning.
  */
-
-// A. Global Bridge Routes (Fixes 404 for metrics.sync.test.js)
 app.use('/api/v1', apiRoutes); 
 app.use('/api', apiRoutes);
-
-// B. Domain Specific Routes
 app.use('/api/v1/ipo', ipoRoutes);
 app.use('/api/v1/admin', adminRoutes);
 app.use('/api/ipo', ipoRoutes);     
@@ -92,17 +89,32 @@ app.use('/api/admin', adminRoutes);
 /**
  * 4. SYSTEM PULSE CHECK (Root Endpoint)
  * Legacy support for direct heartbeat monitoring.
+ * STRUCTURE SYNC: Aligned with system.health.test.js contract.
  */
 app.get('/', async (req, res) => {
     try {
         const globalStats = await Investor.aggregate([
             { $group: { _id: null, totalPiInPool: { $sum: "$totalPiContributed" }, pioneerCount: { $sum: 1 } } }
         ]);
+        
         const waterLevel = globalStats[0]?.totalPiInPool || 0;
+        const pioneerCount = globalStats[0]?.pioneerCount || 0;
+
+        /**
+         * RESPONSE CONTRACT:
+         * We maintain 'total_pi_invested' for legacy and wrap it in 'live_metrics'
+         * to satisfy the automated health audit without breaking UI bindings.
+         */
         return res.status(200).json({
             success: true,
             message: "MapCap IPO Pulse Engine - Operational",
-            data: { total_pi_invested: waterLevel },
+            data: { 
+                total_pi_invested: waterLevel, // Legacy support
+                live_metrics: {
+                    total_pi_invested: waterLevel, // Audit/Test support
+                    pioneer_count: pioneerCount
+                }
+            },
             timestamp: new Date().toISOString()
         });
     } catch (error) {
@@ -125,7 +137,7 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 3000;
 if (process.env.NODE_ENV !== 'test') {
     app.listen(PORT, () => {
-        console.log(`🚀 [ENGINE] MapCap IPO Pulse v1.7.0 deployed on port ${PORT}`);
+        console.log(`🚀 [ENGINE] MapCap IPO Pulse v1.7.5 deployed on port ${PORT}`);
     });
 }
 
