@@ -1,5 +1,5 @@
 /**
- * AdminController - Management & Settlement Operations v1.5.0
+ * AdminController - Management & Settlement Operations v1.5.2
  * -------------------------------------------------------------------------
  * Lead Architect: EslaM-X | AppDev @Map-of-Pi
  * Project: MapCap Ecosystem | Spec: Philip's Post-IPO Whale Enforcement
@@ -8,8 +8,10 @@
  * Orchestrates administrative-level financial operations, specifically the
  * final IPO settlement and anti-whale protocol enforcement.
  * -------------------------------------------------------------------------
+ * UPDATED: Corrected relative import paths for new directory structure.
  */
 
+// Core Model & Utility Imports (Paths updated for src/controllers/admin/ context)
 import Investor from '../../models/investor.model.js';
 import SettlementJob from '../../jobs/settlement.job.js'; 
 import ResponseHelper from '../../utils/response.helper.js';
@@ -17,8 +19,11 @@ import ResponseHelper from '../../utils/response.helper.js';
 class AdminController {
     /**
      * @method triggerFinalSettlement
-     * @desc Orchestrates manual IPO finalization based on final 'Water-Level'.
+     * @description Orchestrates manual IPO finalization based on final 'Water-Level'.
      * Triggers the whale trim-back mechanism to enforce the 10% ceiling.
+     * @param {Object} req - Express request object.
+     * @param {Object} res - Express response object.
+     * @returns {Promise<Object>} JSON response with execution metrics.
      * @access Private (Super Admin Only)
      */
     static async triggerFinalSettlement(req, res) {
@@ -26,9 +31,9 @@ class AdminController {
             console.log(`[ADMIN_ACTION] Manual Post-IPO Settlement sequence initiated at ${new Date().toISOString()}`);
 
             /**
-             * STEP 1: GLOBAL LIQUIDITY AGGREGATION (High-Performance)
-             * Uses MongoDB Aggregation to handle large datasets without memory overflow.
-             * Provides the definitive 'Water-Level' baseline for precise calculations.
+             * PHASE 1: GLOBAL LIQUIDITY AGGREGATION
+             * Utilizes MongoDB Aggregation pipeline for high-performance data processing.
+             * Defines the 'Water-Level' baseline for whale protocol calculations.
              */
             const aggregation = await Investor.aggregate([
                 { 
@@ -44,15 +49,16 @@ class AdminController {
             const investorCount = aggregation.length > 0 ? aggregation[0].count : 0;
 
             /**
-             * STEP 2: INTEGRITY GATEKEEPER
+             * PHASE 2: INTEGRITY VALIDATION
+             * Prevents execution if no liquidity is present in the pool.
              */
             if (totalPiPool === 0) {
                 return ResponseHelper.error(res, "Settlement Aborted: No liquidity detected in the IPO pool.", 400);
             }
 
             /**
-             * STEP 3: CORE FINANCIAL EXECUTION
-             * Dispatches liquidity data to the SettlementJob for atomic enforcement.
+             * PHASE 3: CORE FINANCIAL EXECUTION
+             * Dispatches data to SettlementJob for atomic enforcement of the 10% ceiling.
              */
             const report = await SettlementJob.executeWhaleTrimBack(totalPiPool);
 
@@ -61,16 +67,16 @@ class AdminController {
             }
 
             /**
-             * STEP 4: FRONTEND & TEST SYNCHRONIZATION
-             * STABLE MAPPING: Maintains 'metrics' and 'refundsIssued' keys to prevent 
-             * breaking AdminDashboard.jsx and admin.ops.test.js.
+             * PHASE 4: FRONTEND SYNCHRONIZATION (STABLE MAPPING)
+             * CRITICAL: Preserves 'metrics' and 'refundsIssued' keys to maintain 
+             * compatibility with AdminDashboard.jsx and existing test suites.
              */
             return ResponseHelper.success(res, "Post-IPO settlement and Whale trim-back protocol executed.", {
                 executionTimestamp: new Date().toISOString(),
                 metrics: {
                     totalPoolProcessed: totalPiPool,
                     investorsAudited: investorCount,
-                    // CRITICAL: Matches existing Integration Test expectations
+                    // DO NOT MODIFY: Key dependency for integration tests and UI
                     refundsIssued: report.whalesImpacted || 0, 
                     totalRefundedPi: report.totalRefunded || 0    
                 },
@@ -79,7 +85,7 @@ class AdminController {
 
         } catch (error) {
             /**
-             * CRITICAL FAILURE LOGGING
+             * CRITICAL FAILURE LOGGING & RECOVERY
              */
             console.error("[CRITICAL_SETTLEMENT_FAILURE]:", error.message);
             return ResponseHelper.error(res, `Settlement engine failure: ${error.message}`, 500);
@@ -88,7 +94,9 @@ class AdminController {
 
     /**
      * @method getSystemStatus
-     * @desc Returns system metrics for management review.
+     * @description Fetches real-time system metrics for administrative oversight.
+     * @param {Object} req - Express request object.
+     * @param {Object} res - Express response object.
      * @access Private (Admin Only)
      */
     static async getSystemStatus(req, res) {
@@ -104,13 +112,14 @@ class AdminController {
                 }
             });
         } catch (error) {
+            console.error("[STATUS_RETRIEVAL_ERROR]:", error.message);
             return ResponseHelper.error(res, "Failed to retrieve system status.", 500);
         }
     }
 
     /**
      * @method getAuditLogs
-     * @desc Future-proofed endpoint for compliance monitoring interface.
+     * @description Compliance monitoring interface (Placeholder for future audit trail).
      */
     static async getAuditLogs(req, res) {
         return ResponseHelper.success(res, "Administrative audit logs retrieved.", { 
