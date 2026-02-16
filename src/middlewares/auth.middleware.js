@@ -1,54 +1,61 @@
 /**
- * Admin Authentication Middleware v1.2.6
- * ---------------------------------------------------------
+ * Admin Authentication Middleware v1.5.2
+ * -------------------------------------------------------------------------
  * Lead Architect: EslaM-X | AppDev @Map-of-Pi
- * Project: MapCap Ecosystem | Spec: Daniel's Security Protocol
- * ---------------------------------------------------------
+ * Project: MapCap Ecosystem | Spec: Daniel's Security & Compliance Standard
+ * -------------------------------------------------------------------------
  * ARCHITECTURAL ROLE:
- * Security gatekeeper for administrative endpoints.
- * Ensures only authorized personnel (Philip/Daniel) can trigger 
- * high-stakes financial actions like the 'Whale-Shield' Settlement.
- * ---------------------------------------------------------
+ * Acts as the Primary Security Gatekeeper for the Administrative Layer.
+ * Validates session integrity before permitting high-stakes operations 
+ * such as the Post-IPO Whale Settlement and Liquidity Audits.
+ * -------------------------------------------------------------------------
  */
 
 /**
  * @function adminAuth
- * @desc Validates the administrative token against the environment secret.
- * @access Private Layer (Administrative)
+ * @description Intercepts administrative requests to validate the 'x-admin-token'.
+ * Synchronizes with environment-level secrets for Zero-Trust enforcement.
+ * @param {Object} req - Express request object.
+ * @param {Object} res - Express response object.
+ * @param {Function} next - Express next middleware function.
+ * @returns {void | Object} Proceeds to the next layer or returns a 403 Forbidden.
  */
 const adminAuth = (req, res, next) => {
     /**
-     * SECURITY LAYER:
-     * Extracts 'x-admin-token' from request headers.
-     * Added flexibility for header naming (Case-insensitive) to ensure 
-     * compatibility between Frontend Axios calls and Jest test suites.
+     * SECURITY LAYER: HEADER EXTRACTION
+     * Supports both lowercase and capitalized header naming conventions.
+     * Ensures seamless compatibility between Axios (Frontend) and Integration Tests.
      */
     const adminToken = req.headers['x-admin-token'] || req.headers['X-Admin-Token'];
 
-    // Secure comparison against the environment-stored secret token
+    /**
+     * INTEGRITY VERIFICATION:
+     * Validates the provided token against the 'ADMIN_SECRET_TOKEN' 
+     * defined in the secure environment environment configuration.
+     */
     const IS_AUTHORIZED = adminToken && adminToken === process.env.ADMIN_SECRET_TOKEN;
 
     if (IS_AUTHORIZED) {
         /**
-         * AUDIT TRAIL: 
-         * Logs every successful administrative entry as per security requirements.
+         * AUDIT TRAIL LOGGING: 
+         * Records successful administrative elevation for Daniel's compliance logs.
          */
-        console.log(`[SECURITY_LOG] Admin access granted at ${new Date().toISOString()}`);
+        console.log(`[SECURITY_LOG] Administrative privilege elevated at ${new Date().toISOString()}`);
         return next(); 
     }
 
     /**
-     * BREACH PREVENTION:
-     * Unauthorized attempts are logged for inspection.
-     * Returns a standardized JSON error to maintain Frontend and App stability.
+     * THREAT MITIGATION:
+     * Logs unauthorized access attempts with origin IP tracking for security auditing.
+     * Returns a standardized JSON error structure to maintain system stability.
      */
-    console.warn(`[SECURITY_ALERT] Blocked unauthorized Admin attempt from IP: ${req.ip}`);
+    console.warn(`[SECURITY_ALERT] Unauthorized Administrative attempt blocked. Origin IP: ${req.ip}`);
 
     return res.status(403).json({ 
         success: false, 
         status: "FORBIDDEN",
-        message: "Access Denied: Administrative privileges required.",
-        audit_reference: `SEC-${Math.random().toString(36).substr(2, 5).toUpperCase()}`
+        message: "Access Denied: High-level administrative credentials required.",
+        audit_reference: `MAPCAP-SEC-${Math.random().toString(36).substring(2, 7).toUpperCase()}`
     });
 };
 
