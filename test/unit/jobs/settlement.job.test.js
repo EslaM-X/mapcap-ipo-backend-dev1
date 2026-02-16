@@ -1,8 +1,9 @@
 /**
- * Settlement & Vesting Engine - Unified Lifecycle Suite v1.8.3
+ * Settlement & Vesting Engine - Unified Lifecycle Suite v1.8.4
  * -------------------------------------------------------------------------
  * LEAD ARCHITECT: EslaM-X | AppDev @Map-of-Pi
  * ALIGNMENT: Automated Vesting & Whale Trim-Back (10% Rule Enforcement)
+ * STATUS: Stabilized for Production-Ready CI/CD
  * -------------------------------------------------------------------------
  */
 
@@ -103,11 +104,13 @@ describe('Financial Lifecycle - Settlement & Vesting Unified Tests', () => {
       
       await VestingJob.executeMonthlyVesting();
 
-      // Ensure payment logic matches the 10% monthly distribution rule
+      /**
+       * BUG FIX v1.8.4: Synchronized with core PaymentService.transferPi 
+       * Removed redundant memo parameter to match the actual service signature (Address, Amount).
+       */
       expect(PaymentService.transferPi).toHaveBeenCalledWith(
         'Pioneer_001', 
-        100, // 10% of 1000
-        expect.any(String) // Flexible memo support
+        100 // 10% of 1000
       );
       expect(mockInvestor.vestingMonthsCompleted).toBe(1);
     });
