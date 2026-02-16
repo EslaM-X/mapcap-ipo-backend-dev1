@@ -1,6 +1,6 @@
 {
   "name": "mapcap-ipo-backend",
-  "version": "1.6.7",
+  "version": "1.7.0",
   "description": "Enterprise-Grade Backend for MapCap IPO - Stabilized for Termux & MERN Integration",
   "main": "server.js",
   "type": "module",
