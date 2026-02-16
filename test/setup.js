@@ -1,10 +1,13 @@
 /**
- * UNIVERSAL TEST SETUP & DATABASE LIFECYCLE (Cross-Platform)
+ * UNIVERSAL TEST SETUP & DATABASE LIFECYCLE (Cross-Platform) v1.1.0
+ * -------------------------------------------------------------------------
+ * Lead Architect: EslaM-X | AppDev @Map-of-Pi
+ * Project: MapCap Ecosystem | Spec: Daniel's Compliance & Quality Assurance
  * -------------------------------------------------------------------------
  * ARCHITECTURAL ROLE:
- * Orchestrates database connectivity for Integration Tests. Designed to be 
- * platform-agnostic, supporting Termux (via Cloud URI) and Desktop OS 
- * (via Local/Memory URI). Ensures idempotent test environments.
+ * Orchestrates database connectivity for the Jest/Vitest execution context.
+ * Optimized for Termux (Android) via Cloud URI and Desktop via Local Instance.
+ * Ensures idempotent test environments to maintain financial logic integrity.
  * -------------------------------------------------------------------------
  */
 
@@ -16,63 +19,72 @@ dotenv.config();
 
 /**
  * PRE-FLIGHT INITIALIZATION:
- * Establishes a connection to the test database. Priority is given to 
- * MONGO_URI_TEST (Cloud/Atlas) for Termux compatibility, with a 
- * local fallback for standard development environments.
+ * Establishes a robust connection to the test database. 
+ * Priority Routing: 
+ * 1. MONGO_URI_TEST (Remote Atlas/Cloud - Essential for Termux compatibility)
+ * 2. Local Fallback (127.0.0.1 - Standard development environment)
  */
 beforeAll(async () => {
   // CONFIGURATION: Priority 1: Environment Variable | Priority 2: Local Fallback
   const TEST_URI = process.env.MONGO_URI_TEST || "mongodb://127.0.0.1:27017/mapcap_test";
   
-  // Inject critical test-specific environment variables
+  // Inject critical test-specific environment variables for global access
   process.env.MONGO_URI = TEST_URI;
   process.env.JWT_SECRET = process.env.JWT_SECRET || 'test_secret_key_123';
   process.env.NODE_ENV = 'test';
+  // Standardized fallback to match our new adminAuth middleware logic
+  process.env.ADMIN_SECRET_TOKEN = process.env.ADMIN_SECRET_TOKEN || 'secure_fallback_2026';
 
-  // Initialize connection if Mongoose is idle
+  // Initialize connection only if Mongoose is currently idle (idempotency)
   if (mongoose.connection.readyState === 0) {
     try {
       await mongoose.connect(TEST_URI, {
-        serverSelectionTimeoutMS: 5000, // Rapid failure if DB is unreachable
+        serverSelectionTimeoutMS: 8000, // Balanced timeout for Termux network latency
+        family: 4 // Force IPv4 to prevent resolution hangs in Android environments
       });
-      console.log(`\n🚀 Test Engine Connected: ${TEST_URI.includes('atlassian') || TEST_URI.includes('mongodb.net') ? 'Remote Cloud' : 'Local Instance'}`);
+      
+      const isRemote = TEST_URI.includes('atlassian') || TEST_URI.includes('mongodb.net');
+      console.log(`\n🚀 Test Engine Connected: ${isRemote ? 'Remote Cloud (Termux-Ready)' : 'Local Instance'}`);
     } catch (err) {
       console.error("\n❌ CRITICAL: Test Database Connection Failed.");
       console.error(`Details: ${err.message}`);
-      process.exit(1); // Force-stop tests to prevent false positives
+      console.error("💡 TIP: In Termux, ensure MONGO_URI_TEST is set to a Cloud Atlas instance.");
+      process.exit(1); // Force-terminate execution to prevent false-positive test results
     }
   }
 });
 
 /**
- * STATE HYGIENE:
- * Wipes all database collections after each test case.
- * Mandatory for Web3 financial logic to prevent data pollution and 
- * ensure each test starts with a clean ledger state.
+ * STATE HYGIENE (Post-Test Cleanup):
+ * Wipes all database collections after each test case to prevent data leakage.
+ * Mandatory for Web3 financial simulations to ensure a clean ledger state.
  */
 afterEach(async () => {
   if (mongoose.connection.readyState !== 0) {
     const collections = mongoose.connection.collections;
     for (const key in collections) {
-      const collection = collections[key];
-      await collection.deleteMany();
+      try {
+        await collections[key].deleteMany();
+      } catch (e) {
+        // Silent catch for collection-level lock issues during rapid tests
+      }
     }
   }
 });
 
 /**
- * GRACEFUL SHUTDOWN:
- * Properly closes the Mongoose connection to prevent memory leaks 
- * and ensures the test process terminates cleanly.
+ * GRACEFUL SHUTDOWN (Resource Deallocation):
+ * Ensures all database handlers are closed to prevent memory leaks in the Node.js process.
  */
 afterAll(async () => {
   if (mongoose.connection.readyState !== 0) {
-    // Optional: Drop database for a complete purge on environments that allow it
     try {
+      // Optional: Clean purge of the test database on environments supporting drop
       await mongoose.connection.dropDatabase();
     } catch (e) {
-      // Ignore errors during drop in constrained environments
+      // Drop ignored for limited-privilege cloud environments (Atlas Free Tier)
     }
     await mongoose.connection.close();
+    console.log("🛑 Test Engine Shutdown: Database connection terminated cleanly.");
   }
 });
