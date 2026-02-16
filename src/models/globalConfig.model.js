@@ -1,14 +1,12 @@
 /**
- * Global Configuration Schema v1.1.0
+ * Global Configuration Schema v1.1.1
  * -------------------------------------------------------------------------
  * Lead Architect: EslaM-X | AppDev @Map-of-Pi
  * Project: MapCap Ecosystem | Spec: Dynamic System Parameters
  * -------------------------------------------------------------------------
  * ARCHITECTURAL ROLE:
- * Stores global-level variables and system-wide toggles. This ensures 
- * that the frontend and metrics sync can read the current "IPO State" 
- * without hardcoding values.
- * -------------------------------------------------------------------------
+ * Stores global-level variables (e.g., PI_PRICE, IPO_STATE, SYSTEM_PULSE).
+ * Optimized to serve as a Single Source of Truth for the MERN Frontend.
  */
 
 import mongoose from 'mongoose';
@@ -16,18 +14,20 @@ import mongoose from 'mongoose';
 const globalConfigSchema = new mongoose.Schema({
     /**
      * @property {String} key
-     * Unique identifier for the configuration parameter (e.g., 'IPO_STATUS', 'MAX_WHALE_CAP').
+     * Unique identifier (e.g., 'SYSTEM_PULSE', 'IPO_LIMITS').
      */
     key: { 
         type: String, 
         required: true, 
         unique: true,
-        trim: true 
+        trim: true,
+        uppercase: true // Ensures consistency: 'system_pulse' becomes 'SYSTEM_PULSE'
     },
 
     /**
      * @property {Mixed} value
-     * Flexible value storage. Can be a String, Number, or Object.
+     * Flexible storage for numbers, strings, or complex objects.
+     * Use this for 'piPrice' or 'totalPool' metrics.
      */
     value: { 
         type: mongoose.Schema.Types.Mixed, 
@@ -36,28 +36,28 @@ const globalConfigSchema = new mongoose.Schema({
 
     /**
      * @property {String} description
-     * Contextual note for Daniel's audit to explain what this parameter controls.
+     * Audit notes for Daniel to ensure operational transparency.
      */
     description: {
-        type: String
+        type: String,
+        trim: true
     },
 
     /**
-     * @property {ObjectId} lastUpdatedBy
-     * Reference to the Admin who last modified this setting for accountability.
+     * @property {Date} updatedAt
+     * Automatically managed by timestamps. Used by Frontend to show "Last Synced".
      */
-    lastUpdatedBy: { 
-        type: mongoose.Schema.Types.ObjectId, 
-        ref: 'Admin' 
-    }
 }, { 
-    timestamps: true 
+    timestamps: true,
+    minimize: false // Ensures empty objects {} are still saved in DB (important for initial states)
 });
 
-// Optimization for lookups by key
+/**
+ * PERFORMANCE INDEXING:
+ * Accelerates 'key' based lookups which are frequent during Dashboard pulse updates.
+ */
 globalConfigSchema.index({ key: 1 });
 
 const GlobalConfig = mongoose.models.GlobalConfig || mongoose.model('GlobalConfig', globalConfigSchema);
 
 export default GlobalConfig;
-
