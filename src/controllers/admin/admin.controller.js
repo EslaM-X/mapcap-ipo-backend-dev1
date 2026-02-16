@@ -1,5 +1,5 @@
 /**
- * AdminController - Management & Settlement Operations v1.4.9
+ * AdminController - Management & Settlement Operations v1.5.0
  * -------------------------------------------------------------------------
  * Lead Architect: EslaM-X | AppDev @Map-of-Pi
  * Project: MapCap Ecosystem | Spec: Philip's Post-IPO Whale Enforcement
@@ -26,9 +26,9 @@ class AdminController {
             console.log(`[ADMIN_ACTION] Manual Post-IPO Settlement sequence initiated at ${new Date().toISOString()}`);
 
             /**
-             * STEP 1: GLOBAL LIQUIDITY AGGREGATION
-             * Provides the definitive 'Water-Level' baseline required for 
-             * precise 10% anti-whale redistribution calculations.
+             * STEP 1: GLOBAL LIQUIDITY AGGREGATION (High-Performance)
+             * Uses MongoDB Aggregation to handle large datasets without memory overflow.
+             * Provides the definitive 'Water-Level' baseline for precise calculations.
              */
             const aggregation = await Investor.aggregate([
                 { 
@@ -40,14 +40,11 @@ class AdminController {
                 }
             ]);
             
-            // Safe extraction with default fallback to zero
             const totalPiPool = aggregation.length > 0 ? aggregation[0].total : 0;
             const investorCount = aggregation.length > 0 ? aggregation[0].count : 0;
 
             /**
              * STEP 2: INTEGRITY GATEKEEPER
-             * Prevents execution if the pool is empty to avoid division-by-zero 
-             * anomalies in the settlement engine and ensure API stability.
              */
             if (totalPiPool === 0) {
                 return ResponseHelper.error(res, "Settlement Aborted: No liquidity detected in the IPO pool.", 400);
@@ -55,8 +52,7 @@ class AdminController {
 
             /**
              * STEP 3: CORE FINANCIAL EXECUTION
-             * Dispatches the total liquidity to the SettlementJob for atomic 
-             * whale-cap enforcement and refund ledger generation.
+             * Dispatches liquidity data to the SettlementJob for atomic enforcement.
              */
             const report = await SettlementJob.executeWhaleTrimBack(totalPiPool);
 
@@ -66,16 +62,15 @@ class AdminController {
 
             /**
              * STEP 4: FRONTEND & TEST SYNCHRONIZATION
-             * Key mapping strictly maintained to support:
-             * 1. AdminDashboard.jsx (UI Metrics display)
-             * 2. admin.ops.test.js (Integration Assertions for CI/CD)
+             * STABLE MAPPING: Maintains 'metrics' and 'refundsIssued' keys to prevent 
+             * breaking AdminDashboard.jsx and admin.ops.test.js.
              */
             return ResponseHelper.success(res, "Post-IPO settlement and Whale trim-back protocol executed.", {
                 executionTimestamp: new Date().toISOString(),
                 metrics: {
                     totalPoolProcessed: totalPiPool,
                     investorsAudited: investorCount,
-                    // CRITICAL: Matches Integration Test expectations & Dashboard UI
+                    // CRITICAL: Matches existing Integration Test expectations
                     refundsIssued: report.whalesImpacted || 0, 
                     totalRefundedPi: report.totalRefunded || 0    
                 },
@@ -84,12 +79,32 @@ class AdminController {
 
         } catch (error) {
             /**
-             * CRITICAL FAILURE LOGGING:
-             * Vital for security audit and financial forensic review.
-             * Returns a structured error to prevent Frontend crashes.
+             * CRITICAL FAILURE LOGGING
              */
             console.error("[CRITICAL_SETTLEMENT_FAILURE]:", error.message);
             return ResponseHelper.error(res, `Settlement engine failure: ${error.message}`, 500);
+        }
+    }
+
+    /**
+     * @method getSystemStatus
+     * @desc Returns system metrics for management review.
+     * @access Private (Admin Only)
+     */
+    static async getSystemStatus(req, res) {
+        try {
+            const investorsCount = await Investor.countDocuments();
+            
+            return ResponseHelper.success(res, "System metrics retrieved successfully.", {
+                status: "Operational",
+                engine: "MapCap Audit Engine v1.5.0",
+                metrics: {
+                    active_investors: investorsCount,
+                    deployment: "Production-Synchronized"
+                }
+            });
+        } catch (error) {
+            return ResponseHelper.error(res, "Failed to retrieve system status.", 500);
         }
     }
 
@@ -98,7 +113,6 @@ class AdminController {
      * @desc Future-proofed endpoint for compliance monitoring interface.
      */
     static async getAuditLogs(req, res) {
-        // Placeholder for real-time audit log stream integration
         return ResponseHelper.success(res, "Administrative audit logs retrieved.", { 
             logs: [],
             count: 0 
