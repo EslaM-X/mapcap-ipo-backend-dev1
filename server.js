@@ -1,5 +1,5 @@
 /**
- * MapCap IPO - Core Server Orchestrator v1.6.5
+ * MapCap IPO - Core Server Orchestrator v1.6.6
  * -------------------------------------------------------------------------
  * Lead Architect: EslaM-X | AppDev @Map-of-Pi
  * Project: MapCap Ecosystem | Spec: Philip Jennings & Daniel Compliance
@@ -51,7 +51,7 @@ app.use(cors({
 const connectDB = async () => {
     try {
         // ENFORCEMENT: Skip manual connection in 'test' mode to allow 
-        // test/setup.js to manage the MongoMemoryServer lifecycle.
+        // test suites to manage their own database lifecycle.
         if (process.env.NODE_ENV === 'test') return;
 
         const dbUri = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/mapcap_dev';
@@ -60,8 +60,8 @@ const connectDB = async () => {
         console.log(`✅ [DATABASE] Ledger Connection: SUCCESS (${process.env.NODE_ENV || 'dev'})`);
         writeAuditLog('INFO', 'Database Connection Established.');
 
-        // Initialize Background Jobs (Delayed until DB is stable)
-        if (process.env.NODE_ENV !== 'production' && process.env.NODE_ENV !== 'test') {
+        // Initialize Background Jobs (Only in Production or Dev, never in Tests)
+        if (process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'development') {
             CronScheduler.init();
         }
     } catch (err) {
@@ -72,7 +72,6 @@ const connectDB = async () => {
 
 /**
  * 3. EXECUTION GUARD: DATABASE INITIALIZATION
- * Ensures persistence is only triggered outside of the testing framework.
  */
 if (process.env.NODE_ENV !== 'test') {
     connectDB();
@@ -129,7 +128,6 @@ app.use('/api/admin', adminRoutes); // Legacy fallback for Frontend Stability
 
 /**
  * 6. GLOBAL EXCEPTION INTERCEPTOR
- * Final safety net for unhandled errors to maintain system uptime.
  */
 app.use((err, req, res, next) => {
     writeAuditLog('CRITICAL', `FATAL EXCEPTION: ${err.stack}`);
@@ -142,12 +140,13 @@ app.use((err, req, res, next) => {
 
 /**
  * 7. SERVER EXECUTION (ENVIRONMENTAL GUARD)
- * Decouples app logic from the network port during automated testing sequences.
+ * Decouples app logic from the network port during automated testing.
+ * The server only listens automatically if NOT in a testing environment.
  */
 const PORT = process.env.PORT || 3000;
 if (process.env.NODE_ENV !== 'test') {
     app.listen(PORT, () => {
-        console.log(`🚀 [ENGINE] MapCap IPO Pulse v1.6.5 deployed on port ${PORT}`);
+        console.log(`🚀 [ENGINE] MapCap IPO Pulse v1.6.6 deployed on port ${PORT}`);
     });
 }
 
