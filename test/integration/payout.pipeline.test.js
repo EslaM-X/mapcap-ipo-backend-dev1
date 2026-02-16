@@ -1,13 +1,13 @@
 /**
- * Payout Pipeline Integration Suite - Financial Integrity v1.0.7
+ * Payout Pipeline Integration Suite - Financial Integrity v1.1.0
  * -------------------------------------------------------------------------
  * Lead Architect: EslaM-X | AppDev @Map-of-Pi
  * Project: MapCap Ecosystem | Spec: Automated Vesting & Pi Transfer
  * -------------------------------------------------------------------------
- * Description: 
- * Validates the end-to-end flow of the Pi Network payout engine, ensuring 
- * transactional atomicity between the blockchain service and the database ledger.
- * Optimized to prevent 400 Bad Request by seeding initial liquidity.
+ * FIX LOG:
+ * - Redirected endpoints to /settle-vesting to ensure ledger increments.
+ * - Mocked PayoutService & PaymentService to prevent ENOTFOUND on external APIs.
+ * - Maintained Frontend compatibility by preserving response validation.
  */
 
 import { jest } from '@jest/globals'; 
@@ -15,6 +15,7 @@ import request from 'supertest';
 import app from '../../server.js';
 import Investor from '../../src/models/investor.model.js';
 import PaymentService from '../../src/services/payment.service.js';
+import PayoutService from '../../src/services/payout.service.js'; // Added to prevent ENOTFOUND
 import mongoose from 'mongoose';
 
 describe('Payout Pipeline - End-to-End Financial Integration', () => {
@@ -41,13 +42,13 @@ describe('Payout Pipeline - End-to-End Financial Integration', () => {
     } catch (error) {
       throw error;
     }
-    adminSecret = process.env.ADMIN_SECRET_TOKEN || 'test_admin_secret_123';
+    // Using global secret consistent with setup.js
+    adminSecret = process.env.ADMIN_SECRET_TOKEN || 'secure_fallback_2026';
   });
 
   /**
    * Teardown Logic:
-   * Ensures state isolation by purging the Investor collection after each test 
-   * and restoring mocked services to prevent side-effect leakage.
+   * Ensures state isolation by purging the Investor collection after each test.
    */
   afterEach(async () => {
     if (mongoose.connection.readyState !== 0) {
@@ -58,8 +59,7 @@ describe('Payout Pipeline - End-to-End Financial Integration', () => {
 
   /**
    * Final Teardown:
-   * Terminates active database connections and closes the server listener 
-   * to ensure a clean process exit and prevent memory leaks.
+   * Terminates active database connections and closes the server listener.
    */
   afterAll(async () => {
     if (mongoose.connection.readyState !== 0) {
@@ -71,38 +71,45 @@ describe('Payout Pipeline - End-to-End Financial Integration', () => {
   /**
    * @test Success Path - Monthly Vesting Release
    * @description Verifies that a successful Pi transfer triggers an incremental update 
-   * to the investor's vesting progress. 
-   * NOTE: Seeding 'totalPiContributed' is CRITICAL to bypass the 400 Liquidity Guard.
+   * to the investor's vesting progress via the /settle-vesting pipeline.
    */
   test('Vesting Flow: Successful Pi transfer should update the investor ledger', async () => {
     const pioneer = await Investor.create({
       piAddress: 'PIONEER_PAYOUT_001',
       allocatedMapCap: 1000,
-      totalPiContributed: 5000, // CRITICAL: Added to satisfy AdminController Liquidity Check
+      totalPiContributed: 5000,
       vestingMonthsCompleted: 0,
       isWhale: false
     });
 
-    // Mocking Pi Network Blockchain provider with a successful transaction response
+    /**
+     * DUAL-LAYER MOCKING:
+     * Prevents ENOTFOUND by intercepting both payment engine possibilities.
+     */
     const paymentSpy = jest.spyOn(PaymentService, 'transferPi').mockResolvedValue({ 
       success: true, 
       txId: 'PI_BLOCK_999_SUCCESS' 
     });
+    
+    // Also mock PayoutService as it is used by internal jobs
+    jest.spyOn(PayoutService, 'executeA2UPayout').mockResolvedValue({ 
+      success: true, 
+      txId: 'ESCROW_MOCK_SUCCESS' 
+    });
 
     /**
-     * Action: Execute the settlement endpoint via administrative authorization.
-     * Path: /api/v1/admin/settle
+     * Action: Execute the dedicated Vesting Settlement endpoint.
+     * Path: /api/v1/admin/settle-vesting
      */
     const response = await request(app)
-      .post('/api/v1/admin/settle') 
+      .post('/api/v1/admin/settle-vesting') 
       .set('x-admin-token', adminSecret);
 
     const updatedPioneer = await Investor.findById(pioneer._id);
     
-    // Assertions: Validate HTTP status (200 OK or 201 Created)
-    expect(response.status).toBeLessThan(400); 
+    // Assertions: Validate HTTP status and ledger progression
+    expect(response.status).toBe(200); 
     expect(paymentSpy).toHaveBeenCalled();
-    // Ensuring the ledger reflects the progression
     expect(updatedPioneer.vestingMonthsCompleted).toBe(1);
   });
 
@@ -115,26 +122,26 @@ describe('Payout Pipeline - End-to-End Financial Integration', () => {
     const pioneer = await Investor.create({
       piAddress: 'PIONEER_FAIL_TEST',
       allocatedMapCap: 1000,
-      totalPiContributed: 5000, // Seeded to bypass initial liquidity check
+      totalPiContributed: 5000,
       vestingMonthsCompleted: 2,
       isWhale: false
     });
 
-    // Simulating a network-level failure
+    // Simulating a network-level failure or API rejection
     jest.spyOn(PaymentService, 'transferPi').mockRejectedValue(new Error('Blockchain Congestion'));
+    jest.spyOn(PayoutService, 'executeA2UPayout').mockRejectedValue(new Error('Escrow Pipeline Down'));
 
     const response = await request(app)
-      .post('/api/v1/admin/settle')
+      .post('/api/v1/admin/settle-vesting')
       .set('x-admin-token', adminSecret);
 
     const unchangedPioneer = await Investor.findById(pioneer._id);
     
     /**
-     * ALIGNMENT FIX: 
-     * If the service fails, we ensure the DB record remains intact (no increment).
+     * INTEGRITY CHECK: 
+     * Even on failure, the system must return a structured response and keep the ledger intact.
      */
     expect(unchangedPioneer.vestingMonthsCompleted).toBe(2);
-    // Based on AdminController logic, it might return 200 with partial success or 400
     expect(response.status).toBeLessThan(500); 
   });
 });
