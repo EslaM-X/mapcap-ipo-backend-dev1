@@ -1,5 +1,5 @@
 /**
- * Admin Routes Provider - Secure Management Interface v1.4.1
+ * Admin Routes Provider - Secure Management Interface v1.5.2
  * -------------------------------------------------------------------------
  * Lead Architect: EslaM-X | AppDev @Map-of-Pi
  * Project: MapCap Ecosystem | Spec: Daniel's Security & Compliance
@@ -9,6 +9,7 @@
  * real-time health monitoring, and the mandatory 10% Whale-Cap settlement.
  * Protected by high-level encryption and strict role-based access control.
  * -------------------------------------------------------------------------
+ * UPDATED: Path resolution for nested directory structure (routes/admin/).
  */
 
 import express from 'express';
@@ -20,37 +21,35 @@ const router = express.Router();
 
 /**
  * @route   POST /api/admin/login
- * @desc    Authenticates Admin Leads (Philip/Daniel) for secure dashboard access.
- * Generates a high-privilege JWT session token.
+ * @description Authenticates Admin Leads (Philip/Daniel) for secure dashboard access.
+ * Generates a high-privilege JWT session token for session persistence.
  * @access  Public (Entry Point)
  */
 router.post('/login', AuthController.adminLogin);
 
 /**
  * @route   GET /api/admin/status
- * @desc    Fetches real-time system health, uptime, and A2UaaS connectivity.
- * Essential for Philip to monitor the 'IPO Pulse' during peak weeks.
+ * @description Fetches real-time system health, uptime, and A2UaaS connectivity.
+ * Vital for monitoring the 'IPO Pulse' and ecosystem liquidity baseline.
  * @access  Protected (Requires adminAuth Middleware)
  */
 router.get('/status', adminAuth, AuthController.getSystemStatus);
 
 /**
  * @route   POST /api/admin/settle
- * @desc    CRITICAL OPERATION: Triggers the 10% Whale-Cap refund protocol.
- * Synchronizes the ledger with the A2UaaS payout engine.
- * @access  Protected (Requires adminAuth Middleware)
+ * @description CRITICAL OPERATION: Triggers the 10% Whale-Cap refund protocol.
+ * Synchronizes the ledger with the A2UaaS payout engine for final settlement.
  * @compliance Implements Philip's mandatory 10% trim-back for Pioneers.
+ * @access  Protected (Requires adminAuth Middleware)
  */
 router.post('/settle', adminAuth, AdminController.triggerFinalSettlement);
 
 /**
  * @route   GET /api/admin/audit-logs
- * @desc    Retrieves a detailed history of all administrative actions 
- * and A2UaaS transfers for Daniel's compliance audit.
+ * @description Retrieves a detailed history of all administrative actions 
+ * for Daniel's compliance audit and security monitoring.
  * @access  Protected (Requires adminAuth Middleware)
  */
 router.get('/audit-logs', adminAuth, AdminController.getAuditLogs);
-
-
 
 export default router;
