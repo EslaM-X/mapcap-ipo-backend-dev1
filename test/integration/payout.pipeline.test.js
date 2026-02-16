@@ -1,17 +1,13 @@
 /**
- * Payout Pipeline Integration Suite - Financial Integrity v1.0.3
+ * Payout Pipeline Integration Suite - Financial Integrity v1.0.4
  * -------------------------------------------------------------------------
  * Lead Architect: EslaM-X | AppDev @Map-of-Pi
  * Project: MapCap Ecosystem | Spec: Automated Vesting & Pi Transfer
  * -------------------------------------------------------------------------
- * DESCRIPTION:
- * Validates the end-to-end financial orchestration for Pi distributions.
- * Ensures transactional atomicity between the Blockchain layer and MongoDB.
- * -------------------------------------------------------------------------
- * UPDATES:
- * - ESM Jest Integration: Explicitly managed @jest/globals context.
- * - Resilience: Verified transactional rollback on blockchain failure.
- * - Port Guard: Dynamic allocation to prevent EADDRINUSE in CI/CD.
+ * FIX LOG:
+ * - Security Protocol: Switched to 'x-admin-token' for alignment with v1.5.4.
+ * - DB Strategy: Local MongoDB handshake to fix Termux binary download errors.
+ * - Port Management: Optimized server listener for parallel testing.
  */
 
 import { jest } from '@jest/globals'; 
@@ -20,36 +16,38 @@ import app from '../../server.js';
 import Investor from '../../src/models/investor.model.js';
 import PaymentService from '../../src/services/payment.service.js';
 import mongoose from 'mongoose';
-import jwt from 'jsonwebtoken';
 
 describe('Payout Pipeline - End-to-End Financial Integration', () => {
-  let adminToken;
+  let adminSecret;
   let server;
 
-  // Set timeout for complex financial operations and DB updates
+  // Optimized timeout for financial logic and blockchain simulation
   jest.setTimeout(30000);
 
   beforeAll(async () => {
-    // PORT COLLISION FIX: Use dynamic port for parallel test execution stability
+    // Dynamic port allocation to prevent EADDRINUSE during concurrent runs
     if (!app.listening) {
       server = app.listen(0); 
     }
 
-    // Ensure secure handshake with the testing database cluster
-    if (mongoose.connection.readyState === 0) {
-      await mongoose.connect(process.env.MONGO_URI_TEST || 'mongodb://127.0.0.1:27017/mapcap_test');
+    // Secure handshake with local testing database
+    try {
+      if (mongoose.connection.readyState === 0) {
+        const TEST_DB = process.env.MONGO_URI_TEST || 'mongodb://127.0.0.1:27017/mapcap_test';
+        await mongoose.connect(TEST_DB);
+        console.log(`[PAYOUT_TEST]: Connected to ${TEST_DB}`);
+      }
+    } catch (error) {
+      console.error("[PAYOUT_DB_ERROR]: Database connection failed.");
+      throw error;
     }
 
-    // Generate administrative token with strict role enforcement for financial routes
-    adminToken = jwt.sign(
-      { id: 'admin_payout_manager', role: 'admin' }, 
-      process.env.JWT_SECRET || 'test_secret_key',
-      { expiresIn: '1h' }
-    );
+    // Set administrative secret for secure job triggering
+    adminSecret = process.env.ADMIN_SECRET_TOKEN || 'test_admin_secret_123';
   });
 
   afterEach(async () => {
-    // Maintain idempotent state by cleaning collections and resetting spies
+    // Ensuring clean state for financial atomicity tests
     if (mongoose.connection.readyState !== 0) {
       await Investor.deleteMany({});
     }
@@ -57,7 +55,7 @@ describe('Payout Pipeline - End-to-End Financial Integration', () => {
   });
 
   afterAll(async () => {
-    // Graceful teardown of DB connections and HTTP listeners
+    // Graceful resources teardown
     if (mongoose.connection.readyState !== 0) {
       await mongoose.connection.close();
     }
@@ -76,7 +74,7 @@ describe('Payout Pipeline - End-to-End Financial Integration', () => {
       isWhale: false
     });
 
-    // Mocking the external Pi Network Blockchain response (Success Scenario)
+    // Mocking Pi Network Blockchain (Success Scenario)
     const paymentSpy = jest.spyOn(PaymentService, 'transferPi').mockResolvedValue({ 
       success: true, 
       txId: 'PI_BLOCK_999_SUCCESS' 
@@ -84,9 +82,8 @@ describe('Payout Pipeline - End-to-End Financial Integration', () => {
 
     const response = await request(app)
       .post('/api/v1/admin/jobs/run-vesting')
-      .set('Authorization', `Bearer ${adminToken}`);
+      .set('x-admin-token', adminSecret); // Standardized header for Map-of-Pi security
 
-    // Verification of high-fidelity data state in the ledger
     const updatedPioneer = await Investor.findById(pioneer._id);
     
     expect(response.status).toBe(200);
@@ -107,18 +104,17 @@ describe('Payout Pipeline - End-to-End Financial Integration', () => {
       isWhale: false
     });
 
-    // Simulating external network error or Pi Blockchain congestion
+    // Simulating external network error or congestion
     jest.spyOn(PaymentService, 'transferPi').mockRejectedValue(new Error('Blockchain Congestion'));
 
     const response = await request(app)
       .post('/api/v1/admin/jobs/run-vesting')
-      .set('Authorization', `Bearer ${adminToken}`);
+      .set('x-admin-token', adminSecret);
 
     const unchangedPioneer = await Investor.findById(pioneer._id);
     
-    // Integrity Check: Counter must remain unchanged to prevent financial discrepancies
+    // Integrity Check: Counter must remain unchanged to prevent double-payout risk
     expect(unchangedPioneer.vestingMonthsCompleted).toBe(2);
-    // Ensure the failure is communicated to the Admin dashboard
     expect(response.status).toBe(500);
   });
 });
