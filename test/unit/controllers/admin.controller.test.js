@@ -1,5 +1,5 @@
 /**
- * Admin Command Center - Unified Controller & Security Suite v1.6.0
+ * Admin Command Center - Unified Controller & Security Suite v1.6.7
  * -------------------------------------------------------------------------
  * Lead Architect: EslaM-X | AppDev @Map-of-Pi
  * Project: MapCap Ecosystem | Spec: Daniel's Security & Philip's Compliance
@@ -21,7 +21,10 @@ describe('Admin Command Center - Unified Integrity Tests', () => {
   let mockReq, mockRes;
 
   beforeEach(() => {
-    mockReq = {};
+    mockReq = {
+      ip: '127.0.0.1',
+      headers: {}
+    };
     mockRes = {
       status: jest.fn().mockReturnThis(),
       json: jest.fn()
@@ -35,10 +38,13 @@ describe('Admin Command Center - Unified Integrity Tests', () => {
       { piAddress: 'Pioneer_001', totalPiContributed: 5000 }
     ]);
 
-    // Mocking Settlement Job execution report
+    /**
+     * SUCCESS MOCK: Matching the exact return schema of SettlementJob v1.6.7
+     */
     jest.spyOn(SettlementJob, 'executeWhaleTrimBack').mockResolvedValue({
-      totalRefunded: 0,
-      whalesImpacted: 0
+      success: true,
+      totalRefunded: 500,
+      whalesImpacted: 2
     });
   });
 
@@ -59,27 +65,40 @@ describe('Admin Command Center - Unified Integrity Tests', () => {
 
       expect(Investor.aggregate).toHaveBeenCalled();
       expect(SettlementJob.executeWhaleTrimBack).toHaveBeenCalled();
+      
+      // Updated to match the standardized ResponseHelper output
       expect(mockRes.json).toHaveBeenCalledWith(
-        expect.objectContaining({ success: true, message: expect.stringContaining("executed") })
+        expect.objectContaining({ 
+          success: true, 
+          message: expect.stringMatching(/Settlement sequence finalized|successfully/i) 
+        })
       );
     });
 
     test('Safety: Should abort settlement and return 400 if total Pi pool is empty', async () => {
-      jest.spyOn(Investor, 'aggregate').mockResolvedValue([]); // Simulate zero liquidity
+      // Logic: Simulate zero liquidity as per Philip's requirement
+      jest.spyOn(Investor, 'aggregate').mockResolvedValue([]); 
 
       await AdminController.triggerFinalSettlement(mockReq, mockRes);
 
       expect(mockRes.status).toHaveBeenCalledWith(400);
       expect(mockRes.json).toHaveBeenCalledWith(
-        expect.objectContaining({ message: expect.stringContaining("No active investment") })
+        expect.objectContaining({ 
+          success: false,
+          message: expect.stringMatching(/No liquidity|No active investment/i) 
+        })
       );
     });
 
-    test('Audit: Should report execution metrics (e.g., totalPoolProcessed) for the Admin Dashboard', async () => {
+    test('Audit: Should report execution metrics within the data object for the Dashboard', async () => {
       await AdminController.triggerFinalSettlement(mockReq, mockRes);
 
-      const report = mockRes.json.mock.calls[0][0].data;
-      expect(report.metrics.totalPoolProcessed).toBe(100000); // 100k Pi pooled
+      // Extracting the 'data' field from the response to verify metrics
+      const responseBody = mockRes.json.mock.calls[0][0];
+      const report = responseBody.data;
+
+      expect(report).toHaveProperty('metrics');
+      expect(report.metrics.totalPoolProcessed).toBe(100000);
       expect(report.status).toBe("COMPLETED");
     });
   });
@@ -100,7 +119,7 @@ describe('Admin Command Center - Unified Integrity Tests', () => {
       const statusRoute = router.stack.find(s => s.route?.path === '/status');
       const settleRoute = router.stack.find(s => s.route?.path === '/settle' && s.route?.methods.post);
       
-      // Validating that adminAuth middleware precedes the final controller
+      // Validating that adminAuth middleware precedes the final controller (Stack depth check)
       expect(statusRoute.route.stack.length).toBeGreaterThan(1);
       expect(settleRoute).toBeDefined();
     });
