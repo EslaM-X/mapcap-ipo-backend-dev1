@@ -1,17 +1,20 @@
 /**
- * IPO Contribution Integration Suite - End-to-End Pipeline v1.0.3
+ * IPO Contribution Integration Suite - End-to-End Pipeline v1.0.4
  * -------------------------------------------------------------------------
  * Lead Architect: EslaM-X | AppDev @Map-of-Pi
  * Project: MapCap Ecosystem | Spec: High-Fidelity Transaction Integration
  * -------------------------------------------------------------------------
- * UPDATES:
- * - ESM Compatibility: Explicitly imported 'jest' for setTimeout/Mocks.
- * - Fixed Endpoint Path: Aligned with v1.6.x Router logic.
- * - IP Isolation: Ensuring rate-limiters don't block the test.
- * - Precision Handling: Validating 6-decimal support for Pi.
+ * DESCRIPTION:
+ * Comprehensive integration testing for the IPO investment lifecycle. 
+ * Ensures idempotency, data precision, and strict validation for Pi Network transactions.
+ * * UPDATES:
+ * - ESM Compatibility: Explicitly managed 'jest' context for async operations.
+ * - Idempotency Guard: Verified unique txId constraints to prevent double-spending.
+ * - Precision: Validated support for floating-point Pi contributions.
+ * - Scalability: Integrated X-Forwarded-For simulation for CI/CD environments.
  */
 
-import { jest } from '@jest/globals'; // CRITICAL: Fixes 'ReferenceError: jest is not defined' in ESM
+import { jest } from '@jest/globals'; 
 import request from 'supertest';
 import app from '../../server.js'; 
 import Investor from '../../src/models/investor.model.js';
@@ -19,7 +22,7 @@ import mongoose from 'mongoose';
 
 describe('IPO Contribution Pipeline - Integration Tests', () => {
 
-  // Global timeout for integration tests (Essential for Cloud DB Latency)
+  // Global timeout for integration tests (Essential for Cloud DB Latency & Pipeline execution)
   jest.setTimeout(25000); 
 
   beforeAll(async () => {
@@ -31,22 +34,22 @@ describe('IPO Contribution Pipeline - Integration Tests', () => {
   });
 
   afterEach(async () => {
-    // Clean up collection to ensure idempotent test runs
+    // Clean up collection to ensure idempotent test runs and isolation
     if (mongoose.connection.readyState !== 0) {
       await Investor.deleteMany({});
     }
   });
 
   afterAll(async () => {
-    // Graceful closure of the connection pool
+    // Graceful closure of the connection pool to prevent memory leaks
     if (mongoose.connection.readyState !== 0) {
       await mongoose.connection.close();
     }
   });
 
   /**
-   * SCENARIO: Valid Contribution Lifecycle
-   * REQUIREMENT: Standardized Route check for v1.6.x IPO investment pipeline.
+   * TEST: Valid Contribution Lifecycle
+   * VERIFIES: Standardized Route check for v1.6.x IPO investment pipeline.
    */
   test('Success: POST /api/v1/ipo/invest should persist data and return 201 Created', async () => {
     const contributionPayload = {
@@ -58,21 +61,21 @@ describe('IPO Contribution Pipeline - Integration Tests', () => {
     // Triggering the financial pipeline via the public API route
     const response = await request(app)
       .post('/api/v1/ipo/invest') 
-      .set('X-Forwarded-For', '127.0.0.1') // Simulated bypass for local/CI filtering
+      .set('X-Forwarded-For', '127.0.0.1') // Bypass for security filters in CI environments
       .send(contributionPayload);
 
     expect(response.status).toBe(201);
     expect(response.body.success).toBe(true);
     
-    // Integrity Check: Verifying data persistence in the ledger
+    // Integrity Check: Verifying high-fidelity data persistence in the ledger
     const persistedInvestor = await Investor.findOne({ piAddress: contributionPayload.piAddress });
     expect(persistedInvestor).not.toBeNull();
     expect(persistedInvestor.totalPiContributed).toBe(750.55);
   });
 
   /**
-   * SCENARIO: Duplicate Transaction Guard
-   * REQUIREMENT: Prevent double-spending or re-submitting the same TXID (Idempotency Guard).
+   * TEST: Duplicate Transaction Guard (Anti Double-Spend)
+   * VERIFIES: System prevents re-submitting the same TXID (Idempotency Guard).
    */
   test('Security: Should reject duplicate txId to prevent double-entry', async () => {
     const payload = {
@@ -84,7 +87,7 @@ describe('IPO Contribution Pipeline - Integration Tests', () => {
     // First entry: Establishing the record
     await request(app).post('/api/v1/ipo/invest').send(payload);
     
-    // Second entry: Attempting to duplicate (Must be intercepted)
+    // Second entry: Attempting to duplicate (Must be intercepted by the controller/model)
     const response = await request(app).post('/api/v1/ipo/invest').send(payload);
 
     expect(response.status).toBe(400);
@@ -92,8 +95,8 @@ describe('IPO Contribution Pipeline - Integration Tests', () => {
   });
 
   /**
-   * SCENARIO: Input Validation Guard
-   * REQUIREMENT: Ensure only positive non-zero amounts enter the financial pool.
+   * TEST: Input Validation & Financial Guardrails
+   * VERIFIES: Rejection of negative or zero amounts to protect the pool integrity.
    */
   test('Guard: Should reject requests with negative or zero amounts', async () => {
     const invalidPayload = { 
@@ -106,7 +109,9 @@ describe('IPO Contribution Pipeline - Integration Tests', () => {
       .post('/api/v1/ipo/invest')
       .send(invalidPayload);
 
+    // Standardized error response for Frontend consistency
     expect(response.status).toBe(400); 
     expect(response.body.success).toBe(false);
   });
+
 });
