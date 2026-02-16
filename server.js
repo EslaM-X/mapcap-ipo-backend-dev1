@@ -4,7 +4,10 @@
  * Lead Architect: EslaM-X | AppDev @Map-of-Pi
  * Project: MapCap Ecosystem | Spec: Philip Jennings & Daniel Compliance
  * -------------------------------------------------------------------------
- * FIXED: Port Collision (EADDRINUSE) & Route Prefix (v1) Synchronization.
+ * ARCHITECTURAL ROLE:
+ * This orchestrator initializes the Express pipeline, manages database 
+ * persistence, and routes traffic through secured IPO and Admin gateways.
+ * -------------------------------------------------------------------------
  */
 
 import dotenv from 'dotenv';
@@ -23,13 +26,14 @@ import ResponseHelper from './src/utils/response.helper.js';
 import ipoRoutes from './src/routes/ipo.routes.js';
 import adminRoutes from './src/routes/admin/admin.routes.js';
 
-// Configuration Initialization
+// Load Environment Configuration
 dotenv.config();
 
 const app = express();
 
 /**
  * 1. GLOBAL MIDDLEWARE & SECURITY FRAMEWORK
+ * Implements standard logging and Cross-Origin Resource Sharing (CORS) policies.
  */
 app.use(morgan('combined', { stream: auditLogStream }));
 app.use(express.json());
@@ -40,18 +44,20 @@ app.use(cors({
 }));
 
 /**
- * 2. DATABASE PERSISTENCE
+ * 2. DATABASE PERSISTENCE LAYER
+ * Dynamically switches between Production and Test Databases based on environment.
  */
 const connectDB = async () => {
     try {
-        // Use test URI if in testing environment
-        const dbUri = process.env.NODE_ENV === 'test' ? process.env.MONGO_URI_TEST : process.env.MONGO_URI;
-        await mongoose.connect(dbUri || 'mongodb://localhost:27017/mapcap_dev');
+        // RATIONALE: MONGO_URI is injected by test/setup.js during Integration Suites
+        const dbUri = (process.env.NODE_ENV === 'test') ? process.env.MONGO_URI : process.env.MONGO_URI;
         
-        console.log(`✅ [DATABASE] Financial Ledger: Connection Established (${process.env.NODE_ENV || 'dev'})`);
+        await mongoose.connect(dbUri || 'mongodb://127.0.0.1:27017/mapcap_dev');
+        
+        console.log(`✅ [DATABASE] Ledger Connection: SUCCESS (${process.env.NODE_ENV || 'dev'})`);
         writeAuditLog('INFO', 'Database Connection Established.');
 
-        // Initialize Cron Jobs only if not in production and NOT in test
+        // Initialize Scheduled Tasks (Bypassed during Testing & Production)
         if (process.env.NODE_ENV !== 'production' && process.env.NODE_ENV !== 'test') {
             CronScheduler.init();
         }
@@ -61,10 +67,12 @@ const connectDB = async () => {
     }
 };
 
+// Initiate Persistence
 connectDB();
 
 /**
- * 3. ROOT PULSE CHECK (Real-Time System Health)
+ * 3. SYSTEM PULSE CHECK (Real-Time Metrics)
+ * Provides an unauthenticated endpoint for monitoring IPO capacity and health.
  */
 app.get('/', async (req, res) => {
     try {
@@ -104,15 +112,18 @@ app.get('/', async (req, res) => {
 
 /**
  * 4. ROUTE ARCHITECTURE
- * Added v1 prefix to match Integration Tests while keeping base routes active for stability.
+ * v1 endpoints are standardized for API consumption and Integration Testing.
  */
 app.use('/api/v1/ipo', ipoRoutes);
 app.use('/api/v1/admin', adminRoutes);
-app.use('/api/ipo', ipoRoutes);     // Fallback for Frontend Stability
-app.use('/api/admin', adminRoutes); // Fallback for Frontend Stability
+
+// LEGACY SUPPORT: Ensures existing frontend integrations remain functional
+app.use('/api/ipo', ipoRoutes);     
+app.use('/api/admin', adminRoutes); 
 
 /**
  * 5. GLOBAL EXCEPTION INTERCEPTOR
+ * Final safety net for unhandled errors to maintain system stability.
  */
 app.use((err, req, res, next) => {
     writeAuditLog('CRITICAL', `FATAL EXCEPTION: ${err.stack}`);
@@ -123,13 +134,16 @@ app.use((err, req, res, next) => {
     });
 });
 
-// SERVER EXECUTION
+/**
+ * 6. SERVER EXECUTION (ENVIRONMENTAL GUARD)
+ * Prevents the server from auto-starting during Jest runs to avoid EADDRINUSE errors.
+ */
 const PORT = process.env.PORT || 3000;
-// CRITICAL FIX: Ensure server doesn't start manually during JEST testing
-if (process.env.NODE_ENV !== 'production' && process.env.NODE_ENV !== 'test') {
+if (process.env.NODE_ENV !== 'test') {
     app.listen(PORT, () => {
         console.log(`🚀 [ENGINE] MapCap IPO Pulse v1.6.5 deployed on port ${PORT}`);
     });
 }
 
+// Export for Supertest compatibility
 export default app;
