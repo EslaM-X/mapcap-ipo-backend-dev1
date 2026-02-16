@@ -1,13 +1,15 @@
 /**
- * Payout Pipeline Integration Suite - Financial Integrity v1.3.5
+ * Payout Pipeline Integration Suite - Financial Integrity v1.4.0
  * -------------------------------------------------------------------------
  * Lead Architect: EslaM-X | AppDev @Map-of-Pi
  * Project: MapCap Ecosystem | Spec: Automated Vesting & Pi Transfer
  * -------------------------------------------------------------------------
  * FINAL AUDIT FIX (2026-02-16):
- * - Enhanced Seed Data: Added 'allocatedMapCap' to trigger Vesting logic.
- * - Spy Integrity: Maintained PayoutService global tracking.
- * - UI Stability: Zero changes to keys/routes to preserve Frontend parity.
+ * - Enhanced Seed Logic: Added 'allocatedMapCap' to trigger VestingJob detection.
+ * - Precision Spy: Used mockImplementation for robust ES Module interception.
+ * - Zero-Breaking Changes: Strictly maintained all routes and JSON keys for 
+ * Frontend (AdminDashboard.jsx) compatibility.
+ * -------------------------------------------------------------------------
  */
 
 import { jest } from '@jest/globals'; 
@@ -19,9 +21,8 @@ import mongoose from 'mongoose';
 
 describe('Payout Pipeline - End-to-End Financial Integration', () => {
   const adminSecret = process.env.ADMIN_SECRET_TOKEN || 'secure_fallback_2026';
-  let server;
 
-  // Set timeout for blockchain-simulated operations
+  // Global timeout for blockchain-simulated handshakes and job execution
   jest.setTimeout(30000);
 
   beforeAll(async () => {
@@ -35,6 +36,7 @@ describe('Payout Pipeline - End-to-End Financial Integration', () => {
     if (mongoose.connection.readyState !== 0) {
       await Investor.deleteMany({});
     }
+    // Clean slate for every test to prevent cross-contamination
     jest.restoreAllMocks(); 
     jest.clearAllMocks();
   });
@@ -47,47 +49,54 @@ describe('Payout Pipeline - End-to-End Financial Integration', () => {
 
   /**
    * @test Success Path - Monthly Vesting Release
+   * @description Verifies that the VestingJob correctly identifies eligible 
+   * pioneers, executes the A2UaaS payout, and increments the ledger.
    */
   test('Vesting Flow: Successful Pi transfer should update the investor ledger', async () => {
-    // 1. SEED DATA: Added 'allocatedMapCap' so the Job detects an eligible payout.
+    // 1. DATA SEEDING: Providing full schema requirements to satisfy VestingJob logic.
     await Investor.create({
       piAddress: 'PIONEER_001',
       totalPiContributed: 5000,
-      allocatedMapCap: 1000, // Essential for VestingJob calculation
+      allocatedMapCap: 1000, // CRITICAL: Job ignores records with 0 allocation
       vestingMonthsCompleted: 0
     });
 
     /**
-     * PRECISION MOCKING:
-     * Spying on the prototype to catch the call even if triggered from VestingJob.
+     * ARCHITECTURAL SPY:
+     * Intercepts executeA2UPayout at the prototype level. Using mockImplementation 
+     * ensures the spy remains active during asynchronous internal job calls.
      */
-    const payoutSpy = jest.spyOn(PayoutService, 'executeA2UPayout').mockResolvedValue({ 
-      success: true, 
-      txid: 'MOCK_PI_TX_SUCCESS_2026' 
+    const payoutSpy = jest.spyOn(PayoutService, 'executeA2UPayout').mockImplementation(() => {
+        return Promise.resolve({ 
+            success: true, 
+            txid: 'MOCK_PI_TX_SUCCESS_2026' 
+        });
     });
 
-    // 2. Execute the administrative trigger
+    // 2. TRIGGER: Administrative API call mimicking the Admin Dashboard action
     const response = await request(app)
       .post('/api/v1/admin/settle-vesting') 
       .set('x-admin-token', adminSecret);
 
-    // 3. Assertions
+    // 3. VALIDATION: Check for HTTP 200 and data integrity
     expect(response.status).toBe(200);
     expect(response.body.success).toBe(true);
     
-    // Ensure the PayoutService was reached by the internal Job
+    // Confirms that the internal VestingJob actually reached out to the PayoutService
     expect(payoutSpy).toHaveBeenCalled(); 
 
     const updated = await Investor.findOne({ piAddress: 'PIONEER_001' });
-    // Verify the ledger was actually incremented
+    // Verifies that the ledger was incremented only after a successful payout mock
     expect(updated.vestingMonthsCompleted).toBe(1);
   });
 
   /**
    * @test Failure Path - Transactional Resilience
+   * @description Ensures the database remains unchanged (Rollback-safety) 
+   * if the external Pi Network API fails.
    */
   test('Resilience: Database should not update if the Payout Service fails', async () => {
-    // 1. Seed data for failure scenario
+    // 1. SEED: Pioneer already 2 months into their vesting period
     await Investor.create({
       piAddress: 'PIONEER_FAIL',
       totalPiContributed: 5000,
@@ -95,11 +104,12 @@ describe('Payout Pipeline - End-to-End Financial Integration', () => {
       vestingMonthsCompleted: 2
     });
 
-    // 2. Simulate API Outage (Network Failure)
-    const payoutSpy = jest.spyOn(PayoutService, 'executeA2UPayout')
-      .mockRejectedValue(new Error('A2UaaS pipeline disrupted: Network Unreachable'));
+    // 2. MOCK FAILURE: Simulate a network/A2UaaS pipeline disruption
+    const payoutSpy = jest.spyOn(PayoutService, 'executeA2UPayout').mockImplementation(() => {
+        return Promise.reject(new Error('A2UaaS pipeline disrupted: Network Unreachable'));
+    });
 
-    // 3. Execute request
+    // 3. EXECUTE: Trigger the cycle
     const response = await request(app)
       .post('/api/v1/admin/settle-vesting')
       .set('x-admin-token', adminSecret);
@@ -109,6 +119,7 @@ describe('Payout Pipeline - End-to-End Financial Integration', () => {
     /**
      * INTEGRITY CHECK: 
      * The month counter MUST NOT increase if the payment service failed.
+     * This protects the ecosystem from over-distribution.
      */
     expect(unchanged.vestingMonthsCompleted).toBe(2);
     expect(payoutSpy).toHaveBeenCalled();
