@@ -1,11 +1,11 @@
 /**
- * Admin Authentication Middleware v1.2.5
+ * Admin Authentication Middleware v1.2.6
  * ---------------------------------------------------------
  * Lead Architect: EslaM-X | AppDev @Map-of-Pi
  * Project: MapCap Ecosystem | Spec: Daniel's Security Protocol
  * ---------------------------------------------------------
  * ARCHITECTURAL ROLE:
- * Acting as the security gatekeeper for administrative endpoints.
+ * Security gatekeeper for administrative endpoints.
  * Ensures only authorized personnel (Philip/Daniel) can trigger 
  * high-stakes financial actions like the 'Whale-Shield' Settlement.
  * ---------------------------------------------------------
@@ -19,10 +19,11 @@
 const adminAuth = (req, res, next) => {
     /**
      * SECURITY LAYER:
-     * Extracts the 'x-admin-token' from the request headers.
-     * This ensures the Dashboard's administrative requests are verified.
+     * Extracts 'x-admin-token' from request headers.
+     * Added flexibility for header naming (Case-insensitive) to ensure 
+     * compatibility between Frontend Axios calls and Jest test suites.
      */
-    const adminToken = req.headers['x-admin-token'];
+    const adminToken = req.headers['x-admin-token'] || req.headers['X-Admin-Token'];
 
     // Secure comparison against the environment-stored secret token
     const IS_AUTHORIZED = adminToken && adminToken === process.env.ADMIN_SECRET_TOKEN;
@@ -30,16 +31,16 @@ const adminAuth = (req, res, next) => {
     if (IS_AUTHORIZED) {
         /**
          * AUDIT TRAIL: 
-         * Daniel's requirement: Logs every successful administrative entry.
+         * Logs every successful administrative entry as per security requirements.
          */
         console.log(`[SECURITY_LOG] Admin access granted at ${new Date().toISOString()}`);
-        return next(); // Proceed to the protected controller
+        return next(); 
     }
 
     /**
      * BREACH PREVENTION:
-     * Unauthorized attempts are logged with source metadata for inspection.
-     * We return a standardized JSON error to ensure Frontend stability.
+     * Unauthorized attempts are logged for inspection.
+     * Returns a standardized JSON error to maintain Frontend and App stability.
      */
     console.warn(`[SECURITY_ALERT] Blocked unauthorized Admin attempt from IP: ${req.ip}`);
 
