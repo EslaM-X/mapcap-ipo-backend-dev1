@@ -32,7 +32,8 @@
     "nodemon": "^3.0.1",
     "supertest": "^6.3.3",
     "mongodb-memory-server": "^9.0.0",
-    "cross-env": "^7.0.3"
+    "cross-env": "^7.0.3",
+    "nock": "^13.5.0"
   },
   "jest": {
     "testEnvironment": "node",
@@ -42,5 +43,16 @@
     "transform": {},
     "verbose": true,
     "testTimeout": 30000
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/your-repo/mapcap-ipo-backend.git"
+  },
+  "author": "Map-of-Pi Dev Team",
+  "license": "ISC",
+  "_comments": {
+    "note1": "Standardized for cross-platform compatibility including Windows, Linux, and Termux.",
+    "note2": "Development dependencies include 'nock' for HTTP mocking to ensure isolated unit testing.",
+    "note3": "Maintains strict compatibility with MapCap IPO Frontend integration."
   }
 }
