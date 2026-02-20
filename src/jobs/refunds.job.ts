@@ -5,17 +5,23 @@
  * Project: MapCap Ecosystem | Spec: Philip's Dynamic Post-IPO Settlement
  * -------------------------------------------------------------------------
  * TS STABILIZATION LOG:
+ * - Resolved TS2835: Added mandatory .js extensions for NodeNext ESM compliance.
  * - Resolved TS2345: Standardized TransactionType for Pi API compatibility.
- * - Enforced strict numeric typing for WHALE_CAP_LIMIT and excess calculations.
- * - Optimized database persistence logic for post-settlement ledger updates.
+ * - Integrity Guard: Preserved refundCount and totalRefundedPi keys for 
+ * exact Frontend telemetry and reporting parity.
  */
 
-import PaymentService from '../services/payment.service';
-import { writeAuditLog } from '../config/logger';
+/**
+ * INTERNAL MODULE IMPORTS
+ * Mandatory .js extensions for successful resolution in NodeNext environment.
+ */
+import PaymentService from '../services/payment.service.js';
+import { writeAuditLog } from '../config/logger.js';
 
 /**
  * @interface IRefundResult
  * Standardizes the output for administrative reports and financial audit logs.
+ * Ensures the Frontend receives consistent numeric data for summary modals.
  */
 interface IRefundResult {
     refundCount: number;
@@ -46,6 +52,7 @@ export const runWhaleRefunds = async (totalPiPool: number, investors: any[]): Pr
         /**
          * DATA NORMALIZATION:
          * Ensures safe processing across multiple source schemas (legacy and TS).
+         * Supports both 'totalPiContributed' and legacy 'amountPi' keys.
          */
         const contribution: number = investor.totalPiContributed || investor.amountPi || 0;
 
@@ -58,7 +65,7 @@ export const runWhaleRefunds = async (totalPiPool: number, investors: any[]): Pr
                 /**
                  * BLOCKCHAIN EXECUTION (A2UaaS):
                  * Dispatching excess funds back to the Pioneer's wallet.
-                 * Note: Type casting used to bypass strict TransactionType literal check.
+                 * Note: Type casting used to bypass strict TransactionType literal check in the service.
                  */
                 const txType = 'WHALE_EXCESS_REFUND' as any;
                 await PaymentService.transferPi(investor.piAddress, excessAmount, txType);
@@ -71,6 +78,7 @@ export const runWhaleRefunds = async (totalPiPool: number, investors: any[]): Pr
                 /**
                  * DATABASE PERSISTENCE:
                  * Synchronizes the investor's ledger to reflect the post-settlement balance.
+                 * Important: investor.save() is used to trigger Mongoose middleware if present.
                  */
                 investor.totalPiContributed = WHALE_CAP_LIMIT;
                 investor.isWhale = false; 
@@ -90,6 +98,7 @@ export const runWhaleRefunds = async (totalPiPool: number, investors: any[]): Pr
     writeAuditLog('INFO', `Anti-Whale Refund Completed. Total Refunded: ${totalRefundedPi} Pi across ${refundCount} accounts.`);
     console.log(`--- [SYSTEM] Process Finished. ${refundCount} Refunds issued. ---`);
     
+    // Returning keys exactly as expected by the calling Admin Controller and Frontend UI.
     return { refundCount, totalRefundedPi };
 };
 
