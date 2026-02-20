@@ -4,18 +4,21 @@
  * Lead Architect: EslaM-X | AppDev @Map-of-Pi
  * Project: MapCap Ecosystem | Spec: Daniel's Security & Compliance
  * -------------------------------------------------------------------------
- * ARCHITECTURAL ROLE:
- * Handles administrative authentication and real-time health monitoring.
- * Acts as the secure gateway for high-stakes IPO management features.
- * * TS STABILIZATION LOG:
- * - Resolved TS2322: Adjusted return types to Promise<any> for Express middleware.
- * - Enforced strict type checking for JWT signing and environment secrets.
- * - Maintained protocol parity for AdminLogin.jsx compatibility.
+ * TS STABILIZATION LOG:
+ * - Resolved TS2835: Integrated mandatory .js extension for ESM/NodeNext resolution.
+ * - Resolved TS2322: Adjusted return types to Promise<any> for Express compatibility.
+ * - Integrity Guard: Preserved JWT payload structure and JSON response keys 
+ * to ensure seamless synchronization with AdminLogin.jsx.
  */
 
 import { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
-import ResponseHelper from '../../utils/response.helper';
+
+/**
+ * INTERNAL MODULE IMPORTS
+ * Mandatory .js extension for NodeNext module resolution.
+ */
+import ResponseHelper from '../../utils/response.helper.js';
 
 /**
  * @interface AdminJwtPayload
@@ -32,6 +35,7 @@ class AuthController {
      * @method adminLogin
      * @description Validates credentials and issues a secure JWT session token.
      * @access Public (Secure Endpoint)
+     * @returns Promise<any>
      */
     static async adminLogin(req: Request, res: Response): Promise<any> {
         const { username, password } = req.body;
@@ -57,6 +61,7 @@ class AuthController {
 
             const secret: string = (process.env.ADMIN_SECRET_TOKEN as string) || 'secure_fallback_2026';
 
+            // Sign token with a 24-hour expiration cycle
             const token: string = jwt.sign(payload, secret, { expiresIn: '24h' });
 
             // Audit Trail for compliance monitoring and security logs
@@ -65,6 +70,7 @@ class AuthController {
             /**
              * SUCCESS RESPONSE:
              * Data structure strictly preserved for 'AdminLogin.jsx' frontend integration.
+             * Keys maintained: token, expiresIn, sessionStart.
              */
             return ResponseHelper.success(res, "Authentication successful. Access granted.", {
                 token: token,
