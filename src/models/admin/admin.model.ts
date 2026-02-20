@@ -1,15 +1,28 @@
 /**
- * Admin Account Schema v1.5.2 (Executive Access Layer)
+ * Admin Account Schema v1.7.5 (TS - Executive Access Layer)
  * -------------------------------------------------------------------------
  * Lead Architect: EslaM-X | AppDev @Map-of-Pi
  * Project: MapCap Ecosystem | Spec: Daniel's Security & Compliance Standard
  * -------------------------------------------------------------------------
- * FIXED: Standardized file naming to admin.model.js for testing compatibility.
  */
 
-import mongoose from 'mongoose';
+import mongoose, { Schema, Document, Model } from 'mongoose';
 
-const AdminSchema = new mongoose.Schema({
+/**
+ * @interface IAdmin
+ * Defines the strict structure for Administrative accounts.
+ */
+export interface IAdmin extends Document {
+    username: string;
+    password?: string; // Optional because 'select: false' might exclude it
+    role: 'SUPER_ADMIN' | 'AUDITOR';
+    lastLogin?: Date;
+    isActive: boolean;
+    createdAt: Date;
+    updatedAt: Date;
+}
+
+const AdminSchema: Schema<IAdmin> = new Schema({
     /**
      * @property {String} username
      * Unique identifier for the administrator.
@@ -71,6 +84,6 @@ const AdminSchema = new mongoose.Schema({
 AdminSchema.index({ username: 1, isActive: 1 });
 
 // Ensure we don't redefine the model if it already exists (Hot Reload Support)
-const Admin = mongoose.models.Admin || mongoose.model('Admin', AdminSchema);
+const Admin: Model<IAdmin> = mongoose.models.Admin || mongoose.model<IAdmin>('Admin', AdminSchema);
 
 export default Admin;
