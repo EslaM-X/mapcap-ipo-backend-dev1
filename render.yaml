@@ -1,0 +1,43 @@
+/**
+ * RENDER INFRASTRUCTURE AS CODE (IaC) - v1.6.5
+ * -------------------------------------------------------------------------
+ * Project: MapCap Ecosystem | Scalable Web3 Pipeline
+ * Spec: High-Availability Deployment for Pi Network Integration
+ * -------------------------------------------------------------------------
+ */
+
+services:
+  - type: web
+    name: mapcap-ipo-api
+    env: node
+    plan: free # Adjust to 'starter' or 'pro' for production scalability
+    
+    # INSTALLATION: Ensures all core & security dependencies are locked
+    buildCommand: npm install
+    
+    # EXECUTION: Launches the Pulse Engine in production mode
+    startCommand: npm start
+    
+    envVars:
+      - key: NODE_ENV
+        value: production
+      
+      # DATABASE: Must be manually linked in Render Dashboard for security
+      - key: MONGO_URI
+        sync: false 
+      
+      # SECURITY: Ensure this matches the key used in Frontend/Admin Auth
+      - key: JWT_SECRET
+        generateValue: true
+
+      # ARCHITECTURE: Standardizing the port for Express persistence
+      - key: PORT
+        value: 10000
+
+    /**
+     * HEALTH CHECK CONFIGURATION:
+     * Ensures Render monitors the Root Pulse ('/') endpoint. 
+     * If the DB connection or Pulse check fails, Render will auto-restart the instance.
+     */
+    healthCheckPath: /
+

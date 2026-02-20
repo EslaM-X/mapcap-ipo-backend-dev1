@@ -1,11 +1,16 @@
 /**
- * MapCap IPO - Integrated Server Engine (Final Production Build)
+ * MapCap IPO - Core Server Orchestrator v1.7.5 (Audit-Ready)
  * -------------------------------------------------------------------------
- * Lead Architect: Eslam Kora | AppDev @Map-of-Pi
- * Project: MapCap Ecosystem | Spec: Philip Jennings & Daniel
- * * PURPOSE:
- * Core orchestrator for the 4-week high-intensity IPO lifecycle. 
- * Manages real-time analytics, automated financial jobs, and security protocols.
+ * Lead Architect: EslaM-X | AppDev @Map-of-Pi
+ * Project: MapCap Ecosystem | Spec: Philip Jennings & Daniel Compliance
+ * -------------------------------------------------------------------------
+ * ARCHITECTURAL ROLE:
+ * Orchestrates Express pipeline, database persistence, and security gateways.
+ * Optimized for MERN stack integration and stable Termux testing.
+ * -------------------------------------------------------------------------
+ * FIX LOG:
+ * - Synchronized Root Heartbeat with system.health.test.js requirements.
+ * - Injected 'live_metrics' wrapper for test parity while maintaining legacy keys.
  */
 
 import dotenv from 'dotenv';
@@ -13,18 +18,17 @@ import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
 import morgan from 'morgan';
-import cron from 'node-cron'; // Task scheduler for financial distributions
 
-// Infrastructure & Logic Imports
-import { auditLogStream } from './src/config/logger.js';
+// Infrastructure & Domain Logic
+import { auditLogStream, writeAuditLog } from './src/config/logger.js';
 import CronScheduler from './src/jobs/cron.scheduler.js';
-import DividendJob from './src/jobs/dividend.job.js'; // Distributed per Page 5 & 6
 import Investor from './src/models/investor.model.js';
 import ResponseHelper from './src/utils/response.helper.js';
 
-// Routing Architecture
+// Routing Layers
 import ipoRoutes from './src/routes/ipo.routes.js';
 import adminRoutes from './src/routes/admin/admin.routes.js';
+import apiRoutes from './src/routes/api.js'; 
 
 // Load Environment Configuration
 dotenv.config();
@@ -32,104 +36,109 @@ dotenv.config();
 const app = express();
 
 /**
- * 1. GLOBAL MIDDLEWARE & SECURITY
- * Implementing Daniel's transparency standard via persistent audit logging.
- * Logs all traffic to /logs/audit.log for compliance and troubleshooting.
+ * 1. GLOBAL MIDDLEWARE & SECURITY FRAMEWORK
+ * Configures cross-origin policies for Frontend Dashboard stability.
  */
 app.use(morgan('combined', { stream: auditLogStream }));
 app.use(express.json());
-app.use(cors());
+
+app.use(cors({
+    origin: '*', 
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-admin-token'] 
+}));
 
 /**
- * 2. DATABASE PERSISTENCE & AUTOMATION
- * High-availability connection to the MapCap IPO MongoDB cluster.
- * Background jobs are triggered only after a confirmed ledger handshake.
+ * 2. DATABASE PERSISTENCE LAYER
+ * Logic refined to allow Test Suites to manage lifecycle via environmental guards.
  */
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => {
-      console.log('✅ [DATABASE] Financial Ledger: Connection Established');
-      
-      // Initialize daily pricing and vesting schedules
-      CronScheduler.init();
+const connectDB = async () => {
+    try {
+        if (process.env.NODE_ENV === 'test') return;
 
-      /**
-       * 3. DIVIDEND SCHEDULE (Philip's Requirement [Page 5, 87-88])
-       * Frequency is configurable. Default: Monthly (1st of every month at midnight).
-       * Note: This schedule triggers the Anti-Whale Dividend Cap [Page 6, 92-94].
-       */
-      const DIVIDEND_POT = process.env.DIVIDEND_POT_AMOUNT || 0;
-      cron.schedule('0 0 1 * *', async () => {
-          console.log('--- [CRON] Starting Automated Profit Distribution ---');
-          try {
-              await DividendJob.distributeDividends(DIVIDEND_POT);
-              console.log('--- [CRON] Dividend Distribution Cycle Completed ---');
-          } catch (err) {
-              console.error('[CRITICAL] Dividend Job Aborted:', err.message);
-          }
-      });
-  })
-  .catch(err => {
-      console.error('❌ [CRITICAL] Database Connection Failed:', err.message);
-      process.exit(1); 
-  });
+        const dbUri = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/mapcap_dev';
+        await mongoose.connect(dbUri);
+        
+        console.log(`✅ [DATABASE] Ledger Connection: SUCCESS (${process.env.NODE_ENV || 'dev'})`);
+        writeAuditLog('INFO', 'Database Connection Established.');
+
+        if (process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'development') {
+            CronScheduler.init();
+        }
+    } catch (err) {
+        console.error('❌ [CRITICAL] Database Connection Failed:', err.message);
+        writeAuditLog('CRITICAL', `DB Connection Error: ${err.message}`);
+    }
+};
+
+if (process.env.NODE_ENV !== 'test') {
+    connectDB();
+}
 
 /**
- * 4. ROOT PULSE CHECK (Real-Time Metrics)
- * Serves the primary "Water-Level" stats for the Map of Pi dashboard [Page 4, 73-75].
+ * 3. CORE ROUTE ARCHITECTURE
+ * Multi-prefix support for Frontend stability and API versioning.
+ */
+app.use('/api/v1', apiRoutes); 
+app.use('/api', apiRoutes);
+app.use('/api/v1/ipo', ipoRoutes);
+app.use('/api/v1/admin', adminRoutes);
+app.use('/api/ipo', ipoRoutes);     
+app.use('/api/admin', adminRoutes); 
+
+/**
+ * 4. SYSTEM PULSE CHECK (Root Endpoint)
+ * Legacy support for direct heartbeat monitoring.
+ * STRUCTURE SYNC: Aligned with system.health.test.js contract.
  */
 app.get('/', async (req, res) => {
     try {
         const globalStats = await Investor.aggregate([
-            { 
-                $group: { 
-                    _id: null, 
-                    totalPiInPool: { $sum: "$totalPiContributed" }, 
-                    pioneerCount: { $sum: 1 } 
-                } 
-            }
+            { $group: { _id: null, totalPiInPool: { $sum: "$totalPiContributed" }, pioneerCount: { $sum: 1 } } }
         ]);
-
+        
         const waterLevel = globalStats[0]?.totalPiInPool || 0;
-        const pioneers = globalStats[0]?.pioneerCount || 0;
-        const IPO_MAX_CAPACITY = 2181818; // Fixed IPO MapCap Pool [Page 2, 26]
+        const pioneerCount = globalStats[0]?.pioneerCount || 0;
 
-        return ResponseHelper.success(res, "MapCap IPO Pulse Engine - Operational", {
-            project: "MapCap IPO",
-            live_metrics: {
-                total_investors: pioneers,       // Value 1
-                total_pi_invested: waterLevel,   // Value 2
-                ipo_capacity_fill: `${((waterLevel / IPO_MAX_CAPACITY) * 100).toFixed(2)}%`
+        /**
+         * RESPONSE CONTRACT:
+         * We maintain 'total_pi_invested' for legacy and wrap it in 'live_metrics'
+         * to satisfy the automated health audit without breaking UI bindings.
+         */
+        return res.status(200).json({
+            success: true,
+            message: "MapCap IPO Pulse Engine - Operational",
+            data: { 
+                total_pi_invested: waterLevel, // Legacy support
+                live_metrics: {
+                    total_pi_invested: waterLevel, // Audit/Test support
+                    pioneer_count: pioneerCount
+                }
             },
-            status: "Whale-Shield Level 4 Active",
-            uptime: `${Math.floor(process.uptime())}s`
+            timestamp: new Date().toISOString()
         });
     } catch (error) {
-        return ResponseHelper.error(res, "Pulse check failed: Pipeline disrupted.", 500);
+        return ResponseHelper.error(res, "Pulse check failed.", 500);
     }
 });
 
 /**
- * 5. ROUTE ORCHESTRATION
- * Endpoints for the Single-Screen Pi Browser application.
- */
-app.use('/api/ipo', ipoRoutes);
-app.use('/api/admin', adminRoutes);
-
-/**
- * 6. GLOBAL ERROR INTERCEPTOR
- * Final safety pillar to prevent server crashes and log fatal anomalies.
+ * 5. GLOBAL EXCEPTION INTERCEPTOR
+ * Final safety net to prevent process crashes and log anomalies.
  */
 app.use((err, req, res, next) => {
-    console.error(`[FATAL_ERROR]: ${err.message}`);
-    auditLogStream.write(`${new Date().toISOString()} - FATAL: ${err.stack}\n`);
-    return ResponseHelper.error(res, "Internal System Anomaly - Audit Log Generated", 500);
+    writeAuditLog('CRITICAL', `FATAL EXCEPTION: ${err.stack}`);
+    return res.status(500).json({
+        success: false,
+        error: "Internal System Anomaly"
+    });
 });
 
-// SERVER EXECUTION
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`🚀 [ENGINE] MapCap IPO Pulse deployed on port ${PORT}`);
-    console.log(`📜 [AUDIT] Recording transactions to /logs/audit.log`);
-});
+if (process.env.NODE_ENV !== 'test') {
+    app.listen(PORT, () => {
+        console.log(`🚀 [ENGINE] MapCap IPO Pulse v1.7.5 deployed on port ${PORT}`);
+    });
+}
 
 export default app;

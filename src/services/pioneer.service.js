@@ -1,58 +1,88 @@
 /**
- * Pioneer Service - Investor Operations
+ * Pioneer Service - Investor Operations v1.7.6
  * -------------------------------------------------------------------------
- * Handles the logic for pioneer withdrawals based on percentages (0-100%)
- * as specified in Philip's Use Case document.
+ * Lead Architect: EslaM-X | AppDev @Map-of-Pi
+ * Project: MapCap Ecosystem | Spec: Philip's Withdrawal Flexibility
+ * -------------------------------------------------------------------------
+ * ARCHITECTURAL ROLE:
+ * Handles dynamic withdrawal logic. Designed to maintain ledger integrity 
+ * even when pool fluctuations affect individual share percentages.
+ * Allows Pioneers to voluntarily re-align their stakes during the IPO phase.
+ * -------------------------------------------------------------------------
  */
 
-const Investor = require('../models/Investor');
-const PaymentService = require('./payment.service'); [span_6](start_span)// Using A2UaaS for transfers[span_6](end_span)
+import Investor from '../models/investor.model.js';
+import PaymentService from './payment.service.js';
 
 class PioneerService {
     /**
-     * Executes a withdrawal based on a percentage of the user's total balance.
-     * @param {string} piAddress - The pioneer's wallet address.
-     * @param {number} percentage - Value between 0.01 and 100.
+     * @method withdrawByPercentage
+     * @param {string} piAddress - Unique Pioneer wallet identifier.
+     * @param {number} percentage - The portion of stake to liquidate (0.01 - 100).
+     * @desc Executes a partial or full withdrawal. This service interfaces with 
+     * the A2UaaS pipeline to return Pi to the Pioneer's wallet.
      */
     static async withdrawByPercentage(piAddress, percentage) {
-        [span_7](start_span)// 1. Validate the percentage range[span_7](end_span)
+        // 1. BOUNDARY VALIDATION: Ensuring the request stays within logical limits
         if (percentage <= 0 || percentage > 100) {
-            throw new Error("Withdrawal percentage must be between 0 and 100.");
+            throw new Error("Withdrawal percentage must be between 0.01 and 100.");
         }
 
-        // 2. Fetch the current investor record
+        // 2. REAL-TIME LEDGER ACCESS: Fetching the Pioneer's current synchronized stake
         const investor = await Investor.findOne({ piAddress });
         if (!investor || investor.totalPiContributed <= 0) {
-            throw new Error("No balance available for withdrawal.");
+            throw new Error("Pioneer account not found or has zero contribution balance.");
         }
 
         /**
-         * 3. [span_8](start_span)Calculate the exact Pi amount to withdraw.[span_8](end_span)
-         * Formula: (Total Balance * Percentage) / 100
+         * 3. DYNAMIC WITHDRAWAL CALCULATION:
+         * Calculates the precise Pi amount based on the current ledger balance. 
+         * Important: This supports Philip's 'Water-Level' fluctuation model.
          */
         const amountToWithdraw = (investor.totalPiContributed * percentage) / 100;
 
+        console.log(`[WITHDRAWAL_INIT] Pioneer: ${piAddress} | Requested: ${percentage}% (${amountToWithdraw} Pi)`);
+
         try {
             /**
-             * 4. [span_9](start_span)Perform the A2UaaS transfer to the pioneer's wallet.[span_9](end_span)
-             * [span_10](start_span)Note: Fees are deducted from the transferred amount as per instructions.[span_10](end_span)
+             * 4. BLOCKCHAIN EXECUTION (A2UaaS):
+             * Dispatches funds via the secure PaymentService pipeline.
+             * Note: PaymentService handles the mandatory network fee deduction.
              */
-            await PaymentService.transferPi(piAddress, amountToWithdraw);
+            const payoutResult = await PaymentService.transferPi(piAddress, amountToWithdraw);
 
-            // 5. Update the investor's balance in the database
+            if (!payoutResult.success) {
+                throw new Error(payoutResult.reason || "A2UaaS Transfer Denied");
+            }
+
+            /**
+             * 5. LEDGER RECONCILIATION:
+             * Subtracts the withdrawn amount from the individual's totalPiContributed.
+             * The Frontend Dashboard will auto-reflect the updated sharePercentage.
+             */
             investor.totalPiContributed -= amountToWithdraw;
+            
+            // Per Philip's Use Case: Individual 'isWhale' status is recalculated 
+            // dynamically upon the next dashboard refresh.
             await investor.save();
 
             return {
                 success: true,
                 withdrawnAmount: amountToWithdraw,
-                remainingBalance: investor.totalPiContributed
+                remainingBalance: investor.totalPiContributed,
+                txId: payoutResult.txId,
+                timestamp: new Date().toISOString()
             };
+
         } catch (error) {
-            console.error(`[WITHDRAWAL ERROR] ${piAddress}:`, error.message);
-            throw new Error("Failed to process withdrawal via A2UaaS.");
+            /**
+             * CRITICAL EXCEPTION LOGGING:
+             * Vital for Daniel's compliance tracking to ensure no fund leakage.
+             */
+            console.error(`[CRITICAL_WITHDRAWAL_FAILURE] ${piAddress}:`, error.message);
+            throw new Error(`A2UaaS pipeline failed: ${error.message}. Transaction aborted for safety.`);
         }
     }
 }
 
-module.exports = PioneerService;
+export default PioneerService;

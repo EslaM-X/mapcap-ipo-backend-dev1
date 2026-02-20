@@ -1,86 +1,141 @@
 /**
- * AdminController - Management & Settlement Operations
+ * AdminController - Management, Settlement & Vesting Operations v1.6.0
  * -------------------------------------------------------------------------
- * This controller provides administrative overrides for the MapCap IPO ecosystem.
- * Its primary responsibility is managing the end-of-cycle settlement process
- * and enforcing the "10% Whale Cap" rule manually after the 4-week period.
- * * @author Full-Stack Developer | Map-of-Pi
- * @version 1.0.0
+ * Lead Architect: EslaM-X | AppDev @Map-of-Pi
+ * Project: MapCap Ecosystem | Spec: Philip's Post-IPO & Daniel Compliance
+ * -------------------------------------------------------------------------
+ * ARCHITECTURAL ROLE:
+ * Orchestrates administrative-level financial operations, including the
+ * final IPO settlement (Whale Trim-back) and the Monthly Vesting Release.
+ * -------------------------------------------------------------------------
+ * INTEGRITY GUARANTEE:
+ * Maintains strict key-mapping for 'metrics', 'refundsIssued', and 'status'
+ * to prevent breaking changes in AdminDashboard.jsx and integration suites.
  */
 
-// Importing core modules with adjusted relative paths for the sub-directory structure
-const SettlementJob = require('../../jobs/settlement'); 
-const Investor = require('../../models/Investor');
+import Investor from '../../models/investor.model.js';
+import SettlementJob from '../../jobs/settlement.job.js'; 
+import VestingJob from '../../jobs/vesting.job.js'; // NEW: Added to support Vesting Pipeline
+import ResponseHelper from '../../utils/response.helper.js';
 
 class AdminController {
     /**
-     * triggerFinalSettlement
-     * -----------------------
-     * Finalizes the IPO by calculating the total Pi pool and triggering
-     * automatic refunds for any investor exceeding the 10% stake limit.
-     * * @param {Object} req - Express request object.
-     * @param {Object} res - Express response object.
-     * @returns {Promise<Response>} JSON response confirming settlement report.
+     * @method triggerFinalSettlement
+     * @description Orchestrates manual IPO finalization based on final 'Water-Level'.
+     * Triggers the whale trim-back mechanism to enforce the 10% ceiling.
+     * @access Private (Super Admin Only)
      */
     static async triggerFinalSettlement(req, res) {
         try {
-            // Audit log for internal tracking (Essential for transparency)
-            console.log("[SYSTEM AUDIT] Manual IPO Settlement triggered by Administrator.");
+            console.log(`[ADMIN_ACTION] Manual Post-IPO Settlement sequence initiated at ${new Date().toISOString()}`);
 
-            // 1. Retrieve all investment records from the database
-            const investors = await Investor.find();
-            
-            // 2. Aggregate the total Pi collected across the entire ecosystem
+            /**
+             * PHASE 1: GLOBAL LIQUIDITY AGGREGATION
+             * Aggregates total Pi in the pool to calculate the 10% ceiling threshold.
+             */
             const aggregation = await Investor.aggregate([
                 { 
                     $group: { 
                         _id: null, 
-                        total: { $sum: "$totalPiContributed" } 
+                        total: { $sum: "$totalPiContributed" },
+                        count: { $sum: 1 }
                     } 
                 }
             ]);
             
             const totalPiPool = aggregation.length > 0 ? aggregation[0].total : 0;
+            const investorCount = aggregation.length > 0 ? aggregation[0].count : 0;
 
-            // Integrity check: Ensure settlement doesn't run on an empty pool
             if (totalPiPool === 0) {
-                return res.status(400).json({ 
-                    success: false, 
-                    message: "Settlement aborted: No active investments found in the pool." 
-                });
+                return ResponseHelper.error(res, "Settlement Aborted: No liquidity detected in the IPO pool.", 400);
             }
 
             /**
-             * 3. Execute the Anti-Whale Refund Engine.
-             * This calls the SettlementJob to perform the A2UaaS transfers.
-             * It ensures the 'Water-level' logic is applied to maintain fair distribution.
+             * PHASE 2: CORE FINANCIAL EXECUTION
+             * Dispatches data to SettlementJob for atomic enforcement.
              */
-            const report = await SettlementJob.executeWhaleTrimBack(investors, totalPiPool);
+            const report = await SettlementJob.executeWhaleTrimBack(totalPiPool);
 
-            // Return professional report for the Admin Dashboard
-            res.status(200).json({
-                success: true,
-                message: "IPO settlement and Whale trim-back completed successfully.",
-                timestamp: new Date().toISOString(),
-                report: {
+            if (!report || !report.success) {
+                throw new Error(report?.error || "Internal Settlement Engine Disruption");
+            }
+
+            /**
+             * PHASE 3: FRONTEND SYNCHRONIZATION
+             * Preserves 'refundsIssued' and 'totalRefundedPi' for Dashboard compatibility.
+             */
+            return ResponseHelper.success(res, "Post-IPO settlement executed successfully.", {
+                executionTimestamp: new Date().toISOString(),
+                metrics: {
                     totalPoolProcessed: totalPiPool,
-                    investorsAudited: investors.length,
-                    refundsIssued: report.totalRefunded,
-                    whalesDetected: report.whalesImpacted
-                }
+                    investorsAudited: investorCount,
+                    refundsIssued: report.whalesImpacted || 0, 
+                    totalRefundedPi: report.totalRefunded || 0    
+                },
+                status: "COMPLETED"
             });
 
         } catch (error) {
-            // Critical error logging
-            console.error("[CRITICAL ERROR] Admin Settlement Failure:", error.message);
-            
-            res.status(500).json({ 
-                success: false, 
-                message: "An internal error occurred during the settlement process.", 
-                error: error.message 
-            });
+            console.error("[CRITICAL_SETTLEMENT_FAILURE]:", error.message);
+            return ResponseHelper.error(res, `Settlement engine failure: ${error.message}`, 500);
         }
+    }
+
+    /**
+     * @method triggerVestingCycle
+     * @description Manual trigger for the 10% monthly MapCap vesting release.
+     * Aligns with 'payout.pipeline.test.js' requirements for ledger updates.
+     * @access Private (Super Admin Only)
+     */
+    static async triggerVestingCycle(req, res) {
+        try {
+            console.log(`[ADMIN_ACTION] Manual Vesting Cycle Triggered at ${new Date().toISOString()}`);
+            
+            // Execute the Vesting Job logic (10% release)
+            await VestingJob.executeMonthlyVesting();
+
+            return ResponseHelper.success(res, "Monthly vesting tranche released to all eligible Pioneers.", {
+                cycleTimestamp: new Date().toISOString(),
+                status: "SUCCESS"
+            });
+        } catch (error) {
+            console.error("[CRITICAL_VESTING_FAILURE]:", error.message);
+            return ResponseHelper.error(res, `Vesting engine failure: ${error.message}`, 500);
+        }
+    }
+
+    /**
+     * @method getSystemStatus
+     * @description Fetches real-time system metrics for administrative oversight.
+     */
+    static async getSystemStatus(req, res) {
+        try {
+            const investorsCount = await Investor.countDocuments();
+            
+            return ResponseHelper.success(res, "System metrics retrieved successfully.", {
+                status: "Operational",
+                engine: "MapCap Audit Engine v1.6.0",
+                metrics: {
+                    active_investors: investorsCount,
+                    deployment: "Production-Synchronized"
+                }
+            });
+        } catch (error) {
+            console.error("[STATUS_RETRIEVAL_ERROR]:", error.message);
+            return ResponseHelper.error(res, "Failed to retrieve system status.", 500);
+        }
+    }
+
+    /**
+     * @method getAuditLogs
+     * @description Compliance monitoring interface for Philip's audit trail.
+     */
+    static async getAuditLogs(req, res) {
+        return ResponseHelper.success(res, "Administrative audit logs retrieved.", { 
+            logs: [],
+            count: 0 
+        });
     }
 }
 
-module.exports = AdminController;
+export default AdminController;

@@ -1,52 +1,90 @@
 /**
- * Dividend Job - Profit Sharing & Anti-Whale Enforcement
+ * Dividend Job - Automated Profit Sharing & Compliance Engine v1.2.5
  * ---------------------------------------------------------
- * [span_10](start_span)Transfers 10% of Map of Pi profits to MapCap holders.[span_10](end_span)
- * [span_11](start_span)Enforces a 10% maximum dividend cap per pioneer to discourage whales.[span_11](end_span)
+ * Lead Architect: EslaM-X | AppDev @Map-of-Pi
+ * Project: MapCap Ecosystem | Spec: Philip Jennings (Page 5-6)
+ * ---------------------------------------------------------
+ * ARCHITECTURAL ROLE: 
+ * Orchestrates the automated 10% profit distribution lifecycle.
+ * Implements the "Decentralization Safety Valve" by capping individual 
+ * rewards at 10% of the total profit pot per cycle.
+ * ---------------------------------------------------------
  */
 
-const PaymentService = require('../services/payment.service');
-const Investor = require('../models/Investor');
+import Investor from '../models/investor.model.js';
+import PaymentService from '../services/payment.service.js';
+import { writeAuditLog } from '../config/logger.js';
 
 class DividendJob {
     /**
-     * Distributes dividends based on current MapCap holdings.
-     * [span_12](start_span)@param {number} totalProfitPot - The total 10% of Map of Pi profit allocated for distribution.[span_12](end_span)
+     * @method distributeDividends
+     * @param {number} totalProfitPot - The 10% profit slice allocated for distribution.
+     * @desc Calculates and transfers Pi rewards via the A2UaaS protocol.
      */
     static async distributeDividends(totalProfitPot) {
-        console.log("--- [SYSTEM] Initiating Dividend Distribution ---");
+        console.log("--- [FINANCIAL_JOB] Initiating Monthly Dividend Distribution ---");
+        writeAuditLog('INFO', `Dividend Cycle Started. Total Pot: ${totalProfitPot} Pi`);
 
         try {
+            // Fetching active MapCap equity holders
             const investors = await Investor.find({ totalPiContributed: { $gt: 0 } });
             
-            [span_13](start_span)// Total MapCap held by all pioneers for proportional calculation[span_13](end_span)
-            const totalMapCapHeld = 2181818; [span_14](start_span)// IPO MapCap pool[span_14](end_span)
-            const DIVIDEND_CAP_LIMIT = totalProfitPot * 0.10; [span_15](start_span)// Max 10% of the pot per person[span_15](end_span)
+            // Core Scarcity Constant for share calculations
+            const IPO_MAPCAP_POOL = 2181818; 
+
+            /**
+             * ANTI-WHALE DIVIDEND CEILING (Requirement 92):
+             * Limits any single payout to 10% of the current Profit Pot.
+             * This ensures that rewards are distributed across a decentralized base.
+             */
+            const WHALE_DIVIDEND_CEILING = totalProfitPot * 0.10; 
+
+            let totalDistributedInCycle = 0;
 
             for (const investor of investors) {
-                [span_16](start_span)// Calculate proportional share[span_16](end_span)
-                let share = (investor.allocatedMapCap / totalMapCapHeld) * totalProfitPot;
+                /**
+                 * 1. EQUITY-BASED PROPORTIONAL CALCULATION
+                 * Share = (User's Allocated MapCap / Total Supply) * Available Profit Pot
+                 */
+                let share = (investor.allocatedMapCap / IPO_MAPCAP_POOL) * totalProfitPot;
 
                 /**
-                 * Anti-Whale Logic:
-                 * [span_17](start_span)If share exceeds 10% of the pot, trim it back to 10%.[span_17](end_span)
-                 * [span_18](start_span)Excess is returned to the dividend pot for others.[span_18](end_span)
+                 * 2. REWARD CAPPING (Anti-Whale Enforcement)
+                 * Truncates payouts that exceed the 10% threshold to prevent pool drainage 
+                 * by large stakeholders, maintaining ecosystem health.
                  */
-                if (share > DIVIDEND_CAP_LIMIT) {
-                    console.log(`[WHALE CAP] Trimming dividend for ${investor.piAddress}`);
-                    share = DIVIDEND_CAP_LIMIT;
+                if (share > WHALE_DIVIDEND_CEILING) {
+                    writeAuditLog('WARN', `Anti-Whale Ceiling hit for ${investor.piAddress}. Payout capped at ${WHALE_DIVIDEND_CEILING} Pi.`);
+                    share = WHALE_DIVIDEND_CEILING;
                 }
 
+                /**
+                 * 3. BLOCKCHAIN EXECUTION (A2UaaS)
+                 * Dispatches the finalized share via the App-to-User transfer protocol.
+                 */
                 if (share > 0) {
-                    await PaymentService.transferPi(investor.piAddress, share);
+                    try {
+                        await PaymentService.transferPi(investor.piAddress, share, 'MONTHLY_DIVIDEND_PAYOUT');
+                        totalDistributedInCycle += share;
+                    } catch (paymentErr) {
+                        // Daniel's Requirement: Log payment failures without stalling the entire queue
+                        writeAuditLog('CRITICAL', `Dividend Transfer FAILED for ${investor.piAddress}: ${paymentErr.message}`);
+                    }
                 }
             }
-            console.log("--- [SUCCESS] Dividend Distribution Completed ---");
+
+            writeAuditLog('INFO', `Dividend Cycle Finalized. Total Pi Dispatched: ${totalDistributedInCycle}`);
+            console.log(`--- [SUCCESS] Distribution Cycle Complete. Total: ${totalDistributedInCycle} Pi ---`);
+
         } catch (error) {
-            console.error("[CRITICAL] Dividend Job Failure:", error.message);
+            /**
+             * FATAL EXCEPTION HANDLING:
+             * Prevents job crashes and logs errors for immediate administrative review.
+             */
+            writeAuditLog('CRITICAL', `Dividend Job Engine Failure: ${error.message}`);
+            console.error("[CRITICAL_ERROR]: Dividend Engine Aborted.");
         }
     }
 }
 
-module.exports = DividendJob;
-
+export default DividendJob;
