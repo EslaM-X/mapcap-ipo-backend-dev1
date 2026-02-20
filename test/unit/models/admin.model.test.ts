@@ -1,20 +1,23 @@
 /**
- * Admin Model Unit Tests - RBAC Security v1.5.3
+ * Admin Model Unit Tests - RBAC Security v1.7.5 (TS)
  * -------------------------------------------------------------------------
- * Description: Validates schema constraints, security layers, and data 
- * integrity for the Admin identity within the Map-of-Pi ecosystem.
- * * Fixed: Path resolution to align with the consolidated 'admin' directory.
+ * Lead Architect: EslaM-X | AppDev @Map-of-Pi
+ * Project: MapCap Ecosystem | Spec: RBAC & Credential Encapsulation
  * -------------------------------------------------------------------------
+ * TS CONVERSION LOG:
+ * - Aligned path resolution with consolidated 'admin' directory.
+ * - Formalized IAdmin interface checks within the Mongoose Schema context.
+ * - Validated Case-Insensitive Normalization (Anti-Spoofing).
+ * - Enforced strict Enum validation for roles (SUPER_ADMIN, AUDITOR, etc.).
  */
 
-// FIX: Path updated to reach the nested folder structure: src/models/admin/
-import Admin from '../../../src/models/admin/admin.model.js'; 
+import Admin from '../../../src/models/admin/admin.model.js';
 
 describe('Admin Model - Security & Role Integrity Tests', () => {
 
   /**
-   * TEST: Role-Based Access Control (Enum Enforcement)
-   * Ensures that only predefined roles (e.g., AUDITOR) are accepted.
+   * @test Role-Based Access Control (Enum Enforcement)
+   * Requirement: Daniel's Compliance - Only predefined roles are accepted.
    */
   test('Security: Should validate authorized roles and reject arbitrary access levels', async () => {
     const auditor = new Admin({
@@ -30,7 +33,7 @@ describe('Admin Model - Security & Role Integrity Tests', () => {
     });
 
     const validErr = auditor.validateSync();
-    const invalidErr = unauthorizedActor.validateSync();
+    const invalidErr: any = unauthorizedActor.validateSync();
 
     // Valid role should not return validation errors
     expect(validErr).toBeUndefined();
@@ -40,17 +43,18 @@ describe('Admin Model - Security & Role Integrity Tests', () => {
   });
 
   /**
-   * TEST: Credential Encapsulation & Privacy
-   * Verification of the 'select: false' security layer to prevent password leaks.
+   * @test Credential Encapsulation & Privacy
+   * Verification: 'select: false' ensures password exclusion in default queries.
    */
   test('Privacy: Should confirm password exclusion from default data projection', () => {
-    // Critical security requirement: Password field must not be returned by default queries
-    expect(Admin.schema.path('password').options.select).toBe(false);
+    // Critical security requirement: Prevent accidental password leaks in API responses
+    const passwordPath: any = Admin.schema.path('password');
+    expect(passwordPath.options.select).toBe(false);
   });
 
   /**
-   * TEST: Operational Lifecycle Kill-Switch
-   * Validates the status management for administrative accounts.
+   * @test Operational Lifecycle Kill-Switch
+   * Ensures administrative revocation (isActive flag) is functional.
    */
   test('Safety: Should default to active and support administrative revocation', () => {
     const admin = new Admin({ username: 'temp_admin', password: 'hash' });
@@ -61,8 +65,8 @@ describe('Admin Model - Security & Role Integrity Tests', () => {
   });
 
   /**
-   * TEST: Data Normalization (Anti-Spoofing)
-   * Ensures usernames are normalized to prevent case-sensitive duplication.
+   * @test Data Normalization (Anti-Spoofing)
+   * Requirement: Lowercase usernames to prevent 'Admin' vs 'admin' duplication.
    */
   test('Normalization: Should strictly lowercase usernames during model instantiation', () => {
     const admin = new Admin({
@@ -74,11 +78,12 @@ describe('Admin Model - Security & Role Integrity Tests', () => {
   });
 
   /**
-   * TEST: Identity Uniqueness (Version 1.5.3 Requirement)
-   * Validates that the database-level unique constraint is active.
+   * @test Identity Uniqueness
+   * Validates database-level unique constraint for the identity layer.
    */
   test('Integrity: Username field must have unique constraint enabled', () => {
-    expect(Admin.schema.path('username').options.unique).toBe(true);
+    const usernamePath: any = Admin.schema.path('username');
+    expect(usernamePath.options.unique).toBe(true);
   });
 
 });
