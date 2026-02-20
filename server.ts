@@ -8,18 +8,20 @@
  * Orchestrates Express pipeline, database persistence, and security gateways.
  * Optimized for MERN stack integration and stable Termux testing.
  * -------------------------------------------------------------------------
- * FIX LOG:
- * - Synchronized Root Heartbeat with system.health.test.js requirements.
- * - Injected 'live_metrics' wrapper for test parity while maintaining legacy keys.
+ * TS CONVERSION LOG:
+ * - Migrated to TypeScript (.ts) for enhanced type safety and consistency.
+ * - Maintained all legacy routes and data structures to ensure Frontend stability.
+ * - Added explicit types for Express Request, Response, and NextFunction.
  */
 
 import dotenv from 'dotenv';
-import express from 'express';
+import express, { Request, Response, NextFunction, Application } from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
 import morgan from 'morgan';
 
 // Infrastructure & Domain Logic
+// Note: Changed extensions to .js for compatibility with TS/Node resolution if using ESM
 import { auditLogStream, writeAuditLog } from './src/config/logger.js';
 import CronScheduler from './src/jobs/cron.scheduler.js';
 import Investor from './src/models/investor.model.js';
@@ -33,7 +35,7 @@ import apiRoutes from './src/routes/api.js';
 // Load Environment Configuration
 dotenv.config();
 
-const app = express();
+const app: Application = express();
 
 /**
  * 1. GLOBAL MIDDLEWARE & SECURITY FRAMEWORK
@@ -52,11 +54,11 @@ app.use(cors({
  * 2. DATABASE PERSISTENCE LAYER
  * Logic refined to allow Test Suites to manage lifecycle via environmental guards.
  */
-const connectDB = async () => {
+const connectDB = async (): Promise<void> => {
     try {
         if (process.env.NODE_ENV === 'test') return;
 
-        const dbUri = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/mapcap_dev';
+        const dbUri: string = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/mapcap_dev';
         await mongoose.connect(dbUri);
         
         console.log(`✅ [DATABASE] Ledger Connection: SUCCESS (${process.env.NODE_ENV || 'dev'})`);
@@ -65,7 +67,7 @@ const connectDB = async () => {
         if (process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'development') {
             CronScheduler.init();
         }
-    } catch (err) {
+    } catch (err: any) {
         console.error('❌ [CRITICAL] Database Connection Failed:', err.message);
         writeAuditLog('CRITICAL', `DB Connection Error: ${err.message}`);
     }
@@ -91,18 +93,18 @@ app.use('/api/admin', adminRoutes);
  * Legacy support for direct heartbeat monitoring.
  * STRUCTURE SYNC: Aligned with system.health.test.js contract.
  */
-app.get('/', async (req, res) => {
+app.get('/', async (req: Request, res: Response) => {
     try {
         const globalStats = await Investor.aggregate([
             { $group: { _id: null, totalPiInPool: { $sum: "$totalPiContributed" }, pioneerCount: { $sum: 1 } } }
         ]);
         
-        const waterLevel = globalStats[0]?.totalPiInPool || 0;
-        const pioneerCount = globalStats[0]?.pioneerCount || 0;
+        const waterLevel: number = globalStats[0]?.totalPiInPool || 0;
+        const pioneerCount: number = globalStats[0]?.pioneerCount || 0;
 
         /**
          * RESPONSE CONTRACT:
-         * We maintain 'total_pi_invested' for legacy and wrap it in 'live_metrics'
+         * Maintained 'total_pi_invested' for legacy and wrapped it in 'live_metrics'
          * to satisfy the automated health audit without breaking UI bindings.
          */
         return res.status(200).json({
@@ -126,7 +128,7 @@ app.get('/', async (req, res) => {
  * 5. GLOBAL EXCEPTION INTERCEPTOR
  * Final safety net to prevent process crashes and log anomalies.
  */
-app.use((err, req, res, next) => {
+app.use((err: any, req: Request, res: Response, next: NextFunction) => {
     writeAuditLog('CRITICAL', `FATAL EXCEPTION: ${err.stack}`);
     return res.status(500).json({
         success: false,
@@ -134,7 +136,7 @@ app.use((err, req, res, next) => {
     });
 });
 
-const PORT = process.env.PORT || 3000;
+const PORT: string | number = process.env.PORT || 3000;
 if (process.env.NODE_ENV !== 'test') {
     app.listen(PORT, () => {
         console.log(`🚀 [ENGINE] MapCap IPO Pulse v1.7.5 deployed on port ${PORT}`);
