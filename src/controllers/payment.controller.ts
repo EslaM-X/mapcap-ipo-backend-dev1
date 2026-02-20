@@ -5,17 +5,22 @@
  * Project: MapCap Ecosystem | Spec: Dynamic IPO Flow
  * -------------------------------------------------------------------------
  * TS STABILIZATION LOG:
- * - Resolved TS2322: Adjusted return types to Promise<any> for Express compatibility.
- * - Implemented Robust Payload Mapping (Polymorphic inputs) for cross-platform support.
- * - Integrated Audit Logging with TypeScript-enforced severity levels.
- * - Maintained 1:1 API contract to ensure Zero-Breakage for Frontend integrations.
+ * - Resolved TS2835: Added explicit .js extensions for NodeNext ESM compliance.
+ * - Resolved TS2322: Adjusted return types to Promise<any> for Express middleware.
+ * - Integrity Guard: Maintained 1:1 API contract to ensure Zero-Breakage 
+ * for PaymentStatus.jsx and Pi SDK callback integrations.
  */
 
 import { Request, Response } from 'express';
-import Investor from '../models/investor.model';
-import Transaction from '../models/Transaction';
-import ResponseHelper from '../utils/response.helper';
-import { writeAuditLog } from '../config/logger';
+
+/**
+ * INTERNAL MODULE IMPORTS
+ * Mandatory .js extensions for successful resolution in NodeNext environment.
+ */
+import Investor from '../models/investor.model.js';
+import Transaction from '../models/Transaction.js';
+import ResponseHelper from '../utils/response.helper.js';
+import { writeAuditLog } from '../config/logger.js';
 
 /**
  * @interface PaymentResponse
@@ -36,11 +41,13 @@ class PaymentController {
      * @description Processes and validates Pi Network transactions into the MapCap ledger.
      * Maps various naming conventions (CamelCase, snake_case, Pi SDK) to a unified internal structure.
      * @access Private / Authenticated
+     * @returns Promise<any>
      */
     static async processInvestment(req: Request, res: Response): Promise<any> {
         /**
          * ROBUST DATA EXTRACTION:
          * Synchronizes different payload structures from Pi SDK and custom Frontend calls.
+         * Maintains compatibility with legacy and modern request naming conventions.
          */
         const piAddress: string = req.body.piAddress || req.body.pi_address || req.body.uid;
         const amount: any = req.body.amount;
@@ -94,6 +101,7 @@ class PaymentController {
             /**
              * 5. STANDARDIZED SUCCESS RESPONSE:
              * Strictly returns consistent keys to maintain parity with PaymentStatus.jsx.
+             * Keys preserved: pioneer, contribution, totalBalance, piTxId.
              */
             const successPayload: PaymentResponse = {
                 pioneer: piAddress,
