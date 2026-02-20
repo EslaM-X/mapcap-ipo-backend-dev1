@@ -1,34 +1,32 @@
 /**
- * Admin Routes Provider - Secure Management Interface v1.6.0
+ * Admin Routes Provider - Secure Management Interface v1.7.5 (TS)
  * -------------------------------------------------------------------------
  * Lead Architect: EslaM-X | AppDev @Map-of-Pi
  * Project: MapCap Ecosystem | Spec: Daniel's Security & Compliance
  * -------------------------------------------------------------------------
- * ARCHITECTURAL ROLE:
- * Centralizes administrative operations including secure authentication,
- * real-time health monitoring, Whale-Cap settlement, and Vesting releases.
- * Protected by high-level encryption and strict role-based access control.
- * -------------------------------------------------------------------------
- * UPDATED: Integrated manual Vesting trigger to align with Payout Pipeline tests.
+ * TS CONVERSION LOG:
+ * - Defined standardized administrative endpoints using Express Router.
+ * - Enforced adminAuth middleware as a prerequisite for all write operations.
+ * - Maintained consistent URL naming for Frontend API integration parity.
  */
 
-import express from 'express';
+import express, { Router } from 'express';
 import AdminController from '../../controllers/admin/admin.controller.js';
 import AuthController from '../../controllers/admin/auth.controller.js';
 import adminAuth from '../../middlewares/auth.middleware.js'; // Secure Gateway
 
-const router = express.Router();
+const router: Router = express.Router();
 
 /**
  * @route   POST /api/admin/login
- * @description Authenticates Admin Leads (Philip/Daniel) for secure dashboard access.
+ * @description Authenticates Admin Leads for secure dashboard access.
  * @access  Public (Entry Point)
  */
 router.post('/login', AuthController.adminLogin);
 
 /**
  * @route   GET /api/admin/status
- * @description Fetches real-time system health, uptime, and A2UaaS connectivity.
+ * @description Fetches real-time system health and A2UaaS connectivity.
  * @access  Protected (Requires adminAuth Middleware)
  */
 router.get('/status', adminAuth, AuthController.getSystemStatus);
@@ -36,8 +34,6 @@ router.get('/status', adminAuth, AuthController.getSystemStatus);
 /**
  * @route   POST /api/admin/settle
  * @description CRITICAL OPERATION: Triggers the 10% Whale-Cap refund protocol.
- * Synchronizes the ledger with the A2UaaS payout engine for final settlement.
- * @compliance Implements Philip's mandatory 10% trim-back for Pioneers.
  * @access  Protected (Requires adminAuth Middleware)
  */
 router.post('/settle', adminAuth, AdminController.triggerFinalSettlement);
@@ -45,7 +41,6 @@ router.post('/settle', adminAuth, AdminController.triggerFinalSettlement);
 /**
  * @route   POST /api/admin/settle-vesting
  * @description VESTING PIPELINE: Manually triggers the 10% monthly release.
- * Validates against 'payout.pipeline.test.js' to ensure ledger increment.
  * @access  Protected (Requires adminAuth Middleware)
  */
 router.post('/settle-vesting', adminAuth, AdminController.triggerVestingCycle);
