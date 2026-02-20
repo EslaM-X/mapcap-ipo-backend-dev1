@@ -4,14 +4,10 @@
  * Lead Architect: EslaM-X | AppDev @Map-of-Pi
  * Project: MapCap Ecosystem | Spec: Philip Jennings & Daniel Compliance
  * -------------------------------------------------------------------------
- * ARCHITECTURAL ROLE:
- * Orchestrates Express pipeline, database persistence, and security gateways.
- * Optimized for MERN stack integration and stable Termux testing.
- * -------------------------------------------------------------------------
- * TS CONVERSION LOG:
- * - Migrated to TypeScript (.ts) for enhanced type safety and consistency.
- * - Maintained all legacy routes and data structures to ensure Frontend stability.
- * - Added explicit types for Express Request, Response, and NextFunction.
+ * TS STABILIZATION LOG:
+ * - Resolved TS2307: Cleaned module resolution paths for TS compilation.
+ * - Optimized Global Exception Interceptor for strict type-safety.
+ * - Maintained Dual-Path Routing (Legacy/V1) for 100% Frontend uptime.
  */
 
 import dotenv from 'dotenv';
@@ -21,16 +17,16 @@ import cors from 'cors';
 import morgan from 'morgan';
 
 // Infrastructure & Domain Logic
-// Note: Changed extensions to .js for compatibility with TS/Node resolution if using ESM
-import { auditLogStream, writeAuditLog } from './src/config/logger.js';
-import CronScheduler from './src/jobs/cron.scheduler.js';
-import Investor from './src/models/investor.model.js';
-import ResponseHelper from './src/utils/response.helper.js';
+// Unified pathing for TypeScript compiler resolution
+import { auditLogStream, writeAuditLog } from './src/config/logger';
+import CronScheduler from './src/jobs/cron.scheduler';
+import Investor from './src/models/investor.model';
+import ResponseHelper from './src/utils/response.helper';
 
 // Routing Layers
-import ipoRoutes from './src/routes/ipo.routes.js';
-import adminRoutes from './src/routes/admin/admin.routes.js';
-import apiRoutes from './src/routes/api.js'; 
+import ipoRoutes from './src/routes/ipo.routes';
+import adminRoutes from './src/routes/admin/admin.routes';
+import apiRoutes from './src/routes/api'; 
 
 // Load Environment Configuration
 dotenv.config();
@@ -44,6 +40,7 @@ const app: Application = express();
 app.use(morgan('combined', { stream: auditLogStream }));
 app.use(express.json());
 
+// Enhanced CORS to support Admin Dashboard and Mobile App requests
 app.use(cors({
     origin: '*', 
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -64,6 +61,7 @@ const connectDB = async (): Promise<void> => {
         console.log(`✅ [DATABASE] Ledger Connection: SUCCESS (${process.env.NODE_ENV || 'dev'})`);
         writeAuditLog('INFO', 'Database Connection Established.');
 
+        // Initialize Automation Engines only in live environments
         if (process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'development') {
             CronScheduler.init();
         }
@@ -80,13 +78,15 @@ if (process.env.NODE_ENV !== 'test') {
 /**
  * 3. CORE ROUTE ARCHITECTURE
  * Multi-prefix support for Frontend stability and API versioning.
+ * This structure ensures both legacy /api and new /api/v1 calls remain active.
  */
-app.use('/api/v1', apiRoutes); 
-app.use('/api', apiRoutes);
 app.use('/api/v1/ipo', ipoRoutes);
 app.use('/api/v1/admin', adminRoutes);
+app.use('/api/v1', apiRoutes); 
+
 app.use('/api/ipo', ipoRoutes);     
 app.use('/api/admin', adminRoutes); 
+app.use('/api', apiRoutes);
 
 /**
  * 4. SYSTEM PULSE CHECK (Root Endpoint)
@@ -99,8 +99,8 @@ app.get('/', async (req: Request, res: Response) => {
             { $group: { _id: null, totalPiInPool: { $sum: "$totalPiContributed" }, pioneerCount: { $sum: 1 } } }
         ]);
         
-        const waterLevel: number = globalStats[0]?.totalPiInPool || 0;
-        const pioneerCount: number = globalStats[0]?.pioneerCount || 0;
+        const waterLevel: number = globalStats.length > 0 ? globalStats[0].totalPiInPool : 0;
+        const pioneerCount: number = globalStats.length > 0 ? globalStats[0].pioneerCount : 0;
 
         /**
          * RESPONSE CONTRACT:
@@ -111,22 +111,22 @@ app.get('/', async (req: Request, res: Response) => {
             success: true,
             message: "MapCap IPO Pulse Engine - Operational",
             data: { 
-                total_pi_invested: waterLevel, // Legacy support
+                total_pi_invested: waterLevel, // Legacy Dashboard support
                 live_metrics: {
-                    total_pi_invested: waterLevel, // Audit/Test support
+                    total_pi_invested: waterLevel, // New Audit/Test support
                     pioneer_count: pioneerCount
                 }
             },
             timestamp: new Date().toISOString()
         });
-    } catch (error) {
+    } catch (error: any) {
         return ResponseHelper.error(res, "Pulse check failed.", 500);
     }
 });
 
 /**
  * 5. GLOBAL EXCEPTION INTERCEPTOR
- * Final safety net to prevent process crashes and log anomalies.
+ * Final safety net to prevent process crashes and log anomalies for Daniel's audit.
  */
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
     writeAuditLog('CRITICAL', `FATAL EXCEPTION: ${err.stack}`);
