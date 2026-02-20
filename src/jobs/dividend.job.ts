@@ -1,5 +1,5 @@
 /**
- * Dividend Job - Automated Profit Sharing & Compliance Engine v1.2.5
+ * Dividend Job - Automated Profit Sharing & Compliance Engine v1.7.5 (TS)
  * ---------------------------------------------------------
  * Lead Architect: EslaM-X | AppDev @Map-of-Pi
  * Project: MapCap Ecosystem | Spec: Philip Jennings (Page 5-6)
@@ -18,35 +18,35 @@ import { writeAuditLog } from '../config/logger.js';
 class DividendJob {
     /**
      * @method distributeDividends
-     * @param {number} totalProfitPot - The 10% profit slice allocated for distribution.
+     * @param totalProfitPot - The 10% profit slice allocated for distribution.
      * @desc Calculates and transfers Pi rewards via the A2UaaS protocol.
      */
-    static async distributeDividends(totalProfitPot) {
+    static async distributeDividends(totalProfitPot: number): Promise<void> {
         console.log("--- [FINANCIAL_JOB] Initiating Monthly Dividend Distribution ---");
         writeAuditLog('INFO', `Dividend Cycle Started. Total Pot: ${totalProfitPot} Pi`);
 
         try {
-            // Fetching active MapCap equity holders
+            // Fetching active MapCap equity holders (Investors with actual stakes)
             const investors = await Investor.find({ totalPiContributed: { $gt: 0 } });
             
-            // Core Scarcity Constant for share calculations
-            const IPO_MAPCAP_POOL = 2181818; 
+            // Core Scarcity Constant for share calculations (Value 2 Foundation)
+            const IPO_MAPCAP_POOL: number = 2181818; 
 
             /**
              * ANTI-WHALE DIVIDEND CEILING (Requirement 92):
              * Limits any single payout to 10% of the current Profit Pot.
              * This ensures that rewards are distributed across a decentralized base.
              */
-            const WHALE_DIVIDEND_CEILING = totalProfitPot * 0.10; 
+            const WHALE_DIVIDEND_CEILING: number = totalProfitPot * 0.10; 
 
-            let totalDistributedInCycle = 0;
+            let totalDistributedInCycle: number = 0;
 
             for (const investor of investors) {
                 /**
                  * 1. EQUITY-BASED PROPORTIONAL CALCULATION
                  * Share = (User's Allocated MapCap / Total Supply) * Available Profit Pot
                  */
-                let share = (investor.allocatedMapCap / IPO_MAPCAP_POOL) * totalProfitPot;
+                let share: number = (investor.allocatedMapCap / IPO_MAPCAP_POOL) * totalProfitPot;
 
                 /**
                  * 2. REWARD CAPPING (Anti-Whale Enforcement)
@@ -66,7 +66,7 @@ class DividendJob {
                     try {
                         await PaymentService.transferPi(investor.piAddress, share, 'MONTHLY_DIVIDEND_PAYOUT');
                         totalDistributedInCycle += share;
-                    } catch (paymentErr) {
+                    } catch (paymentErr: any) {
                         // Daniel's Requirement: Log payment failures without stalling the entire queue
                         writeAuditLog('CRITICAL', `Dividend Transfer FAILED for ${investor.piAddress}: ${paymentErr.message}`);
                     }
@@ -76,7 +76,7 @@ class DividendJob {
             writeAuditLog('INFO', `Dividend Cycle Finalized. Total Pi Dispatched: ${totalDistributedInCycle}`);
             console.log(`--- [SUCCESS] Distribution Cycle Complete. Total: ${totalDistributedInCycle} Pi ---`);
 
-        } catch (error) {
+        } catch (error: any) {
             /**
              * FATAL EXCEPTION HANDLING:
              * Prevents job crashes and logs errors for immediate administrative review.
