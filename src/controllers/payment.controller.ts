@@ -4,21 +4,23 @@
  * Lead Architect: EslaM-X | AppDev @Map-of-Pi
  * Project: MapCap Ecosystem | Spec: Dynamic IPO Flow
  * -------------------------------------------------------------------------
- * TS CONVERSION LOG:
- * - Implemented Robust Payload Mapping (Polymorphic inputs).
- * - Added strict typing for Transactions and Investor models.
- * - Integrated Audit Logging with TypeScript severity levels.
+ * TS STABILIZATION LOG:
+ * - Resolved TS2322: Adjusted return types to Promise<any> for Express compatibility.
+ * - Implemented Robust Payload Mapping (Polymorphic inputs) for cross-platform support.
+ * - Integrated Audit Logging with TypeScript-enforced severity levels.
+ * - Maintained 1:1 API contract to ensure Zero-Breakage for Frontend integrations.
  */
 
 import { Request, Response } from 'express';
-import Investor from '../models/investor.model.js';
-import Transaction from '../models/Transaction.js';
-import ResponseHelper from '../utils/response.helper.js';
-import { writeAuditLog } from '../config/logger.js';
+import Investor from '../models/investor.model';
+import Transaction from '../models/Transaction';
+import ResponseHelper from '../utils/response.helper';
+import { writeAuditLog } from '../config/logger';
 
 /**
  * @interface PaymentResponse
  * Contract for the final ledger synchronization output.
+ * Ensures the Frontend receives consistent financial keys.
  */
 interface PaymentResponse {
     pioneer: string;
@@ -31,22 +33,23 @@ interface PaymentResponse {
 class PaymentController {
     /**
      * @method processInvestment
-     * @desc Processes and validates Pi Network transactions into the MapCap ledger.
+     * @description Processes and validates Pi Network transactions into the MapCap ledger.
+     * Maps various naming conventions (CamelCase, snake_case, Pi SDK) to a unified internal structure.
+     * @access Private / Authenticated
      */
-    static async processInvestment(req: Request, res: Response): Promise<void> {
+    static async processInvestment(req: Request, res: Response): Promise<any> {
         /**
          * ROBUST DATA EXTRACTION:
-         * Maps different naming conventions (CamelCase, snake_case, Pi SDK) 
-         * to a unified internal structure.
+         * Synchronizes different payload structures from Pi SDK and custom Frontend calls.
          */
         const piAddress: string = req.body.piAddress || req.body.pi_address || req.body.uid;
-        const amount: number | string = req.body.amount;
+        const amount: any = req.body.amount;
         const piTxId: string = req.body.piTxId || 
                                req.body.pi_tx_id || 
                                req.body.paymentId || 
                                (req.body.metadata && req.body.metadata.txid);
 
-        // 1. INPUT VALIDATION
+        // 1. INPUT VALIDATION: Ensure all core financial metadata is present.
         if (!piAddress || !amount || !piTxId) {
             return ResponseHelper.error(res, "Missing Metadata: Transaction credentials (Address/Amount/TXID) are required.", 400);
         }
@@ -54,7 +57,7 @@ class PaymentController {
         try {
             /**
              * 2. IDEMPOTENCY CHECK:
-             * Prevents ledger duplicates. Essential for financial integrity.
+             * Prevents ledger duplicates by verifying the unique Pi Blockchain Transaction ID.
              */
             const existingTx = await Transaction.findOne({ piTxId });
             if (existingTx) {
@@ -64,8 +67,8 @@ class PaymentController {
             const investmentAmount: number = Number(amount);
 
             /**
-             * 3. ATOMIC TRANSACTIONS:
-             * Recording blockchain transaction and updating Pioneer's stake.
+             * 3. ATOMIC LEDGER UPDATES:
+             * Recording the verified transaction and updating the Pioneer's total contribution stake.
              */
             await Transaction.create({
                 piAddress,
@@ -85,12 +88,12 @@ class PaymentController {
                 { upsert: true, new: true }
             );
 
-            // 4. COMPLIANCE AUDITING
+            // 4. COMPLIANCE AUDITING: Log successful synchronization for the financial audit trail.
             writeAuditLog('INFO', `Investment Success: ${investmentAmount} Pi | Tx: ${piTxId} | Pioneer: ${piAddress}`);
 
             /**
-             * 5. STANDARDIZED RESPONSE:
-             * Returns consistent keys to prevent UI errors on the Dashboard.
+             * 5. STANDARDIZED SUCCESS RESPONSE:
+             * Strictly returns consistent keys to maintain parity with PaymentStatus.jsx.
              */
             const successPayload: PaymentResponse = {
                 pioneer: piAddress,
@@ -104,7 +107,8 @@ class PaymentController {
 
         } catch (error: any) {
             /**
-             * 6. CRITICAL ERROR HANDLING
+             * 6. CRITICAL EXCEPTION HANDLING:
+             * Ensures failures are logged with high-severity for immediate infrastructure review.
              */
             writeAuditLog('CRITICAL', `Pipeline Error: ${error.message} (Pioneer: ${piAddress})`);
             console.error(`[PAYMENT_CONTROLLER_CRITICAL]: ${error.stack}`);
