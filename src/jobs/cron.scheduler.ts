@@ -7,19 +7,23 @@
  * ARCHITECTURAL ROLE: 
  * Centralized orchestrator for automated Financial Snapshots, Whale 
  * Settlements, and Monthly Vesting release cycles.
+ * * TS STABILIZATION LOG:
+ * - Resolved TS2554: Aligned SettlementJob.executeWhaleTrimBack arguments.
+ * - Resolved TS2551: Corrected property reference from totalRefundedPi to totalRefunded.
+ * - Enforced strict timezone locking (UTC) for global financial consistency.
  */
 
 import cron from 'node-cron';
-import Investor from '../models/investor.model.js';
-import SettlementJob from './settlement.job.js';
-import VestingJob from './vesting.job.js'; 
-import DailyPriceJob from './daily-price-update.js'; 
-import { writeAuditLog } from '../config/logger.js';
+import Investor from '../models/investor.model';
+import SettlementJob from './settlement.job';
+import VestingJob from './vesting.job'; 
+import DailyPriceJob from './daily-price-update'; 
+import { writeAuditLog } from '../config/logger';
 
 class CronScheduler {
     /**
      * @method init
-     * @desc Bootstraps all automated tasks using a locked UTC timezone.
+     * @description Bootstraps all automated tasks using a locked UTC timezone for global synchronization.
      */
     static init(): void {
         console.log("--- [SYSTEM] Cron Scheduler Engine Initialized (UTC Mode) ---");
@@ -28,7 +32,7 @@ class CronScheduler {
         /**
          * TASK 1: DAILY SPOT PRICE RECALIBRATION
          * Frequency: Midnight UTC (0 0 * * *)
-         * Purpose: Updates the scarcity-based 'Value 2' daily.
+         * Purpose: Updates the scarcity-based 'Value 2' (Spot Price) daily.
          */
         cron.schedule('0 0 * * *', async () => {
             writeAuditLog('INFO', '[CRON_START] Daily Price Recalibration Sequence initiated.');
@@ -47,19 +51,27 @@ class CronScheduler {
         cron.schedule('0 23 28 * *', async () => {
             writeAuditLog('WARN', '[CRON_ALERT] IPO Closure Threshold reached. Starting Final Settlement.');
             try {
-                // Fetching all investors with active contributions
-                const investors = await Investor.find({ totalPiContributed: { $gt: 0 } });
-                
+                /**
+                 * PHASE 1: FINANCIAL DATA AGGREGATION
+                 */
                 const totalStats = await Investor.aggregate([
                     { $group: { _id: null, totalPi: { $sum: "$totalPiContributed" } } }
                 ]);
                 
-                const totalPool: number = totalStats[0]?.totalPi || 0;
+                const totalPool: number = totalStats.length > 0 ? totalStats[0].totalPi : 0;
                 
                 if (totalPool > 0) {
-                    // Executes the A2UaaS refund engine for excess whale stakes
-                    const result = await SettlementJob.executeWhaleTrimBack(investors, totalPool);
-                    writeAuditLog('INFO', `[SETTLEMENT_SUCCESS] ${result.totalRefundedPi} Pi processed in trim-back.`);
+                    /**
+                     * PHASE 2: EXECUTE SETTLEMENT ENGINE
+                     * Note: Passing totalPool as required by the SettlementJob signature.
+                     */
+                    const result = await SettlementJob.executeWhaleTrimBack(totalPool);
+                    
+                    /**
+                     * PHASE 3: AUDIT LOGGING
+                     * Property 'totalRefunded' is used as per ISettlementResult interface.
+                     */
+                    writeAuditLog('INFO', `[SETTLEMENT_SUCCESS] ${result.totalRefunded} Pi processed in trim-back.`);
                 }
             } catch (error: any) {
                 writeAuditLog('CRITICAL', `Automated Whale Settlement Failure: ${error.message}`);
@@ -69,7 +81,7 @@ class CronScheduler {
         /**
          * TASK 3: MONTHLY VESTING RELEASE (10% Linear Release)
          * Frequency: Midnight UTC on the 1st of every month.
-         * Purpose: 10-month automated disbursement cycle [Spec Page 5].
+         * Purpose: 10-month automated disbursement cycle as per [Spec Page 5].
          */
         cron.schedule('0 0 1 * *', async () => {
             writeAuditLog('INFO', '[CRON_START] Monthly Vesting Disbursement Cycle.');
