@@ -1,0 +1,42 @@
+###############################################################################
+# MAPCAP IPO - GLOBAL GIT CONFIGURATION
+# ---------------------------------------------------------------------------
+# Lead Architect: EslaM-X | AppDev @Map-of-Pi
+# Purpose: Language detection overrides, Line-ending normalization, and 
+#          Repository integrity for the Pi Network Ecosystem.
+###############################################################################
+
+# 1. LANGUAGE DETECTION (Linguist Overrides)
+# Force GitHub to recognize the repository as 100% TypeScript.
+# We explicitly ignore .js files to ensure build artifacts or legacy detection
+# does not pollute the primary language statistics.
+*.js linguist-detectable=false
+*.ts linguist-detectable=true
+*.json linguist-detectable=false
+
+# 2. LINE ENDINGS (Cross-Platform Consistency)
+# Ensure consistent line endings across Windows, Linux, and Termux environments.
+# This prevents "Modified" flags in Git caused solely by whitespace differences.
+* text=auto
+
+# Explicitly set LF (Unix-style) for shell scripts and source code
+*.sh text eol=lf
+*.ts text eol=lf
+*.json text eol=lf
+
+# 3. BINARY FILES (Integrity Protection)
+# Ensure binary files are not corrupted by line-ending conversions.
+*.jpg binary
+*.png binary
+*.gif binary
+*.ico binary
+*.pdf binary
+
+# 4. DOCUMENTATION TABS
+# Maintain indentation integrity for Markdown documentation.
+*.md diff=markdown
+
+###############################################################################
+# End of Configuration - Engineered for Map-of-Pi Ecosystem Stability
+###############################################################################
+
