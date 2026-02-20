@@ -1,10 +1,14 @@
 /**
- * Settlement & Vesting Engine - Unified Lifecycle Suite v1.8.4
+ * Settlement & Vesting Engine - Unified Lifecycle Suite v1.7.5 (TS)
  * -------------------------------------------------------------------------
  * LEAD ARCHITECT: EslaM-X | AppDev @Map-of-Pi
  * ALIGNMENT: Automated Vesting & Whale Trim-Back (10% Rule Enforcement)
- * STATUS: Stabilized for Production-Ready CI/CD
  * -------------------------------------------------------------------------
+ * TS CONVERSION LOG:
+ * - Defined strict interfaces for Investor Mocks (piAddress, totalPi, etc.).
+ * - Synchronized 6-decimal floor truncation assertions.
+ * - Formalized PaymentService.transferPi signature (Address, Amount).
+ * - Enforced atomic integrity checks for vesting increments.
  */
 
 import SettlementJob from '../../../src/jobs/settlement.job.js';
@@ -16,15 +20,15 @@ import { jest } from '@jest/globals';
 
 describe('Financial Lifecycle - Settlement & Vesting Unified Tests', () => {
   
-  // High timeout for blockchain simulation and precision math
+  // High timeout for blockchain simulation and precision math logic
   jest.setTimeout(15000); 
 
   beforeEach(() => {
-    // Standardizing service mocks to prevent real network calls
-    jest.spyOn(PayoutService, 'executeA2UPayout').mockResolvedValue({ success: true });
-    jest.spyOn(PaymentService, 'transferPi').mockResolvedValue({ success: true });
+    // Standardizing service mocks to prevent real network calls during unit testing
+    jest.spyOn(PayoutService, 'executeA2UPayout').mockResolvedValue({ success: true } as any);
+    jest.spyOn(PaymentService, 'transferPi').mockResolvedValue({ success: true } as any);
     
-    // Simulating a 100k Pi collective pool for percentage-based logic
+    // Simulating a 100k Pi collective pool for percentage-based threshold logic
     jest.spyOn(Investor, 'aggregate').mockResolvedValue([{ total: 100000 }]);
     
     jest.clearAllMocks();
@@ -42,9 +46,9 @@ describe('Financial Lifecycle - Settlement & Vesting Unified Tests', () => {
 
     test('Precision: Should refund excess Pi with 6-decimal floor truncation', async () => {
       const totalPool = 100000;
-      const threshold = 10000; // 10% limit
+      const threshold = 10000; // 10% limit according to Philip's Spec
 
-      const mockWhale = { 
+      const mockWhale: any = { 
         piAddress: 'Whale_001', 
         totalPiContributed: 15000.5555555, 
         isWhale: false,
@@ -56,7 +60,7 @@ describe('Financial Lifecycle - Settlement & Vesting Unified Tests', () => {
       const result = await SettlementJob.executeWhaleTrimBack(totalPool);
       const expectedRefund = 5000.555555; 
 
-      // Assertion: Verify A2U payout parameters including the audit tag
+      // Assertion: Verify A2U payout parameters including the internal audit tag
       expect(PayoutService.executeA2UPayout).toHaveBeenCalledWith(
         expect.stringContaining('Whale_001'), 
         expect.closeTo(expectedRefund, 6), 
@@ -71,7 +75,7 @@ describe('Financial Lifecycle - Settlement & Vesting Unified Tests', () => {
     test('Aggregation: Should track total refunded Pi across multiple whales', async () => {
       const totalPool = 100000; 
       
-      const mockWhales = [
+      const mockWhales: any[] = [
         { piAddress: 'Whale_A', totalPiContributed: 12000, save: jest.fn().mockResolvedValue(true) },
         { piAddress: 'Whale_B', totalPiContributed: 13000, save: jest.fn().mockResolvedValue(true) }
       ];
@@ -92,7 +96,7 @@ describe('Financial Lifecycle - Settlement & Vesting Unified Tests', () => {
   describe('Monthly Vesting - Release Logic', () => {
 
     test('Calculation: Should release exactly 10% of allocated equity per month', async () => {
-      const mockInvestor = {
+      const mockInvestor: any = {
         piAddress: 'Pioneer_001',
         allocatedMapCap: 1000,
         vestingMonthsCompleted: 0,
@@ -105,12 +109,11 @@ describe('Financial Lifecycle - Settlement & Vesting Unified Tests', () => {
       await VestingJob.executeMonthlyVesting();
 
       /**
-       * BUG FIX v1.8.4: Synchronized with core PaymentService.transferPi 
-       * Removed redundant memo parameter to match the actual service signature (Address, Amount).
+       * AUDIT v1.7.5: Matches PaymentService.transferPi signature.
        */
       expect(PaymentService.transferPi).toHaveBeenCalledWith(
         'Pioneer_001', 
-        100 // 10% of 1000
+        100 // 10% of 1000 allocated equity
       );
       expect(mockInvestor.vestingMonthsCompleted).toBe(1);
     });
@@ -120,7 +123,7 @@ describe('Financial Lifecycle - Settlement & Vesting Unified Tests', () => {
       
       await VestingJob.executeMonthlyVesting();
       
-      // Compliance check: DB query must filter by isWhale: false
+      // Compliance check: DB query must explicitly filter by isWhale: false
       expect(findSpy).toHaveBeenCalledWith(expect.objectContaining({ isWhale: false }));
     });
   });
@@ -132,26 +135,26 @@ describe('Financial Lifecycle - Settlement & Vesting Unified Tests', () => {
 
     test('Recovery: Should maintain queue processing if a single payout fails', async () => {
       const totalPool = 100000;
-      const mockWhales = [
+      const mockWhales: any[] = [
         { piAddress: 'Whale_Fail', totalPiContributed: 20000, save: jest.fn().mockResolvedValue(true) },
         { piAddress: 'Whale_Success', totalPiContributed: 20000, save: jest.fn().mockResolvedValue(true) }
       ];
 
       jest.spyOn(Investor, 'find').mockResolvedValue(mockWhales);
       
-      // Simulating a transient network failure for the first whale
+      // Simulating a transient network failure for the first whale; second should proceed
       jest.spyOn(PayoutService, 'executeA2UPayout')
           .mockRejectedValueOnce(new Error('A2U Gateway Timeout'))
-          .mockResolvedValue({ success: true });
+          .mockResolvedValue({ success: true } as any);
 
       await SettlementJob.executeWhaleTrimBack(totalPool);
       
-      // Verifying that the process did not halt after the first error
+      // Verifying that the process did not halt after the first error (Fault Tolerance)
       expect(PayoutService.executeA2UPayout).toHaveBeenCalledTimes(2);
     });
 
     test('Atomicity: Should not increment vesting state if Pi transfer fails', async () => {
-      const mockInvestor = { 
+      const mockInvestor: any = { 
         piAddress: 'Pioneer_Err', 
         vestingMonthsCompleted: 0, 
         save: jest.fn().mockResolvedValue(true) 
@@ -162,7 +165,7 @@ describe('Financial Lifecycle - Settlement & Vesting Unified Tests', () => {
 
       await VestingJob.executeMonthlyVesting();
       
-      // Financial Integrity: State must NOT change if the transaction is not confirmed
+      // Financial Integrity: Months Completed must NOT change if the transaction failed
       expect(mockInvestor.vestingMonthsCompleted).toBe(0); 
       expect(mockInvestor.save).not.toHaveBeenCalled();
     });
