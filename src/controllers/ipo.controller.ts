@@ -5,20 +5,25 @@
  * Project: MapCap Ecosystem | Spec: Philip's Post-IPO Compliance
  * -------------------------------------------------------------------------
  * TS STABILIZATION LOG:
- * - Resolved TS2339: Fixed 'req.user' property access via safe type casting.
- * - Resolved TS2322: Adjusted return types to Promise<any> for Express compatibility.
- * - Preserved 'v1-v4' mapping for 100% Frontend (Dashboard.jsx) stability.
+ * - Resolved TS2835: Added mandatory .js extensions for NodeNext ESM resolution.
+ * - Resolved TS2339: Secured 'req.user' property access via safe type casting.
+ * - Integrity Guard: Preserved 'v1-v4' mapping for 100% Frontend (Dashboard.jsx) stability.
  */
 
 import { Request, Response } from 'express';
-import Investor from '../models/investor.model';
-import MathHelper from '../utils/math.helper';
-import ResponseHelper from '../utils/response.helper';
+
+/**
+ * INTERNAL MODULE IMPORTS
+ * Extensions (.js) are required to satisfy ESM resolution in Node.js 16+ environments.
+ */
+import Investor from '../models/investor.model.js';
+import MathHelper from '../utils/math.helper.js';
+import ResponseHelper from '../utils/response.helper.js';
 
 /**
  * @interface IpoScreenStats
  * Contract for the Pulse Dashboard UI data binding.
- * Ensures consistent data delivery for the MERN frontend.
+ * Ensures consistent data delivery for the MERN frontend (Dashboard.jsx).
  */
 interface IpoScreenStats {
     values: {
@@ -45,13 +50,14 @@ class IpoController {
      * @method getScreenStats
      * @description Delivers Values 1-4 for the IPO Pulse UI and audits compliance.
      * @access Private / Authenticated
+     * @returns Promise<any>
      */
     static async getScreenStats(req: Request, res: Response): Promise<any> {
         try {
             /**
              * IDENTITY RESOLUTION:
              * Resolves user identity from the authenticated request object.
-             * Note: Cast to 'any' to handle dynamic user properties from Middleware.
+             * Note: Cast to 'any' ensures compatibility with custom Middleware user objects.
              */
             const authenticatedUser = (req as any).user;
             const piAddress: string = authenticatedUser?.uid || authenticatedUser?.username || ""; 
@@ -79,7 +85,7 @@ class IpoController {
 
             /**
              * STEP 2: INDIVIDUAL LEDGER SYNC
-             * Retrieves the specific Pioneer's contribution history.
+             * Retrieves the specific Pioneer's contribution history from MongoDB.
              */
             const pioneer = await Investor.findOne({ piAddress });
             const userPiBalance: number = pioneer ? pioneer.totalPiContributed : 0;
@@ -104,7 +110,8 @@ class IpoController {
 
             /**
              * STEP 5: STANDARDIZED SUCCESS RESPONSE
-             * Strict preservation of v1-v4 keys for Pulse Dashboard parity.
+             * Strict preservation of v1-v4 keys for Pulse Dashboard (Frontend) parity.
+             * DO NOT change these keys as it will break the Dashboard UI.
              */
             const responseData: IpoScreenStats = {
                 values: {
