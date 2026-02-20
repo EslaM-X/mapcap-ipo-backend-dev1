@@ -2,14 +2,14 @@
  * MISSION-CRITICAL: PROJECT INTEGRITY & SECURITY ENFORCEMENT v1.7.5 (TS)
  * -------------------------------------------------------------------------
  * LEAD ARCHITECT: EslaM-X | AppDev @Map-of-Pi
- * VERSION: Synchronized with v1.7.x Stability Standards
+ * VERSION: Synchronized with v1.7.5 Stability Standards
  * SECURITY COMPLIANCE: Node.js Modern Standard & Pi Network Ecosystem Spec
  * -------------------------------------------------------------------------
- * TS CONVERSION LOG:
- * - Synchronized Versioning (1.7.0) with CI/CD deployment pipelines.
- * - Formalized JSON parsing for package.json with environment-specific validation.
- * - Enforced Version Control Security (VCS) policies for Pi Network API safety.
- * - Validated runtime scripts for Vercel/Termux seamless execution.
+ * TS CONVERSION & INTEGRITY LOG:
+ * - Updated Versioning to 1.7.5 to match production package.json.
+ * - Refactored script paths to align with 'dist/' directory for TS builds.
+ * - Maintained existing test structures to ensure zero breaking changes.
+ * - Enforced Version Control Security (VCS) for Pi Network API safety.
  */
 
 import fs from 'fs';
@@ -33,10 +33,10 @@ describe('Project Integrity - Architecture & Security Policy', () => {
     test('Metadata: Should align with stabilized v1.7.x and ESM standards', () => {
       /**
        * AUDIT v1.7.5: Name must remain 'mapcap-ipo-backend' for service discovery.
-       * Version 1.7.0 is the baseline for current Map-of-Pi ecosystem integration.
+       * Version synchronized to 1.7.5 to reflect the latest stable build.
        */
       expect(pkg.name).toBe('mapcap-ipo-backend');
-      expect(pkg.version).toBe('1.7.0'); 
+      expect(pkg.version).toBe('1.7.5'); // Synchronized with current production version
       expect(pkg.type).toBe('module');  
     });
 
@@ -60,10 +60,10 @@ describe('Project Integrity - Architecture & Security Policy', () => {
 
     test('Scripts: Should define standardized entry points for Vercel/Termux', () => {
       /**
-       * DEPLOYMENT LOGIC: Ensuring no breaking changes for Frontend API calls.
-       * Start and Dev scripts must point to server.js (ESM entry point).
+       * DEPLOYMENT LOGIC: Updated to point to compiled JavaScript in dist/
+       * Ensures compatibility between local development and production environments.
        */
-      expect(pkg.scripts?.start).toBe('node server.js');
+      expect(pkg.scripts?.start).toBe('node dist/server.js');
       expect(pkg.scripts?.dev).toBe('nodemon server.js');
     });
   });
