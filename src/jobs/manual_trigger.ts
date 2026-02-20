@@ -8,17 +8,24 @@
  * A standalone CLI utility for manual orchestration of high-stakes 
  * financial jobs. This tool fulfills Philip's requirement for 
  * post-IPO settlement before liquidity is transitioned to the LP.
- * * TS STABILIZATION LOG:
- * - Resolved TS2554: Aligned with single-argument SettlementJob signature.
- * - Resolved TS2551/TS2339: Synchronized result properties with ISettlementResult.
- * - Enforced strict Type-Safety for CLI Action enums.
+ * -------------------------------------------------------------------------
+ * TS STABILIZATION LOG:
+ * - Resolved TS2835: Added mandatory .js extensions for NodeNext compatibility.
+ * - Resolved TS2554: Aligned with stabilized SettlementJob signature.
+ * - Integrity Guard: Maintains exact CLI flag naming to ensure operational 
+ * continuity for DevOps and manual overrides.
  */
 
-import Investor from '../models/investor.model';
-import SettlementJob from './settlement.job';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
-import { writeAuditLog } from '../config/logger';
+
+/**
+ * INTERNAL MODULE IMPORTS
+ * Mandatory .js extensions for ESM resolution in Node.js environment.
+ */
+import Investor from '../models/investor.model.js';
+import SettlementJob from './settlement.job.js';
+import { writeAuditLog } from '../config/logger.js';
 
 // Environment context for standalone execution
 dotenv.config();
@@ -79,13 +86,14 @@ const runManualAction = async (): Promise<void> => {
 
                 /**
                  * EXECUTE SETTLEMENT ENGINE:
-                 * Using the stabilized single-parameter signature.
+                 * Using the stabilized single-parameter signature from SettlementJob.
                  */
                 const result = await SettlementJob.executeWhaleTrimBack(totalPiPool);
                 
                 /**
                  * DANIEL'S COMPLIANCE REQUIREMENT:
                  * Log all manual CLI interventions with updated property mapping.
+                 * Property 'totalRefunded' is used as per ISettlementResult interface.
                  */
                 writeAuditLog('WARN', `MANUAL_CLI_OVERRIDE: Settlement executed. Total Refunded: ${result.totalRefunded} Pi.`);
                 console.log(`✅ [SUCCESS] Settlement Complete. Capped ${result.whalesImpacted} whale accounts.`);
