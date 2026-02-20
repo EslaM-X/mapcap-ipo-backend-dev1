@@ -3,17 +3,17 @@
   "name": "mapcap-ipo-backend",
   "builds": [
     {
-      "src": "server.js",
+      "src": "server.ts",
       "use": "@vercel/node",
       "config": {
-        "includeFiles": ["src/**", "package.json"]
+        "includeFiles": ["src/**", "package.json", "tsconfig.json"]
       }
     }
   ],
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "server.js",
+      "dest": "server.ts",
       "headers": {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
@@ -23,7 +23,7 @@
     },
     {
       "src": "/(.*)",
-      "dest": "server.js"
+      "dest": "server.ts"
     }
   ],
   "env": {
