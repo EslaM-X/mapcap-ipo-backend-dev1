@@ -1,22 +1,22 @@
 /**
- * API Routes - Unified Communication Layer v1.7.2
+ * API Routes - Unified Communication Layer v1.7.5 (TS)
  * -------------------------------------------------------------------------
  * Lead Architect: EslaM-X | AppDev @Map-of-Pi
  * Project: MapCap Ecosystem | Spec: Philip's White-Label Strategy
  * -------------------------------------------------------------------------
- * ARCHITECTURAL ROLE:
- * Bridges the Frontend Dashboard with core high-precision services.
- * Implements Philip's Scarcity "Water-Level" metrics and Daniel's 
- * A2UaaS (App-to-User-as-a-Service) secure payout pipeline.
+ * TS CONVERSION LOG:
+ * - Implemented strict Express Router typing.
+ * - Formalized the 'Stats' response structure for Frontend parity.
+ * - Maintained standardized A2UaaS pipeline endpoints.
  */
 
-import express from 'express';
+import express, { Router, Request, Response } from 'express';
 import ipoRoutes from './ipo.routes.js'; 
 import PriceService from '../services/price.service.js';
 import PayoutService from '../services/payout.service.js';
 import ResponseHelper from '../utils/response.helper.js';
 
-const router = express.Router();
+const router: Router = express.Router();
 
 /**
  * MODULE INTEGRATION:
@@ -28,20 +28,18 @@ router.use('/ipo', ipoRoutes);
 /**
  * @route   GET /api/v1/stats
  * @desc    Global Aggregate Pulse for the Ecosystem.
- * Provides broad scarcity engine metrics for public transparency.
- * Essential for the landing page 'Pulse' indicators and Map-of-Pi visuals.
  */
-router.get('/stats', async (req, res) => {
+router.get('/stats', async (req: Request, res: Response) => {
     try {
         /**
          * 1. SNAPSHOT AGGREGATION:
-         * Placeholder value updated via PriceService logic for real-time accuracy.
+         * Placeholder value representing the 'Water-Level' (To be dynamic in v1.8).
          */
-        const totalPiInvested = 500000; 
+        const totalPiInvested: number = 500000; 
         
-        // 2. SCARCITY ENGINE EXECUTION: Calculating real-time asset value based on Pi supply
-        const currentPrice = PriceService.calculateDailySpotPrice(totalPiInvested);
-        const formattedPrice = PriceService.formatPriceForDisplay(currentPrice);
+        // 2. SCARCITY ENGINE EXECUTION: Calculating real-time asset value
+        const currentPrice: number = PriceService.calculateDailySpotPrice(totalPiInvested);
+        const formattedPrice: string = PriceService.formatPriceForDisplay(currentPrice);
 
         return ResponseHelper.success(res, "Global Pulse Synchronized", {
             totalPi: totalPiInvested,
@@ -55,8 +53,7 @@ router.get('/stats', async (req, res) => {
                 precision: "6-Decimal_Standard"
             }
         });
-    } catch (error) {
-        // Detailed error for the metrics sync test to catch "Global Sync Failure"
+    } catch (error: any) {
         return ResponseHelper.error(res, `Global Sync Failure: ${error.message}`, 500);
     }
 });
@@ -65,8 +62,8 @@ router.get('/stats', async (req, res) => {
  * @route   POST /api/v1/withdraw
  * @desc    Secure Payout Pipeline (A2UaaS Protocol).
  */
-router.post('/withdraw', async (req, res) => {
-    const { userWallet, amount } = req.body;
+router.post('/withdraw', async (req: Request, res: Response) => {
+    const { userWallet, amount }: { userWallet: string; amount: number } = req.body;
 
     if (!userWallet || !amount) {
         return ResponseHelper.error(res, "Mandatory fields required: userWallet & amount.", 400);
@@ -75,7 +72,7 @@ router.post('/withdraw', async (req, res) => {
     try {
         const result = await PayoutService.executeA2UPayout(userWallet, amount);
         return ResponseHelper.success(res, "A2U Payout Sequence Initiated", result);
-    } catch (error) {
+    } catch (error: any) {
         return ResponseHelper.error(res, `A2U Pipeline Error: ${error.message}`, 500);
     }
 });
