@@ -1,41 +1,41 @@
 {
   "compilerOptions": {
     /* Language and Environment */
-    "target": "ES2020",                                  /* Modern target for high-performance Node.js environments. */
-    "module": "NodeNext",                                /* Required for "type": "module" in package.json to resolve imports correctly. */
-    "lib": ["ESNext", "DOM"],                            /* Includes modern JS features and DOM types if needed for shared utils. */
-    "moduleResolution": "NodeNext",                      /* Aligns with modern Node.js ESM resolution strategy. */
+    "target": "ES2020",                                  /* Set to ES2020 to support modern Node.js features used in MapCap. */
+    "module": "NodeNext",                                /* Aligns with "type": "module" in package.json for ESM support. */
+    "lib": ["ESNext", "DOM"],                            /* Standard libraries for modern JS and potential shared utility types. */
+    "moduleResolution": "NodeNext",                      /* Mandatory for resolving .js extensions in TS imports under ESM. */
     
     /* Path Configurations */
-    "rootDir": "./",                                     /* The root folder for source files. */
-    "outDir": "./dist",                                  /* Compiled JavaScript will be emitted here. */
-    "baseUrl": ".",                                      /* Base directory to resolve non-relative module names. */
+    "rootDir": "./",                                     /* Root directory for source files to maintain project hierarchy. */
+    "outDir": "./dist",                                  /* Output directory for the compiled, production-ready JavaScript code. */
+    "baseUrl": ".",                                      /* Base directory for non-relative module resolution. */
     
-    /* Strict Type-Checking Options (Audit-Ready) */
-    "strict": true,                                      /* Enables all strict type-checking for Philip & Daniel's audit compliance. */
-    "noImplicitAny": true,                               /* Prevents accidental 'any' types that could mask financial logic bugs. */
-    "strictNullChecks": true,                            /* Ensures null/undefined safety in sensitive IPO calculations. */
-    "noFallthroughCasesInSwitch": true,                  /* Prevents logic errors in switch statements (e.g., in manual_trigger.ts). */
+    /* Strict Type-Checking Options (Financial Audit Standards) */
+    "strict": true,                                      /* Enable all strict type-checking to prevent financial calculation errors. */
+    "noImplicitAny": true,                               /* Ensures every variable is typed, preventing hidden logic bugs. */
+    "strictNullChecks": true,                            /* Critical for Pi balance checks to prevent null pointer exceptions. */
+    "noFallthroughCasesInSwitch": true,                  /* Safety check for switch blocks in manual triggers and jobs. */
     
     /* Interoperability & Compatibility */
-    "esModuleInterop": true,                             /* Enables seamless imports of CommonJS modules into ESM. */
-    "skipLibCheck": true,                                /* Skips type checking of node_modules to accelerate build speed. */
-    "forceConsistentCasingInFileNames": true,            /* Critical for Windows/Linux parity (Termux development). */
-    "allowSyntheticDefaultImports": true,                /* Eases transition for legacy CJS library imports. */
+    "esModuleInterop": true,                             /* Ensures compatibility when importing CommonJS libraries like Mongoose. */
+    "skipLibCheck": true,                                /* Optimizes build speed by skipping type checks in node_modules. */
+    "forceConsistentCasingInFileNames": true,            /* Critical for deployment stability across different OS (Linux/Windows). */
+    "allowSyntheticDefaultImports": true,                /* Provides a smoother developer experience with legacy modules. */
     
     /* Advanced Functionality */
-    "resolveJsonModule": true,                           /* Necessary for reading configuration and metadata from .json files. */
-    "allowJs": true,                                     /* Supports gradual migration and legacy JS utility integration. */
-    "sourceMap": true,                                   /* Enables mapping .js files back to .ts for accurate debugging. */
-    "isolatedModules": true                              /* Ensures each file is transpilable independently. */
+    "resolveJsonModule": true,                           /* Allows direct import of config files and package.json. */
+    "allowJs": true,                                     /* Permissive for legacy utility files while migrating to full TS. */
+    "sourceMap": true,                                   /* Essential for debugging compiled code back to original TS sources. */
+    "isolatedModules": true                              /* Required for modern transpilers to treat files as separate modules. */
   },
   "include": [
-    "**/*.ts",                                           /* Includes all TypeScript files throughout the project. */
-    "server.ts"                                          /* Explicitly monitors the core application entry point. */
+    "**/*.ts",                                           /* Scan all TypeScript files for compilation. */
+    "server.ts"                                          /* Ensure the entry point orchestrator is explicitly tracked. */
   ],
   "exclude": [
-    "node_modules",                                      /* Ignored to focus solely on internal MapCap logic. */
-    "dist",                                              /* Ignored to prevent recursive build loops. */
-    "test"                                               /* Excluded from production build to minimize build size. */
+    "node_modules",                                      /* Exclude third-party dependencies from compilation. */
+    "dist",                                              /* Prevent the compiler from scanning the output folder. */
+    "test"                                               /* Keeps the production build lean by excluding test suites. */
   ]
 }
