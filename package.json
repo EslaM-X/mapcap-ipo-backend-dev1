@@ -1,16 +1,16 @@
 {
   "name": "mapcap-ipo-backend",
-  "version": "1.7.0",
-  "description": "Enterprise-Grade Backend for MapCap IPO - Stabilized for Termux & MERN Integration",
-  "main": "server.js",
+  "version": "1.7.5",
+  "description": "Enterprise-Grade TypeScript Backend for MapCap IPO - Stabilized for MERN Integration",
+  "main": "dist/server.js",
   "type": "module",
   "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js",
+    "start": "node dist/server.js",
+    "dev": "nodemon src/server.ts",
+    "build": "tsc",
     "test": "cross-env NODE_ENV=test NODE_OPTIONS='--experimental-vm-modules' jest --runInBand --detectOpenHandles",
     "test:watch": "cross-env NODE_ENV=test NODE_OPTIONS='--experimental-vm-modules' jest --watch",
-    "test:coverage": "cross-env NODE_ENV=test NODE_OPTIONS='--experimental-vm-modules' jest --coverage --runInBand",
-    "build": "echo 'Optimization for Map-of-Pi Ecosystem Deployment'"
+    "test:coverage": "cross-env NODE_ENV=test NODE_OPTIONS='--experimental-vm-modules' jest --coverage --runInBand"
   },
   "engines": {
     "node": ">=18.0.0"
@@ -28,6 +28,13 @@
   },
   "devDependencies": {
     "@jest/globals": "^29.7.0",
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.11.0",
+    "@types/cors": "^2.8.17",
+    "@types/morgan": "^1.9.9",
+    "@types/node-cron": "^3.0.11",
+    "typescript": "^5.3.3",
+    "ts-node": "^10.9.2",
     "jest": "^29.7.0",
     "nodemon": "^3.0.1",
     "supertest": "^6.3.3",
@@ -40,7 +47,9 @@
     "setupFilesAfterEnv": [
       "./test/setup.js"
     ],
-    "transform": {},
+    "transform": {
+      "^.+\\.tsx?$": "ts-jest"
+    },
     "verbose": true,
     "testTimeout": 30000
   },
@@ -51,8 +60,8 @@
   "author": "Map-of-Pi Dev Team",
   "license": "ISC",
   "_comments": {
-    "note1": "Standardized for cross-platform compatibility including Windows, Linux, and Termux.",
-    "note2": "Development dependencies include 'nock' for HTTP mocking to ensure isolated unit testing.",
-    "note3": "Maintains strict compatibility with MapCap IPO Frontend integration."
+    "note1": "Migrated to TypeScript to enhance type safety and scalability.",
+    "note2": "Development dependencies now include @types for core libraries to support TS conversion.",
+    "note3": "Build command 'tsc' generates the production-ready code in the /dist directory."
   }
 }
