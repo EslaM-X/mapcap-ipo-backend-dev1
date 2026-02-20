@@ -3,13 +3,13 @@
  * -------------------------------------------------------------------------
  * LEAD ARCHITECT: EslaM-X | AppDev @Map-of-Pi
  * VERSION: Synchronized with v1.7.x Stability Standards
- * SECURITY COMPLIANCE: Daniel's Node.js Standard & Pi Network Ecosystem Spec
+ * SECURITY COMPLIANCE: Node.js Modern Standard & Pi Network Ecosystem Spec
  * -------------------------------------------------------------------------
  * TS CONVERSION LOG:
- * - Formalized JSON parsing for package.json with interface-like validation.
- * - Implemented strict versioning and engine checks for ESM environments.
- * - Enforced Version Control Security (VCS) policies for secret protection.
- * - Synchronized runtime scripts for Vercel/Termux deployment parity.
+ * - Synchronized Versioning (1.7.0) with CI/CD deployment pipelines.
+ * - Formalized JSON parsing for package.json with environment-specific validation.
+ * - Enforced Version Control Security (VCS) policies for Pi Network API safety.
+ * - Validated runtime scripts for Vercel/Termux seamless execution.
  */
 
 import fs from 'fs';
@@ -20,7 +20,7 @@ describe('Project Integrity - Architecture & Security Policy', () => {
   const packagePath = path.resolve(process.cwd(), 'package.json');
   const gitignorePath = path.resolve(process.cwd(), '.gitignore');
   
-  // Type-safe manifest reading
+  // Safe manifest reading for integrity checks
   const pkg = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
   const gitignoreContent = fs.readFileSync(gitignorePath, 'utf8');
 
@@ -32,8 +32,8 @@ describe('Project Integrity - Architecture & Security Policy', () => {
 
     test('Metadata: Should align with stabilized v1.7.x and ESM standards', () => {
       /**
-       * VERSION SYNC: Updated to 1.7.0 to match current deployment cycle.
-       * Requirement: Name and type must remain constant for Frontend/Service discovery.
+       * AUDIT v1.7.5: Name must remain 'mapcap-ipo-backend' for service discovery.
+       * Version 1.7.0 is the baseline for current Map-of-Pi ecosystem integration.
        */
       expect(pkg.name).toBe('mapcap-ipo-backend');
       expect(pkg.version).toBe('1.7.0'); 
@@ -41,12 +41,16 @@ describe('Project Integrity - Architecture & Security Policy', () => {
     });
 
     test('Runtime: Must enforce Node.js >=18.0.0 for Top-level Await and stability', () => {
-      // Compliance with modern Vercel/AWS/Node runtimes in 2026
+      // Compliance with high-performance runtimes in 2026
       expect(pkg.engines?.node).toBe('>=18.0.0');
     });
 
     test('Stack: Should verify presence of Core Financial & Security libraries', () => {
-      const deps = pkg.dependencies || {};
+      /**
+       * CRITICAL STACK: These dependencies are vital for the MERN + AI 
+       * integration as specified in the AppDev @Map-of-Pi roadmap.
+       */
+      const deps = { ...pkg.dependencies, ...pkg.devDependencies };
       const coreStack = ['helmet', 'mongoose', 'node-cron', 'jsonwebtoken', 'dotenv'];
       
       coreStack.forEach(dep => {
@@ -55,7 +59,10 @@ describe('Project Integrity - Architecture & Security Policy', () => {
     });
 
     test('Scripts: Should define standardized entry points for Vercel/Termux', () => {
-      // Crucial for deployment automation
+      /**
+       * DEPLOYMENT LOGIC: Ensuring no breaking changes for Frontend API calls.
+       * Start and Dev scripts must point to server.js (ESM entry point).
+       */
       expect(pkg.scripts?.start).toBe('node server.js');
       expect(pkg.scripts?.dev).toBe('nodemon server.js');
     });
@@ -68,18 +75,23 @@ describe('Project Integrity - Architecture & Security Policy', () => {
   describe('Version Control Security Policy', () => {
 
     test('Security: Must strictly ignore .env files to prevent credential exposure', () => {
-      // Preventing catastrophic secret leaks (Pi Network API Keys / DB Credentials)
+      /**
+       * RISK MITIGATION: Safeguarding Pi Network API Keys and MongoDB URIs.
+       * Mandatory check for all local environment variants.
+       */
       expect(gitignoreContent).toMatch(/\.env/);
       expect(gitignoreContent).toMatch(/\.env\.local/);
     });
 
     test('Architecture: Should exclude node_modules and bulky log files', () => {
+      // Keeping the repository lean and preventing dependency version drifts
       expect(gitignoreContent).toMatch(/node_modules\//);
       expect(gitignoreContent).toMatch(/logs\//);
       expect(gitignoreContent).toMatch(/\*\.log/);
     });
 
     test('Cleanliness: Should ignore IDE-specific metadata (.vscode, .DS_Store)', () => {
+      // Preventing configuration pollution across different developer environments
       expect(gitignoreContent).toMatch(/\.vscode\//);
       expect(gitignoreContent).toMatch(/\.DS_Store/);
     });
