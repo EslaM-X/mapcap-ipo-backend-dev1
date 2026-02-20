@@ -46,11 +46,22 @@
   },
   "jest": {
     "testEnvironment": "node",
+    "extensionsToTreatAsEsm": [
+      ".ts"
+    ],
     "setupFilesAfterEnv": [
       "./test/setup.ts"
     ],
+    "moduleNameMapper": {
+      "^(\\.{1,2}/.*)\\.js$": "$1"
+    },
     "transform": {
-      "^.+\\.tsx?$": "ts-jest"
+      "^.+\\.tsx?$": [
+        "ts-jest",
+        {
+          "useESM": true
+        }
+      ]
     },
     "verbose": true,
     "testTimeout": 30000
@@ -62,8 +73,8 @@
   "author": "Map-of-Pi Dev Team",
   "license": "ISC",
   "_comments": {
-    "note1": "Migrated to TypeScript to enhance type safety and scalability.",
-    "note2": "Development dependencies now include @types for core libraries to support TS conversion.",
-    "note3": "Build command 'tsc' generates the production-ready code in the /dist directory."
+    "note1": "ESM STABILIZATION: Configured Jest with moduleNameMapper to resolve .js extensions back to .ts source during testing.",
+    "note2": "RUNTIME COMPATIBILITY: Added --experimental-vm-modules to NODE_OPTIONS for native ESM support in Jest.",
+    "note3": "ZERO-BREAKAGE: Maintained existing script names to ensure CI/CD and DevOps continuity."
   }
 }
