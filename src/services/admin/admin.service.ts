@@ -1,32 +1,38 @@
 /**
- * Admin Management Service v1.5.2 (Executive Oversight)
+ * Admin Management Service v1.7.5 (TS - Executive Oversight)
  * -------------------------------------------------------------------------
  * Lead Architect: EslaM-X | AppDev @Map-of-Pi
  * Project: MapCap Ecosystem | Spec: Dynamic IPO Monitoring
  * -------------------------------------------------------------------------
- * ARCHITECTURAL ROLE:
- * Provides high-performance data processing for administrative reporting.
- * Tailored to Philip's dynamic use case where whale monitoring is active
- * throughout the IPO, while enforcement is deferred to final settlement.
- * -------------------------------------------------------------------------
- * UPDATED: Relative pathing fixed for nested directory structure.
+ * TS CONVERSION LOG:
+ * - Defined IExecutiveSummary interface for strict return type safety.
+ * - Implemented Type-safe Aggregation Pipeline for financial metrics.
+ * - Maintained sort-descending logic for high-impact whale reporting.
  */
 
-import Investor from '../../models/investor.model.js';
+import Investor, { IInvestor } from '../../models/investor.model.js';
+
+/**
+ * @interface IExecutiveSummary
+ * Standardized structure for the Admin Dashboard overview.
+ */
+interface IExecutiveSummary {
+    totalPiLiquidity: number;
+    totalInvestors: number;
+    whaleCount: number;
+}
 
 class AdminService {
     /**
      * @method getExecutiveSummary
      * @description Generates a high-level executive summary of IPO performance.
-     * Calculates the 'Water-Level' and tracks real-time whale participation.
-     * @returns {Promise<Object>} Aggregated metrics: total liquidity, investor count, and whale count.
+     * @returns {Promise<IExecutiveSummary>} Aggregated metrics for Philip's dashboard.
      */
-    static async getExecutiveSummary() {
+    static async getExecutiveSummary(): Promise<IExecutiveSummary> {
         try {
             /**
              * AGGREGATION PIPELINE:
-             * Sums total Pi liquidity and counts unique Pioneers globally.
-             * Tracks 'whaleCount' for Philip's pre-settlement audit.
+             * Efficiently sums liquidity and counts unique Pioneers.
              */
             const stats = await Investor.aggregate([
                 {
@@ -43,18 +49,25 @@ class AdminService {
 
             /**
              * DEFAULT STATE HANDLING:
-             * Ensures the Frontend Admin Dashboard receives a valid object 
-             * even if the pool is currently empty.
+             * Prevents UI breakage by providing a zero-state fallback.
              */
-            return stats.length > 0 ? stats[0] : { 
+            if (stats.length > 0) {
+                return {
+                    totalPiLiquidity: stats[0].totalPiLiquidity,
+                    totalInvestors: stats[0].totalInvestors,
+                    whaleCount: stats[0].whaleCount
+                };
+            }
+
+            return { 
                 totalPiLiquidity: 0, 
                 totalInvestors: 0, 
                 whaleCount: 0 
             };
-        } catch (error) {
+        } catch (error: any) {
             /**
              * CRITICAL LOGGING:
-             * Provides error visibility for Daniel's infrastructure monitoring logs.
+             * Vital for Daniel's infrastructure monitoring.
              */
             console.error("[ADMIN_SERVICE_ERROR] Failed to aggregate IPO stats:", error.message);
             throw new Error("Analytics Engine failure. Financial Pipeline disrupted.");
@@ -63,15 +76,13 @@ class AdminService {
 
     /**
      * @method getWhaleReport
-     * @description Retrieves a list of Pioneers flagged for the mandatory 10% cap audit.
-     * Essential for manual reconciliation before the final Settlement Job execution.
-     * @returns {Promise<Array>} Sorted list of investors by contribution volume (Descending).
+     * @description Retrieves Pioneers flagged for the mandatory 10% cap audit.
+     * @returns {Promise<IInvestor[]>} Sorted list for manual reconciliation.
      */
-    static async getWhaleReport() {
+    static async getWhaleReport(): Promise<IInvestor[]> {
         /**
          * OPTIMIZED QUERY:
-         * Fetches flagged whales for Philip's final review.
-         * Sorted by contribution to prioritize high-impact accounts.
+         * Prioritizes high-impact accounts for Philip's review.
          */
         return await Investor.find({ isWhale: true }).sort({ totalPiContributed: -1 });
     }
