@@ -4,20 +4,20 @@
  * Lead Architect: EslaM-X | AppDev @Map-of-Pi
  * Project: MapCap Ecosystem | Spec: Philip Jennings (Page 5-6)
  * -------------------------------------------------------------------------
- * ARCHITECTURAL ROLE: 
- * Orchestrates the automated 10% profit distribution lifecycle.
- * Implements the "Decentralization Safety Valve" by capping individual 
- * rewards at 10% of the total profit pot per cycle.
- * -------------------------------------------------------------------------
  * TS STABILIZATION LOG:
+ * - Resolved TS2835: Added mandatory .js extensions for NodeNext ESM compliance.
  * - Resolved TS2345: Standardized TransactionType via safe type casting.
- * - Enforced strict null-checks for investor contribution balances.
- * - Maintained legacy A2UaaS protocol compatibility for zero-downtime transfers.
+ * - Integrity Guard: Preserved the 10% Profit Pot Ceiling logic to ensure
+ * consistency with Philip's financial requirements and Frontend reporting.
  */
 
-import Investor from '../models/investor.model';
-import PaymentService from '../services/payment.service';
-import { writeAuditLog } from '../config/logger';
+/**
+ * INTERNAL MODULE IMPORTS
+ * Mandatory .js extensions for successful resolution in NodeNext environment.
+ */
+import Investor from '../models/investor.model.js';
+import PaymentService from '../services/payment.service.js';
+import { writeAuditLog } from '../config/logger.js';
 
 class DividendJob {
     /**
@@ -33,7 +33,7 @@ class DividendJob {
         try {
             /**
              * STEP 1: ASSET HOLDER IDENTIFICATION
-             * Fetching active MapCap equity holders with verified contributions.
+             * Fetching active MapCap equity holders with verified contributions from MongoDB.
              */
             const investors = await Investor.find({ totalPiContributed: { $gt: 0 } });
             
@@ -59,7 +59,7 @@ class DividendJob {
                 /**
                  * 4. REWARD CAPPING (Anti-Whale Enforcement)
                  * Truncates payouts that exceed the 10% threshold to prevent pool drainage 
-                 * by large stakeholders, maintaining ecosystem health.
+                 * by large stakeholders, maintaining ecosystem health and fairness.
                  */
                 if (share > WHALE_DIVIDEND_CEILING) {
                     writeAuditLog('WARN', `Anti-Whale Ceiling hit for ${investor.piAddress}. Payout capped at ${WHALE_DIVIDEND_CEILING} Pi.`);
