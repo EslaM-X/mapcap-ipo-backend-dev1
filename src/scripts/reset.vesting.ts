@@ -1,17 +1,13 @@
 /**
- * Vesting Reset Utility - Emergency Override v1.0.1
+ * Vesting Reset Utility - Emergency Override v1.7.5 (TS)
  * -------------------------------------------------------------------------
  * Lead Architect: EslaM-X | AppDev @Map-of-Pi
  * Project: MapCap Ecosystem | Utility: Ledger Reconciliation
  * -------------------------------------------------------------------------
- * ARCHITECTURAL ROLE:
- * Provides an administrative override to reset all vesting progress and 
- * released asset counts to zero. This is essential for restarting distribution 
- * cycles without compromising the core contribution data (Total Pi).
- * -------------------------------------------------------------------------
- * COMPLIANCE NOTE:
- * Use only during pre-launch rehearsals or authorized emergency recovery.
- * -------------------------------------------------------------------------
+ * TS CONVERSION LOG:
+ * - Formalized the update payload with strict TypeScript typing.
+ * - Added safety validation for MongoDB connection string.
+ * - Preserved administrative audit messages for Daniel's compliance monitoring.
  */
 
 import mongoose from 'mongoose';
@@ -23,20 +19,31 @@ dotenv.config();
 /**
  * @function resetVesting
  * @desc Resets 'mapCapReleased' and 'vestingMonthsCompleted' for all investors.
+ * Essential for restarting distribution cycles without data loss.
  */
-const resetVesting = async () => {
+const resetVesting = async (): Promise<void> => {
     try {
         /**
-         * INITIALIZATION:
-         * Connecting to the ledger database using the authenticated MONGO_URI.
+         * SAFETY CHECK:
+         * Ensure environment variables are loaded before proceeding.
          */
-        await mongoose.connect(process.env.MONGO_URI);
+        const MONGO_URI: string | undefined = process.env.MONGO_URI;
+
+        if (!MONGO_URI) {
+            throw new Error("MONGO_URI environment variable is not defined.");
+        }
+
+        /**
+         * INITIALIZATION:
+         * Connecting to the ledger database.
+         */
+        await mongoose.connect(MONGO_URI);
         console.log("🚨 [EMERGENCY_INIT] Initiating Global Vesting Reset Sequence...");
 
         /**
          * DATABASE ATOMIC UPDATE:
-         * Utilizes $set to zero out distribution metrics while preserving 
-         * 'totalPiContributed' and 'allocatedMapCap'.
+         * Utilizes $set to zero out distribution metrics.
+         * Note: This preserves 'totalPiContributed' and 'allocatedMapCap' (Philip's Spec).
          */
         const result = await Investor.updateMany({}, {
             $set: {
@@ -50,10 +57,10 @@ const resetVesting = async () => {
         
         // Graceful termination of the administrative process
         process.exit(0);
-    } catch (error) {
+    } catch (error: any) {
         /**
          * EXCEPTION HANDLING:
-         * Logs critical failures to ensure Daniel's audit logs capture the disruption.
+         * Captures failure during the reset sequence for audit reporting.
          */
         console.error("❌ [CRITICAL_RESET_FAILURE]:", error.message);
         process.exit(1);
