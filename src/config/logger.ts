@@ -1,5 +1,5 @@
 /**
- * Logger Configuration - Audit Trail Engine v1.5.5 (Stabilized for Vercel)
+ * Logger Configuration - Audit Trail Engine v1.7.5 (TypeScript Optimized)
  * ---------------------------------------------------------
  * Lead Architect: EslaM-X | AppDev @Map-of-Pi
  * Project: MapCap Ecosystem | Spec: Daniel's Transparency Standard
@@ -8,7 +8,6 @@
  * Ensures every financial transaction and Whale-Shield event is 
  * permanently logged for audit. Optimized for high-availability 
  * cloud environments (Vercel/Node.js).
- * ---------------------------------------------------------
  */
 
 import fs from 'fs';
@@ -16,17 +15,17 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 // ESM-compliant __dirname resolution for modern Node.js environments
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const __filename: string = fileURLToPath(import.meta.url);
+const __dirname: string = path.dirname(__filename);
 
 /**
  * CLOUD DEPLOYMENT OPTIMIZATION (Vercel/AWS): 
  * Vercel's serverless environment is read-only. We utilize the '/tmp' 
  * directory for runtime logs to prevent filesystem errors.
  */
-const isProduction = process.env.NODE_ENV === 'production';
-const logDir = isProduction ? '/tmp' : path.join(__dirname, '../../logs');
-const logFile = path.join(logDir, 'financial_audit.log');
+const isProduction: boolean = process.env.NODE_ENV === 'production';
+const logDir: string = isProduction ? '/tmp' : path.join(__dirname, '../../logs');
+const logFile: string = path.join(logDir, 'financial_audit.log');
 
 // Integrity Check: Ensuring log persistence structure exists in dev environments
 if (!isProduction && !fs.existsSync(logDir)) {
@@ -35,9 +34,9 @@ if (!isProduction && !fs.existsSync(logDir)) {
 
 /**
  * @export auditLogStream
- * Preserved nomenclature to ensure zero breakage for 'morgan' or 'server.js' integrations.
+ * Preserved nomenclature to ensure zero breakage for 'morgan' or 'server.ts' integrations.
  */
-export const auditLogStream = fs.createWriteStream(logFile, { 
+export const auditLogStream: fs.WriteStream = fs.createWriteStream(logFile, { 
     flags: 'a',
     encoding: 'utf8'
 });
@@ -46,17 +45,17 @@ export const auditLogStream = fs.createWriteStream(logFile, {
  * @function writeAuditLog
  * Centralized logging engine for MapCap. 
  * Essential for monitoring Whale-Shield alerts and A2UaaS transaction status.
- * @param {string} level - Log severity (INFO, WARN, ERROR, CRITICAL).
- * @param {string} message - Detailed event description.
+ * @param level - Log severity (INFO, WARN, ERROR, CRITICAL).
+ * @param message - Detailed event description.
  */
-export const writeAuditLog = (level, message) => {
-    const timestamp = new Date().toISOString();
-    const entry = `${timestamp} - [${level.toUpperCase()}]: ${message}\n`;
+export const writeAuditLog = (level: 'INFO' | 'WARN' | 'ERROR' | 'CRITICAL', message: string): void => {
+    const timestamp: string = new Date().toISOString();
+    const entry: string = `${timestamp} - [${level.toUpperCase()}]: ${message}\n`;
     
     // Persistent write attempt (Handles cloud ephemeral storage gracefully)
     try {
         auditLogStream.write(entry);
-    } catch (err) {
+    } catch (err: any) {
         // Fallback to console if file-system is strictly locked
         console.error(`[AUDIT_LOG_FAILURE] Storage write error: ${err.message}`);
     }
@@ -70,6 +69,6 @@ export const writeAuditLog = (level, message) => {
 };
 
 // INITIALIZATION: Confirming Audit Engine Readiness
-writeAuditLog('INFO', 'MapCap Audit Engine v1.5.5 Synchronized for Cloud Deployment.');
+writeAuditLog('INFO', 'MapCap Audit Engine v1.7.5 Synchronized for Cloud Deployment.');
 
 export default { auditLogStream, writeAuditLog };
