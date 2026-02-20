@@ -1,10 +1,15 @@
 /**
- * MISSION-CRITICAL: PROJECT INTEGRITY & SECURITY ENFORCEMENT
+ * MISSION-CRITICAL: PROJECT INTEGRITY & SECURITY ENFORCEMENT v1.7.5 (TS)
  * -------------------------------------------------------------------------
  * LEAD ARCHITECT: EslaM-X | AppDev @Map-of-Pi
- * VERSION: 1.8.0 (Synchronized with v1.7.x Stability)
+ * VERSION: Synchronized with v1.7.x Stability Standards
  * SECURITY COMPLIANCE: Daniel's Node.js Standard & Pi Network Ecosystem Spec
  * -------------------------------------------------------------------------
+ * TS CONVERSION LOG:
+ * - Formalized JSON parsing for package.json with interface-like validation.
+ * - Implemented strict versioning and engine checks for ESM environments.
+ * - Enforced Version Control Security (VCS) policies for secret protection.
+ * - Synchronized runtime scripts for Vercel/Termux deployment parity.
  */
 
 import fs from 'fs';
@@ -15,32 +20,33 @@ describe('Project Integrity - Architecture & Security Policy', () => {
   const packagePath = path.resolve(process.cwd(), 'package.json');
   const gitignorePath = path.resolve(process.cwd(), '.gitignore');
   
+  // Type-safe manifest reading
   const pkg = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
   const gitignoreContent = fs.readFileSync(gitignorePath, 'utf8');
 
   /**
    * SECTION 1: MANIFEST VALIDATION (package.json)
-   * Verifies that the project skeleton remains consistent with production standards.
+   * Ensures the project skeleton remains consistent with production standards.
    */
   describe('Dependency & Metadata Guard', () => {
 
     test('Metadata: Should align with stabilized v1.7.x and ESM standards', () => {
       /**
        * VERSION SYNC: Updated to 1.7.0 to match current deployment cycle.
-       * Ensuring the package name and type remain constant for Frontend compatibility.
+       * Requirement: Name and type must remain constant for Frontend/Service discovery.
        */
       expect(pkg.name).toBe('mapcap-ipo-backend');
       expect(pkg.version).toBe('1.7.0'); 
       expect(pkg.type).toBe('module');  
     });
 
-    test('Runtime: Must enforce Node.js >=18.0.0 for Top-level Await support', () => {
-      // Compliance with modern Vercel/Node runtimes
-      expect(pkg.engines.node).toBe('>=18.0.0');
+    test('Runtime: Must enforce Node.js >=18.0.0 for Top-level Await and stability', () => {
+      // Compliance with modern Vercel/AWS/Node runtimes in 2026
+      expect(pkg.engines?.node).toBe('>=18.0.0');
     });
 
     test('Stack: Should verify presence of Core Financial & Security libraries', () => {
-      const deps = pkg.dependencies;
+      const deps = pkg.dependencies || {};
       const coreStack = ['helmet', 'mongoose', 'node-cron', 'jsonwebtoken', 'dotenv'];
       
       coreStack.forEach(dep => {
@@ -48,15 +54,16 @@ describe('Project Integrity - Architecture & Security Policy', () => {
       });
     });
 
-    test('Scripts: Should define standardized Start/Dev entry points for Vercel/Termux', () => {
-      expect(pkg.scripts.start).toBe('node server.js');
-      expect(pkg.scripts.dev).toBe('nodemon server.js');
+    test('Scripts: Should define standardized entry points for Vercel/Termux', () => {
+      // Crucial for deployment automation
+      expect(pkg.scripts?.start).toBe('node server.js');
+      expect(pkg.scripts?.dev).toBe('nodemon server.js');
     });
   });
 
   /**
    * SECTION 2: VERSION CONTROL SECURITY (VCS Gate)
-   * Ensures critical secrets and junk files never reach the repository.
+   * Prevents critical secrets and local junk from reaching the repository.
    */
   describe('Version Control Security Policy', () => {
 
