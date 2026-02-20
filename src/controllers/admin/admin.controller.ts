@@ -7,8 +7,8 @@
  * TS STABILIZATION LOG:
  * - Resolved TS2835: Integrated mandatory .js extensions for ESM compatibility.
  * - Resolved TS2307: Fixed module resolution for internal dependencies.
- * - Integrity Guard: Preserved all JSON keys (e.g., totalRefundedPi) to 
- * ensure zero-code changes required in Frontend components.
+ * - Integrity Guard: Preserved all JSON keys (e.g., totalRefundedPi, refundsIssued) 
+ * to ensure zero-code changes required in Frontend components.
  */
 
 import { Request, Response } from 'express';
@@ -38,7 +38,7 @@ class AdminController {
      * @method triggerFinalSettlement
      * @description Orchestrates manual IPO finalization and Whale Trim-back operations.
      * @access Private / Admin Only
-     * @returns Promise<Response>
+     * @returns Promise<any>
      */
     static async triggerFinalSettlement(req: Request, res: Response): Promise<any> {
         try {
@@ -100,6 +100,7 @@ class AdminController {
     /**
      * @method triggerVestingCycle
      * @description Manual trigger for the 10% monthly MapCap vesting release for Pioneers.
+     * @access Private / Admin Only
      */
     static async triggerVestingCycle(req: Request, res: Response): Promise<any> {
         try {
@@ -120,6 +121,7 @@ class AdminController {
     /**
      * @method getSystemStatus
      * @description Retrieves operational health and investor metrics.
+     * @access Private / Admin Only
      */
     static async getSystemStatus(req: Request, res: Response): Promise<any> {
         try {
@@ -142,6 +144,7 @@ class AdminController {
     /**
      * @method getAuditLogs
      * @description Fetches administrative audit trails for compliance reporting.
+     * @access Private / Admin Only
      */
     static async getAuditLogs(req: Request, res: Response): Promise<any> {
         return ResponseHelper.success(res, "Administrative audit logs retrieved.", { 
