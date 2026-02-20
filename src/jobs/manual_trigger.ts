@@ -1,20 +1,24 @@
 /**
  * Manual Trigger - Administrative Command Center v1.7.5 (TS)
- * ---------------------------------------------------------
+ * -------------------------------------------------------------------------
  * Lead Architect: EslaM-X | AppDev @Map-of-Pi
  * Project: MapCap Ecosystem | Spec: Daniel's Admin Protocol
- * ---------------------------------------------------------
+ * -------------------------------------------------------------------------
  * ARCHITECTURAL PURPOSE:
  * A standalone CLI utility for manual orchestration of high-stakes 
  * financial jobs. This tool fulfills Philip's requirement for 
  * post-IPO settlement before liquidity is transitioned to the LP.
+ * * TS STABILIZATION LOG:
+ * - Resolved TS2554: Aligned with single-argument SettlementJob signature.
+ * - Resolved TS2551/TS2339: Synchronized result properties with ISettlementResult.
+ * - Enforced strict Type-Safety for CLI Action enums.
  */
 
-import Investor from '../models/investor.model.js';
-import SettlementJob from './settlement.job.js';
+import Investor from '../models/investor.model';
+import SettlementJob from './settlement.job';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
-import { writeAuditLog } from '../config/logger.js';
+import { writeAuditLog } from '../config/logger';
 
 // Environment context for standalone execution
 dotenv.config();
@@ -30,62 +34,77 @@ enum AdminAction {
 
 /**
  * @function runManualAction
- * @desc Parses CLI arguments to execute targeted administrative tasks.
+ * @description Parses CLI arguments to execute targeted administrative tasks.
  * Usage: node dist/jobs/manual_trigger.js --action=WHALE_REFUND
  */
 const runManualAction = async (): Promise<void> => {
     const actionArg: string | undefined = process.argv.find(arg => arg.startsWith('--action='));
-    const action: string | null = actionArg ? actionArg.split('=')[1] : null;
+    const actionValue: string | null = actionArg ? actionArg.split('=')[1] : null;
 
-    if (!action) {
+    if (!actionValue) {
         console.error("❌ Usage Error: Define an action flag. Example: --action=WHALE_REFUND");
         process.exit(1);
     }
 
-    console.log(`--- [ADMIN_COMMAND] Manual Engine Activated: ${action} ---`);
+    console.log(`--- [ADMIN_COMMAND] Manual Engine Activated: ${actionValue} ---`);
 
     try {
-        // SECURE HANDSHAKE: Database Connection
+        // SECURE HANDSHAKE: Database Connection initialization
         if (!process.env.MONGO_URI) throw new Error("MONGO_URI is missing in .env");
         
         await mongoose.connect(process.env.MONGO_URI);
         console.log("✅ [DATABASE] Ledger synchronization successful.");
 
-        switch (action as AdminAction) {
+        // Type-safe action mapping
+        const currentAction = actionValue as AdminAction;
+
+        switch (currentAction) {
             case AdminAction.WHALE_REFUND:
                 /**
                  * POST-IPO SETTLEMENT EXECUTION:
-                 * Manually triggers the 10% ceiling enforcement.
+                 * Manually triggers the 10% ceiling enforcement for whale accounts.
                  */
                 console.log("🚀 [TASK] Initiating Post-IPO Final Whale Settlement...");
                 
-                const allInvestors = await Investor.find({ totalPiContributed: { $gt: 0 } });
-                const totalPiPool: number = allInvestors.reduce((sum, inv) => sum + inv.totalPiContributed, 0);
+                const aggregation = await Investor.aggregate([
+                    { $group: { _id: null, total: { $sum: "$totalPiContributed" } } }
+                ]);
+                
+                const totalPiPool: number = aggregation.length > 0 ? aggregation[0].total : 0;
                 
                 if (totalPiPool === 0) {
                     console.warn("⚠️ [ABORT] Liquidity Pool is currently empty. No action required.");
                     break;
                 }
 
-                // Invoking the Settlement Engine
-                const result = await SettlementJob.executeWhaleTrimBack(allInvestors, totalPiPool);
+                /**
+                 * EXECUTE SETTLEMENT ENGINE:
+                 * Using the stabilized single-parameter signature.
+                 */
+                const result = await SettlementJob.executeWhaleTrimBack(totalPiPool);
                 
-                // Daniel's Compliance Requirement: Log all CLI interventions
-                writeAuditLog('WARN', `MANUAL_CLI_OVERRIDE: Settlement executed. Total Refunded: ${result.totalRefundedPi} Pi.`);
-                console.log(`✅ [SUCCESS] Settlement Complete. Capped ${result.refundCount} whale accounts.`);
+                /**
+                 * DANIEL'S COMPLIANCE REQUIREMENT:
+                 * Log all manual CLI interventions with updated property mapping.
+                 */
+                writeAuditLog('WARN', `MANUAL_CLI_OVERRIDE: Settlement executed. Total Refunded: ${result.totalRefunded} Pi.`);
+                console.log(`✅ [SUCCESS] Settlement Complete. Capped ${result.whalesImpacted} whale accounts.`);
                 break;
 
             case AdminAction.PULSE_CHECK:
-                // Real-time metrics for Philip's "Water-Level" verification
+                /**
+                 * REAL-TIME AUDIT:
+                 * Generates instant metrics for Philip's "Water-Level" verification.
+                 */
                 const count: number = await Investor.countDocuments();
-                const aggregation = await Investor.aggregate([{ $group: { _id: null, total: { $sum: "$totalPiContributed" } } }]);
+                const auditAgg = await Investor.aggregate([{ $group: { _id: null, total: { $sum: "$totalPiContributed" } } }]);
                 
                 console.log(`📊 [AUDIT] Registered Pioneers: ${count}`);
-                console.log(`📊 [AUDIT] Total Global Liquidity: ${aggregation[0]?.total || 0} Pi`);
+                console.log(`📊 [AUDIT] Total Global Liquidity: ${auditAgg[0]?.total || 0} Pi`);
                 break;
 
             default:
-                console.error(`❌ [ERROR] Unsupported action: ${action}.`);
+                console.error(`❌ [ERROR] Unsupported action: ${actionValue}.`);
         }
 
     } catch (error: any) {
