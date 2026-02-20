@@ -1,41 +1,45 @@
 /**
- * Admin Authentication Middleware v1.5.4
+ * Admin Authentication Middleware v1.7.5 (TS)
  * -------------------------------------------------------------------------
  * Lead Architect: EslaM-X | AppDev @Map-of-Pi
  * Project: MapCap Ecosystem | Spec: Daniel's Security & Compliance Standard
  * -------------------------------------------------------------------------
- * ARCHITECTURAL ROLE:
- * Acts as the Primary Security Gatekeeper for the Administrative Layer.
- * Validates session integrity before permitting high-stakes operations 
- * like Whale Capping audits or Asset Settlement.
+ * TS CONVERSION LOG:
+ * - Added Express Request, Response, and NextFunction types.
+ * - Formalized the Extraction Logic to handle typed headers.
+ * - Maintained the 'audit_reference' key for Frontend error handling.
  */
 
-const adminAuth = (req, res, next) => {
+import { Request, Response, NextFunction } from 'express';
+
+/**
+ * @function adminAuth
+ * @desc Acts as the Primary Security Gatekeeper for the Administrative Layer.
+ */
+const adminAuth = (req: Request, res: Response, next: NextFunction): void | Response => {
     /**
      * SECURITY LAYER: MULTI-SOURCE EXTRACTION
-     * Fetches 'x-admin-token' from Headers (Postman/Axios), Cookies (Browser), 
-     * or even Query Params (for quick debugging/demo if enabled).
+     * Robust extraction to support Browser, Mobile, and CI/CD testing tools.
      */
     const adminToken = 
-        req.headers['x-admin-token'] || 
-        req.headers['X-Admin-Token'] || 
+        (req.headers['x-admin-token'] as string) || 
+        (req.headers['X-Admin-Token'] as string) || 
         (req.cookies && req.cookies.adminToken) ||
-        req.query.admin_token; // Added for flexibility during Demo/MVP phase
+        (req.query.admin_token as string);
 
     /**
      * INTEGRITY VERIFICATION:
      * Cross-references against the 'ADMIN_SECRET_TOKEN' in environment configs.
-     * Note: In MVP/Testing environment, if the secret is missing, we log a warning.
      */
-    const SECRET = process.env.ADMIN_SECRET_TOKEN;
+    const SECRET: string | undefined = process.env.ADMIN_SECRET_TOKEN;
     
-    // Safety check: If no secret is defined in .env, we block by default to protect the system.
+    // Safety check: Block by default if environment is misconfigured.
     if (!SECRET) {
         console.error("[SECURITY_CRITICAL]: ADMIN_SECRET_TOKEN is not defined in environment variables!");
         return res.status(500).json({ success: false, message: "Security Configuration Error." });
     }
 
-    const IS_AUTHORIZED = adminToken && adminToken === SECRET;
+    const IS_AUTHORIZED: boolean = adminToken !== undefined && adminToken === SECRET;
 
     if (IS_AUTHORIZED) {
         /**
@@ -48,10 +52,9 @@ const adminAuth = (req, res, next) => {
 
     /**
      * THREAT MITIGATION:
-     * Returns a 403 Forbidden with a unique Audit Reference to assist 
-     * in tracking unauthorized access attempts without leaking system info.
+     * Returns a 403 Forbidden with a unique Audit Reference for tracking.
      */
-    const auditRef = `MAPCAP-SEC-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
+    const auditRef: string = `MAPCAP-SEC-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
     console.warn(`[SECURITY_ALERT] Unauthorized Admin access blocked | IP: ${req.ip} | Ref: ${auditRef}`);
 
     return res.status(403).json({ 
