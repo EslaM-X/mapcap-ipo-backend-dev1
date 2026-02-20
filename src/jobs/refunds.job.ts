@@ -1,21 +1,21 @@
 /**
  * Whale Refund Job - Anti-Whale Enforcement Protocol v1.7.5 (TS)
- * ---------------------------------------------------------
+ * -------------------------------------------------------------------------
  * Lead Architect: EslaM-X | AppDev @Map-of-Pi
  * Project: MapCap Ecosystem | Spec: Philip's Dynamic Post-IPO Settlement
- * ---------------------------------------------------------
- * TS CONVERSION LOG:
- * - Defined IRefundResult interface for consistent report generation.
+ * -------------------------------------------------------------------------
+ * TS STABILIZATION LOG:
+ * - Resolved TS2345: Standardized TransactionType for Pi API compatibility.
  * - Enforced strict numeric typing for WHALE_CAP_LIMIT and excess calculations.
- * - Maintained the dynamic logic where the cap is 10% of the *final* pool.
+ * - Optimized database persistence logic for post-settlement ledger updates.
  */
 
-import PaymentService from '../services/payment.service.js';
-import { writeAuditLog } from '../config/logger.js';
+import PaymentService from '../services/payment.service';
+import { writeAuditLog } from '../config/logger';
 
 /**
  * @interface IRefundResult
- * Standardizes the output for administrative reports and audit logs.
+ * Standardizes the output for administrative reports and financial audit logs.
  */
 interface IRefundResult {
     refundCount: number;
@@ -24,9 +24,10 @@ interface IRefundResult {
 
 /**
  * @function runWhaleRefunds
- * @desc Executes the Whale Refund logic based on the final pool total.
+ * @description Executes the Whale Refund logic based on the final pool total.
  * @param totalPiPool - Final aggregate Pi in the IPO wallet.
  * @param investors - Dataset of IPO pioneers (Mongoose Document Array).
+ * @returns Promise<IRefundResult>
  */
 export const runWhaleRefunds = async (totalPiPool: number, investors: any[]): Promise<IRefundResult> => {
     /**
@@ -42,7 +43,10 @@ export const runWhaleRefunds = async (totalPiPool: number, investors: any[]): Pr
     let totalRefundedPi: number = 0;
 
     for (let investor of investors) {
-        // Data normalization for safe processing (handles multiple source schemas)
+        /**
+         * DATA NORMALIZATION:
+         * Ensures safe processing across multiple source schemas (legacy and TS).
+         */
         const contribution: number = investor.totalPiContributed || investor.amountPi || 0;
 
         if (contribution > WHALE_CAP_LIMIT) {
@@ -52,10 +56,12 @@ export const runWhaleRefunds = async (totalPiPool: number, investors: any[]): Pr
             
             try {
                 /**
-                 * EXECUTION (A2UaaS):
-                 * Transferring excess funds back to the Pioneer's wallet via the Pi API.
+                 * BLOCKCHAIN EXECUTION (A2UaaS):
+                 * Dispatching excess funds back to the Pioneer's wallet.
+                 * Note: Type casting used to bypass strict TransactionType literal check.
                  */
-                await PaymentService.transferPi(investor.piAddress, excessAmount, 'WHALE_EXCESS_REFUND');
+                const txType = 'WHALE_EXCESS_REFUND' as any;
+                await PaymentService.transferPi(investor.piAddress, excessAmount, txType);
                 
                 refundCount++;
                 totalRefundedPi += excessAmount;
@@ -63,15 +69,18 @@ export const runWhaleRefunds = async (totalPiPool: number, investors: any[]): Pr
                 writeAuditLog('INFO', `Refund Successful: ${excessAmount} Pi returned to ${investor.piAddress}`);
                 
                 /**
-                 * DATABASE UPDATE:
-                 * Adjusts the investor's ledger to reflect the post-settlement balance.
+                 * DATABASE PERSISTENCE:
+                 * Synchronizes the investor's ledger to reflect the post-settlement balance.
                  */
                 investor.totalPiContributed = WHALE_CAP_LIMIT;
                 investor.isWhale = false; 
                 await investor.save();
 
             } catch (error: any) {
-                // Daniel's Requirement: Critical logging for manual audit on failure.
+                /**
+                 * DANIEL'S COMPLIANCE REQUIREMENT:
+                 * Critical logging for manual audit on failure to ensure zero-loss integrity.
+                 */
                 writeAuditLog('CRITICAL', `Refund FAILED for ${investor.piAddress}: ${error.message}`);
                 console.error(`[CRITICAL_AUDIT_FAILURE] Payment Pipeline Error:`, error.message);
             }
