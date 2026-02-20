@@ -1,16 +1,13 @@
 /**
- * DB Cleanup Tool - Development Utility v1.6.1
+ * DB Cleanup Tool - Development Utility v1.7.5 (TS)
  * -------------------------------------------------------------------------
  * Lead Architect: EslaM-X | AppDev @Map-of-Pi
  * Project: MapCap Ecosystem | Utility: Sandbox Reset Protocol
  * -------------------------------------------------------------------------
- * ARCHITECTURAL ROLE:
- * Provides a streamlined mechanism to purge the Investor Ledger for 
- * fresh testing cycles. Engineered for high-speed local development.
- * * SECURITY WARNING: 
- * This script is destructive and should only be executed in 'development'
- * or 'staging' environments. Never run against the Production Mainnet.
- * -------------------------------------------------------------------------
+ * TS CONVERSION LOG:
+ * - Implemented Promise-based void return type for the execution wrapper.
+ * - Added a critical safety check for MONGO_URI presence.
+ * - Maintained destructive operation warnings for operational safety.
  */
 
 import mongoose from 'mongoose';
@@ -23,18 +20,28 @@ dotenv.config();
  * @function clearDatabase
  * @desc Irreversibly deletes all records from the Investor collection.
  */
-const clearDatabase = async () => {
+const clearDatabase = async (): Promise<void> => {
     try {
+        /**
+         * SAFETY GUARD:
+         * Verify environment configuration before establishing a connection.
+         */
+        const MONGO_URI: string | undefined = process.env.MONGO_URI;
+
+        if (!MONGO_URI) {
+            throw new Error("MONGO_URI is not defined in environment variables.");
+        }
+
         /**
          * INITIALIZATION:
          * Connecting to the MongoDB instance defined in the .env configuration.
          */
-        await mongoose.connect(process.env.MONGO_URI);
+        await mongoose.connect(MONGO_URI);
         console.log("⚠️  [DB_TOOL_WARNING] Initiating deep purge of the Investor Ledger...");
         
         /**
          * EXECUTION:
-         * Utilizing deleteMany({}) for atomic mass deletion.
+         * Utilizing deleteMany({}) for atomic mass deletion of the collection.
          */
         const result = await Investor.deleteMany({});
         
@@ -42,7 +49,7 @@ const clearDatabase = async () => {
         
         // Ensure graceful process termination
         process.exit(0);
-    } catch (error) {
+    } catch (error: any) {
         /**
          * ERROR INTERCEPTOR:
          * Logs failure during the connection or deletion sequence.
