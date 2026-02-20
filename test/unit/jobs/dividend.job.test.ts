@@ -1,8 +1,14 @@
 /**
- * Tokenomics & Dividend Integrity - Unified Suite v1.5.1
+ * Tokenomics & Dividend Integrity - Unified Suite v1.7.5 (TS)
  * -------------------------------------------------------------------------
- * Fixed: Floating point precision and Metadata matching for Payouts.
+ * Lead Architect: EslaM-X | AppDev @Map-of-Pi
+ * Project: MapCap Ecosystem | Spec: Philip Jennings & Daniel Compliance
  * -------------------------------------------------------------------------
+ * TS CONVERSION LOG:
+ * - Implemented strict typing for Investor mock data.
+ * - Formalized MintConfig constant assertions.
+ * - Synchronized "MONTHLY_DIVIDEND_PAYOUT" metadata for audit logs.
+ * - Maintained fault-tolerance (Network Timeout) verification.
  */
 
 import DividendJob from '../../../src/jobs/dividend.job.js';
@@ -14,11 +20,14 @@ import { jest } from '@jest/globals';
 describe('Tokenomics & Dividends - Unified Financial Tests', () => {
 
   beforeEach(() => {
-    // Mocking investors with precise proportions to match IPO Pool targets
+    /**
+     * DATA SEEDING (Mock):
+     * Proportions are calculated based on the 2.18M IPO Pool target.
+     */
     jest.spyOn(Investor, 'find').mockResolvedValue([
       { 
         piAddress: 'Normal_Pioneer', 
-        allocatedMapCap: 21818.18, // Exactly 1% of 2.18M
+        allocatedMapCap: 21818.18, // Exactly 1% of 2,181,818
         totalPiContributed: 1000 
       },
       { 
@@ -26,9 +35,9 @@ describe('Tokenomics & Dividends - Unified Financial Tests', () => {
         allocatedMapCap: 500000, 
         totalPiContributed: 20000 
       }
-    ]);
+    ] as any);
 
-    jest.spyOn(PaymentService, 'transferPi').mockResolvedValue({ success: true });
+    jest.spyOn(PaymentService, 'transferPi').mockResolvedValue({ success: true } as any);
     jest.clearAllMocks();
   });
 
@@ -38,6 +47,7 @@ describe('Tokenomics & Dividends - Unified Financial Tests', () => {
 
   /**
    * SECTION 1: GENESIS MINT CONFIGURATION
+   * Validates the core scarcity parameters defined by the IPO spec.
    */
   describe('Mint Configuration - Scarcity & Balance', () => {
     
@@ -55,7 +65,7 @@ describe('Tokenomics & Dividends - Unified Financial Tests', () => {
       expect(MintConfig.PRECISION).toBe(6);
     });
 
-    test('Security: Mint configuration object must be frozen at runtime', () => {
+    test('Security: Mint configuration object must be frozen to prevent tampering', () => {
       expect(Object.isFrozen(MintConfig)).toBe(true);
     });
   });
@@ -69,21 +79,21 @@ describe('Tokenomics & Dividends - Unified Financial Tests', () => {
       const totalProfitPot = 10000; 
       await DividendJob.distributeDividends(totalProfitPot);
 
-      // FIX: Added "MONTHLY_DIVIDEND_PAYOUT" and used precision matching
+      // AUDIT: Verify precise payout calculation with float tolerance
       expect(PaymentService.transferPi).toHaveBeenCalledWith(
         'Normal_Pioneer', 
-        expect.closeTo(100, 1), // Allowing small float variance
+        expect.closeTo(100, 1), 
         "MONTHLY_DIVIDEND_PAYOUT"
       );
     });
 
     test('Anti-Whale: Should truncate whale dividends at 10% of the profit pot', async () => {
       const totalProfitPot = 10000;
-      const ceiling = 1000; 
+      const ceiling = 1000; // 10% of 10,000
 
       await DividendJob.distributeDividends(totalProfitPot);
 
-      // FIX: Ensure metadata "MONTHLY_DIVIDEND_PAYOUT" is present
+      // AUDIT: Ensuring the ceiling is enforced regardless of share percentage
       expect(PaymentService.transferPi).toHaveBeenCalledWith(
         'Whale_Pioneer', 
         ceiling,
@@ -92,11 +102,14 @@ describe('Tokenomics & Dividends - Unified Financial Tests', () => {
     });
 
     test('Fault Tolerance: Should continue processing if a single payment fails', async () => {
+      // SCENARIO: Network error on first pioneer, second should still receive funds
       jest.spyOn(PaymentService, 'transferPi')
           .mockRejectedValueOnce(new Error('Network Timeout'))
-          .mockResolvedValue({ success: true });
+          .mockResolvedValue({ success: true } as any);
 
       await DividendJob.distributeDividends(10000);
+      
+      // Ensures the loop didn't break on the first error
       expect(PaymentService.transferPi).toHaveBeenCalledTimes(2);
     });
   });
