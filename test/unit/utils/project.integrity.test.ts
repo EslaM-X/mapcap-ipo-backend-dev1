@@ -33,10 +33,10 @@ describe('Project Integrity - Architecture & Security Policy', () => {
     test('Metadata: Should align with stabilized v1.7.x and ESM standards', () => {
       /**
        * AUDIT: Ensuring the backend remains identifiable by the Frontend.
-       * Baseline version set to 1.7.0 to maintain ecosystem compatibility.
+       * Baseline version set to 1.7.5 to maintain ecosystem compatibility.
        */
       expect(pkg.name).toBe('mapcap-ipo-backend');
-      expect(pkg.version).toBe('1.7.0'); 
+      expect(pkg.version).toBe('1.7.5'); 
       expect(pkg.type).toBe('module');  
     });
 
