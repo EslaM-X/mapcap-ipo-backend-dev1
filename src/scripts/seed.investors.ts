@@ -1,20 +1,18 @@
 /**
- * Seed Script - Financial Data Provisioning v1.1.1
+ * Seed Script - Financial Data Provisioning v1.7.5 (TS)
  * -------------------------------------------------------------------------
  * Lead Architect: EslaM-X | AppDev @Map-of-Pi
  * Project: MapCap Ecosystem | Spec: Stress Testing Anti-Whale Logic
  * -------------------------------------------------------------------------
- * ARCHITECTURAL ROLE:
- * Populates the 'investors' collection with diverse profiles to verify:
- * 1. Linear 10-month vesting algorithm accuracy.
- * 2. The 10% Whale-Cap advisory flagging.
- * 3. Schema index performance for O(1) high-speed lookups.
- * -------------------------------------------------------------------------
+ * TS CONVERSION LOG:
+ * - Implemented Partial<IInvestor> for type-safe mock data injection.
+ * - Formalized test cases to validate 'Whale-Shield' and 'Vesting' logic.
+ * - Preserved atomic delete-and-insert sequence for testing purity.
  */
 
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
-import Investor from '../models/investor.model.js';
+import Investor, { IInvestor } from '../models/investor.model.js';
 
 // Load environment variables for secure database connectivity
 dotenv.config();
@@ -23,10 +21,16 @@ dotenv.config();
  * @function seedData
  * @desc Orchestrates the injection of strategic mock data for ecosystem testing.
  */
-const seedData = async () => {
+const seedData = async (): Promise<void> => {
     try {
         console.log("🚀 [SEED_ENGINE] Initializing connection to Financial Ledger...");
-        await mongoose.connect(process.env.MONGO_URI);
+        
+        const MONGO_URI: string | undefined = process.env.MONGO_URI;
+        if (!MONGO_URI) {
+            throw new Error("MONGO_URI is not defined in environment variables.");
+        }
+
+        await mongoose.connect(MONGO_URI);
         
         // CLEANUP: Resetting the collection to ensure a pure testing environment
         await Investor.deleteMany({});
@@ -36,7 +40,7 @@ const seedData = async () => {
          * TEST SUITE: DIVERSE INVESTOR PROFILES
          * Meticulously designed to challenge the 'sharePct' virtual logic.
          */
-        const mockInvestors = [
+        const mockInvestors: Partial<IInvestor>[] = [
             {
                 // CASE 1: Standard Pioneer - Validating baseline contribution logic
                 piAddress: "GBV_PIONEER_ALPHA_01",
@@ -73,7 +77,7 @@ const seedData = async () => {
         
         // Graceful exit for CI/CD or Manual CLI execution
         process.exit(0);
-    } catch (error) {
+    } catch (error: any) {
         /**
          * EXCEPTION INTERCEPTOR:
          * Logs failure during the seeding process for developer audit.
