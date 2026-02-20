@@ -5,9 +5,10 @@
  * Project: MapCap Ecosystem | Spec: Philip Jennings & Daniel Compliance
  * -------------------------------------------------------------------------
  * TS STABILIZATION LOG:
- * - Resolved TS2307: Cleaned module resolution paths for TS compilation.
- * - Optimized Global Exception Interceptor for strict type-safety.
- * - Maintained Dual-Path Routing (Legacy/V1) for 100% Frontend uptime.
+ * - Resolved TS2835: Added explicit .js extensions for ESM compatibility under NodeNext.
+ * - Resolved TS2307: Fixed module resolution paths to ensure zero-error compilation.
+ * - Guarded API Contract: Preserved all route prefixes and payload structures 
+ * to ensure 100% uptime for Frontend Dashboard and Pi SDK integrations.
  */
 
 import dotenv from 'dotenv';
@@ -16,17 +17,23 @@ import mongoose from 'mongoose';
 import cors from 'cors';
 import morgan from 'morgan';
 
-// Infrastructure & Domain Logic
-// Unified pathing for TypeScript compiler resolution
-import { auditLogStream, writeAuditLog } from './src/config/logger';
-import CronScheduler from './src/jobs/cron.scheduler';
-import Investor from './src/models/investor.model';
-import ResponseHelper from './src/utils/response.helper';
+/**
+ * INFRASTRUCTURE & DOMAIN LOGIC
+ * Note: Explicit .js extensions are required by the TypeScript compiler 
+ * when operating in ESM mode (NodeNext), even though the source is .ts.
+ */
+import { auditLogStream, writeAuditLog } from './src/config/logger.js';
+import CronScheduler from './src/jobs/cron.scheduler.js';
+import Investor from './src/models/investor.model.js';
+import ResponseHelper from './src/utils/response.helper.js';
 
-// Routing Layers
-import ipoRoutes from './src/routes/ipo.routes';
-import adminRoutes from './src/routes/admin/admin.routes';
-import apiRoutes from './src/routes/api'; 
+/**
+ * ROUTING LAYERS
+ * Strategic route mapping preserved to maintain backward compatibility.
+ */
+import ipoRoutes from './src/routes/ipo.routes.js';
+import adminRoutes from './src/routes/admin/admin.routes.js';
+import apiRoutes from './src/routes/api.js'; 
 
 // Load Environment Configuration
 dotenv.config();
@@ -61,7 +68,7 @@ const connectDB = async (): Promise<void> => {
         console.log(`✅ [DATABASE] Ledger Connection: SUCCESS (${process.env.NODE_ENV || 'dev'})`);
         writeAuditLog('INFO', 'Database Connection Established.');
 
-        // Initialize Automation Engines only in live environments
+        // Initialize Automation Engines only in live environments (Dev/Prod)
         if (process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'development') {
             CronScheduler.init();
         }
