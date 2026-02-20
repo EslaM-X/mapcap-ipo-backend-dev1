@@ -5,16 +5,22 @@
  * Project: MapCap Ecosystem | Spec: Philip's Post-IPO & Daniel Compliance
  * -------------------------------------------------------------------------
  * TS STABILIZATION LOG:
- * - Resolved TS2322: Changed return types to Promise<any> for Express response compatibility.
- * - Enforced strict Type-Safety on aggregation results and financial reports.
- * - Preserved all function signatures to maintain 1:1 Frontend mapping.
+ * - Resolved TS2835: Integrated mandatory .js extensions for ESM compatibility.
+ * - Resolved TS2307: Fixed module resolution for internal dependencies.
+ * - Integrity Guard: Preserved all JSON keys (e.g., totalRefundedPi) to 
+ * ensure zero-code changes required in Frontend components.
  */
 
 import { Request, Response } from 'express';
-import Investor from '../../models/investor.model';
-import SettlementJob from '../../jobs/settlement.job'; 
-import VestingJob from '../../jobs/vesting.job';
-import ResponseHelper from '../../utils/response.helper';
+
+/**
+ * INTERNAL MODULE IMPORTS
+ * Extensions (.js) are required for NodeNext module resolution.
+ */
+import Investor from '../../models/investor.model.js';
+import SettlementJob from '../../jobs/settlement.job.js'; 
+import VestingJob from '../../jobs/vesting.job.js';
+import ResponseHelper from '../../utils/response.helper.js';
 
 /**
  * @interface SettlementReport
@@ -32,6 +38,7 @@ class AdminController {
      * @method triggerFinalSettlement
      * @description Orchestrates manual IPO finalization and Whale Trim-back operations.
      * @access Private / Admin Only
+     * @returns Promise<Response>
      */
     static async triggerFinalSettlement(req: Request, res: Response): Promise<any> {
         try {
@@ -70,7 +77,8 @@ class AdminController {
 
             /**
              * PHASE 3: FRONTEND SYNCHRONIZATION
-             * Returns standardized JSON for the AdminDashboard.jsx component.
+             * Returns standardized JSON exactly as expected by AdminDashboard.jsx.
+             * Keys maintained: refundsIssued, totalRefundedPi.
              */
             return ResponseHelper.success(res, "Post-IPO settlement executed successfully.", {
                 executionTimestamp: new Date().toISOString(),
