@@ -1,25 +1,23 @@
 /**
- * Validation Middleware - Financial Logic Guard v1.2.5
+ * Validation Middleware - Financial Logic Guard v1.7.5 (TS)
  * ---------------------------------------------------------
  * Lead Architect: EslaM-X | AppDev @Map-of-Pi
  * Project: MapCap Ecosystem | Spec: Philip's Financial Compliance
  * ---------------------------------------------------------
- * ARCHITECTURAL ROLE:
- * Intercepts incoming requests to validate financial parameters 
- * before they reach the service layer. This ensures the integrity 
- * of the 'Water-Level' and prevents logic-based exploits.
- * ---------------------------------------------------------
+ * TS CONVERSION LOG:
+ * - Implemented Express middleware typing (Request, Response, NextFunction).
+ * - Added strict numeric parsing for 'percentage' to ensure financial accuracy.
+ * - Maintained standardized error responses for Frontend Interceptor parity.
  */
 
+import { Request, Response, NextFunction } from 'express';
 import ResponseHelper from '../utils/response.helper.js';
 
 /**
  * @function validateWithdrawal
  * @desc Ensures withdrawal parameters adhere to the legal 0.01% - 100% range.
- * This supports Philip's flexible withdrawal specification [Page 5].
- * @access Global Pipeline
  */
-export const validateWithdrawal = (req, res, next) => {
+export const validateWithdrawal = (req: Request, res: Response, next: NextFunction): void | Response => {
     const { percentage, userWallet } = req.body;
 
     // 1. DATA INTEGRITY CHECK: Verify all required fields are present
@@ -28,12 +26,12 @@ export const validateWithdrawal = (req, res, next) => {
     }
 
     // 2. RANGE VALIDATION: Enforce numerical boundaries for Pi liquidity safety
-    const percentNum = parseFloat(percentage);
+    const percentNum: number = parseFloat(percentage);
     
     if (isNaN(percentNum) || percentNum <= 0 || percentNum > 100) {
         /**
          * DANIEL'S AUDIT TRAIL: 
-         * Logs out-of-range attempts to identify potential bot activity or UI bugs.
+         * Logs out-of-range attempts to identify potential bot activity.
          */
         console.warn(`[VALIDATION_REJECTED] Out-of-range withdrawal: ${percentage}% from ${userWallet}`);
         
@@ -51,6 +49,10 @@ export const validateWithdrawal = (req, res, next) => {
 
 /**
  * SCALABILITY NOTE: 
- * Centralized for future validation modules (e.g., validateInvestment, validateAdminActions).
+ * Centralized for future validation modules.
  */
-export default { validateWithdrawal };
+const validateMiddleware = {
+    validateWithdrawal
+};
+
+export default validateMiddleware;
