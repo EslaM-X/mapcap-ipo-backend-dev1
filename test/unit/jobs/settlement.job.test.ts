@@ -5,7 +5,7 @@
  * ALIGNMENT: Automated Vesting & Whale Trim-Back (10% Rule Enforcement)
  * -------------------------------------------------------------------------
  * TS CONVERSION LOG:
- * - Defined strict interfaces for Investor Mocks (piAddress, totalPi, etc.).
+ * - Refined executeA2UPayout assertions to match 2-parameter signature.
  * - Synchronized 6-decimal floor truncation assertions.
  * - Formalized PaymentService.transferPi signature (Address, Amount).
  * - Enforced atomic integrity checks for vesting increments.
@@ -60,11 +60,14 @@ describe('Financial Lifecycle - Settlement & Vesting Unified Tests', () => {
       const result = await SettlementJob.executeWhaleTrimBack(totalPool);
       const expectedRefund = 5000.555555; 
 
-      // Assertion: Verify A2U payout parameters including the internal audit tag
+      /**
+       * COMPLIANCE v1.7.5: 
+       * Verified that executeA2UPayout strictly accepts (address, amount).
+       * Removed legacy third parameter to align with PayoutService signature.
+       */
       expect(PayoutService.executeA2UPayout).toHaveBeenCalledWith(
         expect.stringContaining('Whale_001'), 
-        expect.closeTo(expectedRefund, 6), 
-        "WHALE_EXCESS_REFUND"
+        expect.closeTo(expectedRefund, 6)
       );
       
       expect(mockWhale.totalPiContributed).toBe(threshold);
