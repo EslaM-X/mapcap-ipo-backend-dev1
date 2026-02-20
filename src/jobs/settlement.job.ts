@@ -5,19 +5,22 @@
  * Project: MapCap Ecosystem | Spec: Post-IPO Compliance
  * -------------------------------------------------------------------------
  * TS STABILIZATION LOG:
- * - Resolved TS2322: Enforced strict ISettlementResult return type.
- * - Resolved TS2345: Standardized PayoutService call mapping.
- * - Finalized Zero-Error Migration for Map-of-Pi Ecosystem.
+ * - Resolved TS2835: Appended mandatory .js extensions for NodeNext ESM compliance.
+ * - Resolved TS2322: Enforced strict ISettlementResult return type for Audit parity.
+ * - Resolved TS2345: Standardized PayoutService call mapping with explicit casting.
+ * - Integrity Guard: Preserved financial keys to ensure Zero-Breakage for 
+ * AdminDashboard.jsx telemetry and compliance reporting.
  */
 
-import Investor from '../models/investor.model';
-import PayoutService from '../services/payout.service';
-import { writeAuditLog } from '../config/logger';
-import MathHelper from '../utils/math.helper';
+import Investor from '../models/investor.model.js';
+import PayoutService from '../services/payout.service.js';
+import { writeAuditLog } from '../config/logger.js';
+import MathHelper from '../utils/math.helper.js';
 
 /**
  * @interface ISettlementResult
  * Contract for administrative report consistency and frontend telemetry.
+ * Ensures the Backend and Frontend agree on the structure of financial results.
  */
 interface ISettlementResult {
     success: boolean;
@@ -31,6 +34,7 @@ class SettlementJob {
      * @method executeWhaleTrimBack
      * @param totalPoolAmount - The total aggregated Pi in the IPO pool.
      * @description Trims individual holdings to 10% of the total pool and refunds excess.
+     * Logic aligned with Philip's Dynamic Liquidity Spec Page 4.
      * @returns Promise<ISettlementResult>
      */
     static async executeWhaleTrimBack(totalPoolAmount: number): Promise<ISettlementResult> {
@@ -40,7 +44,7 @@ class SettlementJob {
         const sanitizedPool: number = Number(totalPoolAmount) || 0;
         writeAuditLog('INFO', `Whale Settlement Triggered. Final Water-Level: ${sanitizedPool} Pi`);
 
-        // Mandatory 10% Ceiling Rule (Philip's Dynamic Liquidity Spec Page 4)
+        // Mandatory 10% Ceiling Rule: Ensures ecosystem decentralization.
         const threshold: number = sanitizedPool * 0.10; 
         let totalRefunded: number = 0;
         let whalesImpacted: number = 0;
@@ -65,7 +69,7 @@ class SettlementJob {
                     /**
                      * STEP 2: BLOCKCHAIN EXECUTION
                      * Refunding surplus Pi via A2U Protocol to the Pioneer's wallet.
-                     * Note: Type casting used for TransactionType compatibility.
+                     * Note: Type casting used for TransactionType compatibility within the service.
                      */
                     const txType = 'WHALE_EXCESS_REFUND' as any;
                     await PayoutService.executeA2UPayout(investor.piAddress, preciseRefund, txType);
@@ -99,6 +103,7 @@ class SettlementJob {
             /**
              * FINAL REPORT GENERATION:
              * Data structure preserved for AdminDashboard.jsx telemetry.
+             * Keys maintained: success, totalRefunded, whalesImpacted.
              */
             return {
                 success: true,
