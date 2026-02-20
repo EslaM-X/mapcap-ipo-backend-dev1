@@ -7,23 +7,32 @@
  * ARCHITECTURAL ROLE: 
  * Centralized orchestrator for automated Financial Snapshots, Whale 
  * Settlements, and Monthly Vesting release cycles.
- * * TS STABILIZATION LOG:
- * - Resolved TS2554: Aligned SettlementJob.executeWhaleTrimBack arguments.
- * - Resolved TS2551: Corrected property reference from totalRefundedPi to totalRefunded.
- * - Enforced strict timezone locking (UTC) for global financial consistency.
+ * -------------------------------------------------------------------------
+ * TS STABILIZATION LOG:
+ * - Resolved TS2835: Appended mandatory .js extensions for ESM compatibility.
+ * - Resolved TS2554 & TS2551: Standardized SettlementJob method arguments 
+ * and interface property references.
+ * - Integrity: Locked to UTC timezone to ensure global financial synchronization.
  */
 
 import cron from 'node-cron';
-import Investor from '../models/investor.model';
-import SettlementJob from './settlement.job';
-import VestingJob from './vesting.job'; 
-import DailyPriceJob from './daily-price-update'; 
-import { writeAuditLog } from '../config/logger';
+
+/**
+ * INTERNAL MODULE IMPORTS
+ * Explicit .js extensions are required for successful module resolution 
+ * in the NodeNext ECMAScript environment.
+ */
+import Investor from '../models/investor.model.js';
+import SettlementJob from './settlement.job.js';
+import VestingJob from './vesting.job.js'; 
+import DailyPriceJob from './daily-price-update.js'; 
+import { writeAuditLog } from '../config/logger.js';
 
 class CronScheduler {
     /**
      * @method init
-     * @description Bootstraps all automated tasks using a locked UTC timezone for global synchronization.
+     * @description Bootstraps all automated tasks using a locked UTC timezone.
+     * This method acts as the heartbeat of the MapCap automated economy.
      */
     static init(): void {
         console.log("--- [SYSTEM] Cron Scheduler Engine Initialized (UTC Mode) ---");
@@ -32,7 +41,8 @@ class CronScheduler {
         /**
          * TASK 1: DAILY SPOT PRICE RECALIBRATION
          * Frequency: Midnight UTC (0 0 * * *)
-         * Purpose: Updates the scarcity-based 'Value 2' (Spot Price) daily.
+         * Purpose: Updates the scarcity-based 'Value 2' (Spot Price) daily 
+         * to reflect the current ecosystem liquidity.
          */
         cron.schedule('0 0 * * *', async () => {
             writeAuditLog('INFO', '[CRON_START] Daily Price Recalibration Sequence initiated.');
@@ -47,12 +57,14 @@ class CronScheduler {
          * TASK 2: POST-IPO FINAL SETTLEMENT (Whale-Shield Enforcement)
          * Frequency: 23:00 UTC on the 28th day of the IPO cycle.
          * Purpose: Automated 10% trim-back as per Philip's Dynamic Liquidity Spec.
+         * Ensures decentralization by capping individual stakes post-stabilization.
          */
         cron.schedule('0 23 28 * *', async () => {
             writeAuditLog('WARN', '[CRON_ALERT] IPO Closure Threshold reached. Starting Final Settlement.');
             try {
                 /**
                  * PHASE 1: FINANCIAL DATA AGGREGATION
+                 * Calculating total global liquidity to determine the 10% ceiling.
                  */
                 const totalStats = await Investor.aggregate([
                     { $group: { _id: null, totalPi: { $sum: "$totalPiContributed" } } }
@@ -63,13 +75,13 @@ class CronScheduler {
                 if (totalPool > 0) {
                     /**
                      * PHASE 2: EXECUTE SETTLEMENT ENGINE
-                     * Note: Passing totalPool as required by the SettlementJob signature.
+                     * Invoking the Whale-Shield protocol based on the aggregated pool.
                      */
                     const result = await SettlementJob.executeWhaleTrimBack(totalPool);
                     
                     /**
                      * PHASE 3: AUDIT LOGGING
-                     * Property 'totalRefunded' is used as per ISettlementResult interface.
+                     * Utilizing 'totalRefunded' property as defined in ISettlementResult.
                      */
                     writeAuditLog('INFO', `[SETTLEMENT_SUCCESS] ${result.totalRefunded} Pi processed in trim-back.`);
                 }
@@ -81,7 +93,8 @@ class CronScheduler {
         /**
          * TASK 3: MONTHLY VESTING RELEASE (10% Linear Release)
          * Frequency: Midnight UTC on the 1st of every month.
-         * Purpose: 10-month automated disbursement cycle as per [Spec Page 5].
+         * Purpose: Automated disbursement cycle as per [Spec Page 5].
+         * Manages the gradual release of MapCap assets over a 10-month period.
          */
         cron.schedule('0 0 1 * *', async () => {
             writeAuditLog('INFO', '[CRON_START] Monthly Vesting Disbursement Cycle.');
