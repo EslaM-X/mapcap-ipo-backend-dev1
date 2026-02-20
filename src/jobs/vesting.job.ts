@@ -1,14 +1,13 @@
 /**
- * Vesting Job - IPO Token Release Engine v1.6.5
+ * Vesting Job - IPO Token Release Engine v1.7.5 (TS)
  * -------------------------------------------------------------------------
  * Lead Architect: EslaM-X | AppDev @Map-of-Pi
  * Project: MapCap Ecosystem | Spec: Philip's Linear Distribution Model
  * -------------------------------------------------------------------------
- * PURPOSE:
- * Automates the monthly 10% release of MapCap equity.
- * Integrated with the Post-IPO Settlement logic to ensure only compliant 
- * (Non-Whale) or adjusted balances are processed for vesting.
- * -------------------------------------------------------------------------
+ * TS CONVERSION LOG:
+ * - Added strict typing for Mongoose investor documents.
+ * - Formalized the monthly release calculation with MathHelper integration.
+ * - Maintained audit log severities for Daniel's compliance reports.
  */
 
 import Investor from '../models/investor.model.js';
@@ -19,24 +18,22 @@ import { writeAuditLog } from '../config/logger.js';
 class VestingJob {
     /**
      * @method executeMonthlyVesting
-     * @description Orchestrates the 10-month linear release.
-     * Note: This job respects the final 'isWhale' status determined 
-     * at the end of the 4-week IPO period.
+     * @description Orchestrates the 10-month linear release (10% per month).
+     * Only processes compliant investors (Non-Whales) as per Philip's Spec.
      */
-    static async executeMonthlyVesting() {
+    static async executeMonthlyVesting(): Promise<void> {
         console.log("🕒 --- [VESTING_ENGINE] Monthly Distribution Cycle Started ---");
         writeAuditLog('INFO', 'Vesting Engine: Monthly Tranche Release Initiated.');
 
         try {
             /**
              * 1. PIONEER SELECTION FILTER
-             * Targets investors who have completed the IPO and the 
-             * final settlement audit (where isWhale is finalized).
+             * Targets investors with remaining tranches and compliant status.
              */
             const investors = await Investor.find({ 
                 totalPiContributed: { $gt: 0 },
                 vestingMonthsCompleted: { $lt: 10 },
-                isWhale: false // Processes those who are within the 10% cap post-settlement
+                isWhale: false // Critical: Post-settlement compliance check
             });
 
             if (investors.length === 0) {
@@ -47,9 +44,9 @@ class VestingJob {
             for (const investor of investors) {
                 /**
                  * 2. PROPORTIONAL CALCULATION (10% Monthly)
-                 * High-precision math to satisfy Daniel's audit requirements.
+                 * Uses high-precision math for Pi currency stability.
                  */
-                const monthlyRelease = MathHelper.toPiPrecision(investor.allocatedMapCap * 0.10);
+                const monthlyRelease: number = MathHelper.toPiPrecision(investor.allocatedMapCap * 0.10);
 
                 if (monthlyRelease > 0) {
                     try {
@@ -67,7 +64,7 @@ class VestingJob {
 
                         writeAuditLog('INFO', `[TRANCHE_RELEASED] ${investor.vestingMonthsCompleted}/10 to ${investor.piAddress}`);
                         
-                    } catch (err) {
+                    } catch (err: any) {
                         writeAuditLog('CRITICAL', `[PAYOUT_FAILURE] ${investor.piAddress}: ${err.message}`);
                         console.error(`❌ [PIPELINE_ERROR] Payment failed for ${investor.piAddress}`);
                     }
@@ -75,7 +72,7 @@ class VestingJob {
             }
 
             console.log("🏁 --- [SUCCESS] Monthly Vesting Cycle Finalized ---");
-        } catch (error) {
+        } catch (error: any) {
             writeAuditLog('CRITICAL', `[FATAL_SYSTEM_ERROR] Vesting Job Crash: ${error.message}`);
             throw error;
         }
