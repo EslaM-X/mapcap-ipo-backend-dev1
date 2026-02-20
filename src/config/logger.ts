@@ -1,13 +1,14 @@
 /**
- * Logger Configuration - Audit Trail Engine v1.7.5 (TypeScript Optimized)
- * ---------------------------------------------------------
+ * Logger Configuration - Audit Trail Engine v1.7.5 (TS-Standard)
+ * -------------------------------------------------------------------------
  * Lead Architect: EslaM-X | AppDev @Map-of-Pi
  * Project: MapCap Ecosystem | Spec: Daniel's Transparency Standard
- * ---------------------------------------------------------
- * PURPOSE: 
- * Ensures every financial transaction and Whale-Shield event is 
- * permanently logged for audit. Optimized for high-availability 
- * cloud environments (Vercel/Node.js).
+ * -------------------------------------------------------------------------
+ * TS CONVERSION LOG:
+ * - Implemented strict severity level union types.
+ * - Optimized directory resolution for cross-environment compatibility.
+ * - Preserved legacy export names (auditLogStream, writeAuditLog) to prevent 
+ * system-wide breakage in middleware and services.
  */
 
 import fs from 'fs';
@@ -19,13 +20,13 @@ const __filename: string = fileURLToPath(import.meta.url);
 const __dirname: string = path.dirname(__filename);
 
 /**
- * CLOUD DEPLOYMENT OPTIMIZATION (Vercel/AWS): 
- * Vercel's serverless environment is read-only. We utilize the '/tmp' 
- * directory for runtime logs to prevent filesystem errors.
+ * CLOUD & LOCAL OPTIMIZATION: 
+ * Ensures the system adapts to read-only environments (Vercel) by using /tmp
+ * and maintains local persistence for Termux/Staging.
  */
 const isProduction: boolean = process.env.NODE_ENV === 'production';
 const logDir: string = isProduction ? '/tmp' : path.join(__dirname, '../../logs');
-const logFile: string = path.join(logDir, 'financial_audit.log');
+const logFile: string = path.join(logDir, 'audit.log'); // Aligned with your project structure
 
 // Integrity Check: Ensuring log persistence structure exists in dev environments
 if (!isProduction && !fs.existsSync(logDir)) {
@@ -34,7 +35,7 @@ if (!isProduction && !fs.existsSync(logDir)) {
 
 /**
  * @export auditLogStream
- * Preserved nomenclature to ensure zero breakage for 'morgan' or 'server.ts' integrations.
+ * Preserved nomenclature for 'morgan' or 'server.ts' middleware.
  */
 export const auditLogStream: fs.WriteStream = fs.createWriteStream(logFile, { 
     flags: 'a',
@@ -43,12 +44,14 @@ export const auditLogStream: fs.WriteStream = fs.createWriteStream(logFile, {
 
 /**
  * @function writeAuditLog
- * Centralized logging engine for MapCap. 
- * Essential for monitoring Whale-Shield alerts and A2UaaS transaction status.
+ * Centralized logging engine for MapCap ecosystem events.
  * @param level - Log severity (INFO, WARN, ERROR, CRITICAL).
  * @param message - Detailed event description.
  */
-export const writeAuditLog = (level: 'INFO' | 'WARN' | 'ERROR' | 'CRITICAL', message: string): void => {
+export const writeAuditLog = (
+    level: 'INFO' | 'WARN' | 'ERROR' | 'CRITICAL', 
+    message: string
+): void => {
     const timestamp: string = new Date().toISOString();
     const entry: string = `${timestamp} - [${level.toUpperCase()}]: ${message}\n`;
     
@@ -60,15 +63,18 @@ export const writeAuditLog = (level: 'INFO' | 'WARN' | 'ERROR' | 'CRITICAL', mes
         console.error(`[AUDIT_LOG_FAILURE] Storage write error: ${err.message}`);
     }
     
-    // Real-time Console Output for Log Streaming (Vercel Dashboard Visibility)
+    /**
+     * CONSOLE VISIBILITY PROTOCOL:
+     * Utilizes ANSI colors for immediate visual prioritization in CI/CD logs.
+     */
     if (level === 'CRITICAL' || level === 'ERROR' || level === 'WARN') {
-        console.error(`\x1b[31m[AUDIT_ALERT] ${entry}\x1b[0m`); // ANSI Red for Errors
+        console.error(`\x1b[31m[AUDIT_ALERT] ${entry}\x1b[0m`); // Red for errors
     } else {
-        console.log(`\x1b[32m[AUDIT_INFO] ${entry}\x1b[0m`); // ANSI Green for Info
+        console.log(`\x1b[32m[AUDIT_INFO] ${entry}\x1b[0m`); // Green for info
     }
 };
 
 // INITIALIZATION: Confirming Audit Engine Readiness
-writeAuditLog('INFO', 'MapCap Audit Engine v1.7.5 Synchronized for Cloud Deployment.');
+writeAuditLog('INFO', 'MapCap Audit Engine v1.7.5 TS Synchronized.');
 
 export default { auditLogStream, writeAuditLog };
