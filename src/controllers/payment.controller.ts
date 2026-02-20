@@ -1,36 +1,52 @@
 /**
- * Payment Controller - Financial Operations v1.6.8
+ * Payment Controller - Financial Operations v1.7.5 (TS)
  * -------------------------------------------------------------------------
  * Lead Architect: EslaM-X | AppDev @Map-of-Pi
  * Project: MapCap Ecosystem | Spec: Dynamic IPO Flow
  * -------------------------------------------------------------------------
- * ARCHITECTURAL ROLE:
- * Manages the investment lifecycle. Optimized to handle multi-source 
- * metadata (Pi SDK, Mobile App, and Integration Tests) without breaking.
+ * TS CONVERSION LOG:
+ * - Implemented Robust Payload Mapping (Polymorphic inputs).
+ * - Added strict typing for Transactions and Investor models.
+ * - Integrated Audit Logging with TypeScript severity levels.
  */
 
+import { Request, Response } from 'express';
 import Investor from '../models/investor.model.js';
 import Transaction from '../models/Transaction.js';
 import ResponseHelper from '../utils/response.helper.js';
 import { writeAuditLog } from '../config/logger.js';
 
+/**
+ * @interface PaymentResponse
+ * Contract for the final ledger synchronization output.
+ */
+interface PaymentResponse {
+    pioneer: string;
+    contribution: number;
+    totalBalance: number;
+    piTxId: string;
+    syncDate: string;
+}
+
 class PaymentController {
     /**
      * @method processInvestment
      * @desc Processes and validates Pi Network transactions into the MapCap ledger.
-     * Supports flexible field mapping to ensure compatibility across all versions.
      */
-    static async processInvestment(req, res) {
+    static async processInvestment(req: Request, res: Response): Promise<void> {
         /**
          * ROBUST DATA EXTRACTION:
          * Maps different naming conventions (CamelCase, snake_case, Pi SDK) 
          * to a unified internal structure.
          */
-        const piAddress = req.body.piAddress || req.body.pi_address || req.body.uid;
-        const amount = req.body.amount;
-        const piTxId = req.body.piTxId || req.body.pi_tx_id || req.body.paymentId || (req.body.metadata && req.body.metadata.txid);
+        const piAddress: string = req.body.piAddress || req.body.pi_address || req.body.uid;
+        const amount: number | string = req.body.amount;
+        const piTxId: string = req.body.piTxId || 
+                               req.body.pi_tx_id || 
+                               req.body.paymentId || 
+                               (req.body.metadata && req.body.metadata.txid);
 
-        // 1. INPUT VALIDATION: Ensuring mandatory blockchain proofs are present
+        // 1. INPUT VALIDATION
         if (!piAddress || !amount || !piTxId) {
             return ResponseHelper.error(res, "Missing Metadata: Transaction credentials (Address/Amount/TXID) are required.", 400);
         }
@@ -38,21 +54,20 @@ class PaymentController {
         try {
             /**
              * 2. IDEMPOTENCY CHECK:
-             * Prevents ledger duplicates. Critical for financial integrity.
+             * Prevents ledger duplicates. Essential for financial integrity.
              */
             const existingTx = await Transaction.findOne({ piTxId });
             if (existingTx) {
                 return ResponseHelper.error(res, "Duplicate Entry: This transaction has already been synchronized.", 409);
             }
 
-            const investmentAmount = Number(amount);
+            const investmentAmount: number = Number(amount);
 
             /**
              * 3. ATOMIC TRANSACTIONS:
-             * Step A: Record the blockchain transaction in the internal ledger.
-             * Step B: Update the Pioneer's total stake in the ecosystem.
+             * Recording blockchain transaction and updating Pioneer's stake.
              */
-            const newTransaction = await Transaction.create({
+            await Transaction.create({
                 piAddress,
                 amount: investmentAmount,
                 type: 'INVESTMENT',
@@ -65,30 +80,31 @@ class PaymentController {
                 { piAddress },
                 { 
                     $inc: { totalPiContributed: investmentAmount },
-                    $set: { lastContributionDate: Date.now() }
+                    $set: { lastContributionDate: new Date() }
                 },
                 { upsert: true, new: true }
             );
 
-            // 4. COMPLIANCE AUDITING: Logging for future cycle reviews
+            // 4. COMPLIANCE AUDITING
             writeAuditLog('INFO', `Investment Success: ${investmentAmount} Pi | Tx: ${piTxId} | Pioneer: ${piAddress}`);
 
             /**
              * 5. STANDARDIZED RESPONSE:
-             * Returns consistent keys to prevent UI 'undefined' errors on the Pulse Dashboard.
+             * Returns consistent keys to prevent UI errors on the Dashboard.
              */
-            return ResponseHelper.success(res, "Ledger synchronization successful.", {
+            const successPayload: PaymentResponse = {
                 pioneer: piAddress,
                 contribution: investmentAmount,
-                totalBalance: investor.totalPiContributed,
+                totalBalance: investor?.totalPiContributed || 0,
                 piTxId,
                 syncDate: new Date().toISOString()
-            });
+            };
 
-        } catch (error) {
+            return ResponseHelper.success(res, "Ledger synchronization successful.", successPayload);
+
+        } catch (error: any) {
             /**
-             * 6. CRITICAL ERROR HANDLING:
-             * Ensures system failures are logged for rapid incident response.
+             * 6. CRITICAL ERROR HANDLING
              */
             writeAuditLog('CRITICAL', `Pipeline Error: ${error.message} (Pioneer: ${piAddress})`);
             console.error(`[PAYMENT_CONTROLLER_CRITICAL]: ${error.stack}`);
