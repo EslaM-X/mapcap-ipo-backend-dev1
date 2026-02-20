@@ -1,5 +1,5 @@
 /**
- * White-Label Branding Configuration v1.5.5
+ * White-Label Branding Configuration v1.7.5 (TypeScript Optimized)
  * ---------------------------------------------------------
  * Lead Architect: EslaM-X | AppDev @Map-of-Pi
  * Project: MapCap Ecosystem | Spec: Multi-Tenant Scalability
@@ -8,10 +8,40 @@
  * Centralizes application identity, visual branding, and core 
  * IPO parameters. This configuration powers both the UI theme 
  * and the mathematical engine (PriceService/Pulse).
- * ---------------------------------------------------------
  */
 
-const brandingConfig = {
+interface BrandingConfig {
+    projectName: string;
+    dashboardTitle: string;
+    providerName: string;
+    theme: {
+        primaryColor: string;
+        secondaryColor: string;
+        accentColor: string;
+        currencySymbol: string;
+        fontFamily: string;
+    };
+    mechanics: {
+        ipoDurationWeeks: number;
+        totalMapCapSupply: number;
+        vestingPeriodMonths: number;
+        whaleCapPercentage: number;
+    };
+    links: {
+        supportChat: string;
+        termsUrl: string;
+        privacyUrl: string;
+        officialWebsite: string;
+    };
+    metadata: {
+        isLive: boolean;
+        version: string;
+        complianceAudit: string;
+        engineType: string;
+    };
+}
+
+const brandingConfig: BrandingConfig = {
     // --- Project Identity ---
     projectName: "MapCap IPO",
     dashboardTitle: "IPO Pulse Dashboard", 
@@ -46,8 +76,8 @@ const brandingConfig = {
     // --- Deployment & Compliance Metadata ---
     metadata: {
         isLive: false, // Deployment status for the 4-week window
-        version: "1.5.5-Enterprise",
-        complianceAudit: "Daniel_Standard_v2", // Updated to reflect new settlement logic
+        version: "1.7.5-Enterprise",
+        complianceAudit: "Daniel_Standard_v2", // Aligned with new TS standards
         engineType: "A2UaaS_Standard"
     }
 };
