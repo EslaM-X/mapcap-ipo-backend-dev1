@@ -1,34 +1,42 @@
 /**
- * PayoutService - Managed Fund Distribution (A2UaaS v1.6.6)
+ * PayoutService - Managed Fund Distribution (A2UaaS v1.7.5 TS)
  * -------------------------------------------------------------------------
  * Lead Architect: EslaM-X | AppDev @Map-of-Pi
  * Project: MapCap Ecosystem | Spec: Philip's Dynamic Settlement Logic
  * -------------------------------------------------------------------------
- * ARCHITECTURAL ROLE:
- * Implements the A2UaaS protocol for secure withdrawals and whale refunds.
- * NOTE: This service is the primary engine for the 10% trim-back refunds 
- * that occur post-IPO, ensuring decentralization compliance.
- * -------------------------------------------------------------------------
+ * TS CONVERSION LOG:
+ * - Implemented strict Promise return types for async operations.
+ * - Enforced AxiosResponse typing for EscrowPi integration.
+ * - Maintained legacy aliases to ensure Zero-Breakage across the bridge.
  */
 
-import axios from 'axios';
+import axios, { AxiosResponse } from 'axios';
+
+/**
+ * @interface IA2UResponse
+ * Represents the expected response structure from EscrowPi API.
+ */
+interface IA2UResponse {
+    success: boolean;
+    transactionId?: string;
+    message?: string;
+    [key: string]: any; // Flex for additional metadata
+}
 
 class PayoutService {
     /**
      * @method executeA2UPayout
-     * @param {String} userWallet - The recipient's Pi wallet address.
-     * @param {Number} piAmount - The net amount of Pi to be transferred.
+     * @param {string} userWallet - The recipient's Pi wallet address.
+     * @param {number} piAmount - The net amount of Pi to be transferred.
      * @desc Executes a secure withdrawal/refund via EscrowPi A2UaaS API.
-     * Integrated with Philip's dynamic settlement requirements.
      */
-    static async executeA2UPayout(userWallet, piAmount) {
+    static async executeA2UPayout(userWallet: string, piAmount: number): Promise<IA2UResponse> {
         /**
          * SECURE CREDENTIAL FETCHING:
-         * Uses environment variables to prevent API key exposure, 
-         * satisfying Daniel's Level 4 Security Audit.
+         * Satisfying Daniel's Level 4 Security Audit.
          */
-        const apiKey = process.env.ESCROW_PI_API_KEY;
-        const apiBaseUrl = process.env.ESCROW_PI_URL || 'https://api.escrowpi.com/v1/a2uaas';
+        const apiKey: string | undefined = process.env.ESCROW_PI_API_KEY;
+        const apiBaseUrl: string = process.env.ESCROW_PI_URL || 'https://api.escrowpi.com/v1/a2uaas';
 
         // VALIDATION GATE: Prevent zero or negative transfers at the service level
         if (!piAmount || piAmount <= 0) {
@@ -40,9 +48,8 @@ class PayoutService {
             /**
              * API SYNCHRONIZATION:
              * Communicates with the EscrowPi gateway to finalize the transfer.
-             * Memo and metadata are preserved for transparent audit trails.
              */
-            const response = await axios.post(apiBaseUrl, {
+            const response: AxiosResponse<IA2UResponse> = await axios.post(apiBaseUrl, {
                 recipient: userWallet, 
                 amount: piAmount,
                 memo: "MapCap IPO - Authorized Settlement Refund",
@@ -66,7 +73,7 @@ class PayoutService {
              */
             return response.data;
 
-        } catch (error) {
+        } catch (error: any) {
             /**
              * EXCEPTION HANDLING:
              * Detailed logging for Daniel's financial reconciliation reports.
@@ -84,7 +91,7 @@ class PayoutService {
      * @desc Alias for executeA2UPayout to maintain compatibility with legacy controllers.
      * Ensures zero breakage across the existing Frontend-Backend bridge.
      */
-    static async simpleWithdraw(userWallet, amount) {
+    static async simpleWithdraw(userWallet: string, amount: number): Promise<IA2UResponse> {
         return await this.executeA2UPayout(userWallet, amount);
     }
 }
