@@ -1,19 +1,18 @@
 /**
- * Whale Audit Tool - Compliance & Decentralization Verification v1.0.1
+ * Whale Audit Tool - Compliance & Decentralization Verification v1.7.5 (TS)
  * -------------------------------------------------------------------------
  * Lead Architect: EslaM-X | AppDev @Map-of-Pi
  * Project: MapCap Ecosystem | Spec: Daniel's Audit & Philip's Whale-Shield
  * -------------------------------------------------------------------------
- * PURPOSE: 
- * Identifies and flags Pioneers exceeding the 10% decentralization ceiling.
- * This script provides a diagnostic snapshot of the 'Water-Level' to ensure 
- * the ecosystem remains decentralized prior to the final settlement phase.
- * -------------------------------------------------------------------------
+ * TS CONVERSION LOG:
+ * - Implemented strict IInvestor interface for database record safety.
+ * - Maintained all original console logging for Daniel's audit trails.
+ * - Preserved the 2,181,818 Global Supply constant per Philip's Spec.
  */
 
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
-import Investor from '../models/investor.model.js';
+import Investor, { IInvestor } from '../models/investor.model.js';
 
 dotenv.config();
 
@@ -21,30 +20,35 @@ dotenv.config();
  * @function auditWhales
  * @desc Executes a global scan of the investor ledger to synchronize the 'isWhale' status.
  */
-const auditWhales = async () => {
+const auditWhales = async (): Promise<void> => {
     // Constants aligned with Philip's Scarcity Specification
-    const GLOBAL_SUPPLY = 2181818; 
-    const CEILING_LIMIT = 0.10;    // 10% Anti-Whale Threshold
+    const GLOBAL_SUPPLY: number = 2181818; 
+    const CEILING_LIMIT: number = 0.10;    // 10% Anti-Whale Threshold
 
     try {
         /**
          * INITIALIZATION:
          * Connecting to the production/staging database as per Daniel's compliance guidelines.
          */
+        if (!process.env.MONGO_URI) {
+            throw new Error("MONGO_URI is missing in environment variables.");
+        }
+
         await mongoose.connect(process.env.MONGO_URI);
         console.log("🔍 [AUDIT_INIT] Establishing connection to Global Ledger...");
         console.log("🚀 [AUDIT_START] Scanning for Whale activity exceeding 10% cap...");
 
         // Fetching all investors to evaluate current pool distribution
-        const investors = await Investor.find();
-        let whaleCount = 0;
+        const investors: IInvestor[] = await Investor.find();
+        let whaleCount: number = 0;
 
         /**
          * EVALUATION LOOP:
          * Iterates through each record to calculate real-time share percentage.
          */
         for (let inv of investors) {
-            const sharePct = inv.allocatedMapCap / GLOBAL_SUPPLY;
+            // sharePct calculation based on current allocation vs global supply
+            const sharePct: number = inv.allocatedMapCap / GLOBAL_SUPPLY;
             
             if (sharePct > CEILING_LIMIT) {
                 whaleCount++;
@@ -65,7 +69,7 @@ const auditWhales = async () => {
         
         // Graceful exit for automated job runners (Cron/GitHub Actions)
         process.exit(0);
-    } catch (error) {
+    } catch (error: any) {
         /**
          * ERROR INTERCEPTOR:
          * Critical failures are logged for infrastructure monitoring.
