@@ -1,5 +1,5 @@
 /**
- * Initial Mint Configuration - MapCap Tokenomics v1.2.5
+ * Initial Mint Configuration - MapCap Tokenomics v1.7.5 (TypeScript Optimized)
  * ---------------------------------------------------------
  * Lead Architect: EslaM-X | AppDev @Map-of-Pi
  * Project: MapCap Ecosystem | Spec: Philip Jennings (Tokenomics)
@@ -8,10 +8,20 @@
  * Defines the core supply constants for the MapCap Genesis Mint.
  * These values are the foundation for the "Value 2" (Spot Price) 
  * calculation and the final LP (Liquidity Pool) transition.
- * ---------------------------------------------------------
  */
 
-const MintConfig = {
+/**
+ * @interface IMintConfig
+ * Strict typing for the Mint Configuration to ensure numeric integrity.
+ */
+interface IMintConfig {
+    readonly TOTAL_MINT: number;
+    readonly IPO_POOL: number;
+    readonly LP_POOL: number;
+    readonly PRECISION: number;
+}
+
+const MintConfig: IMintConfig = {
     /**
      * TOTAL_MINT_SUPPLY: 4,000,000
      * The absolute hard-cap for the MapCap ecosystem.
