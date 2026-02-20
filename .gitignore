@@ -12,6 +12,14 @@ yarn.lock
 .env.test.local
 .env.production.local
 
+# --- [TYPESCRIPT / BUILD OUTPUT] ---
+# Exclude compiled JS files from the production build directory
+dist/
+build/
+*.tsbuildinfo
+# Optional: if you want to ignore compiled declarations
+# *.d.ts 
+
 # --- [LOGS & DIAGNOSTICS] ---
 # Excluding the MapCap audit logs to keep the repo clean
 logs/
@@ -38,7 +46,5 @@ desktop.ini
 *.sw?
 
 # --- [BUILD & TEMP] ---
-dist/
-build/
 .cache/
 .npm/
