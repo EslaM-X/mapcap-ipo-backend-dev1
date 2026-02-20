@@ -1,22 +1,25 @@
 /**
- * Security & Validation Middleware - Unified Guard Suite v1.5.0
+ * Security & Validation Middleware - Unified Guard Suite v1.7.5 (TS)
  * -------------------------------------------------------------------------
  * Lead Architect: EslaM-X | AppDev @Map-of-Pi
  * Project: MapCap Ecosystem | Spec: Daniel's Security & Philip's Compliance
  * -------------------------------------------------------------------------
- * ARCHITECTURAL ROLE:
- * This suite acts as the primary firewall for the MapCap API. It unifies
- * Administrative Gatekeeping (Auth) with Financial Request Validation,
- * ensuring zero unauthorized access and strict numerical range enforcement.
- * -------------------------------------------------------------------------
+ * TS CONVERSION LOG:
+ * - Implemented Partial<Request> and Partial<Response> for type-safe Express mocking.
+ * - Formalized withdrawal schema validation (percentage range 0.01 - 100).
+ * - Enforced strict header check for 'x-admin-token'.
+ * - Synchronized string-to-number parsing verification for financial payloads.
  */
 
 import adminAuth from '../../../src/middlewares/auth.middleware.js';
 import { validateWithdrawal } from '../../../src/middlewares/validate.middleware.js';
 import { jest } from '@jest/globals';
+import { Request, Response, NextFunction } from 'express';
 
 describe('API Guard - Security & Validation Unit Tests', () => {
-  let mockReq, mockRes, nextFunction;
+  let mockReq: Partial<Request>;
+  let mockRes: Partial<Response>;
+  let nextFunction: NextFunction;
 
   beforeEach(() => {
     // Standard Mock Setup for Express Objects
@@ -27,14 +30,14 @@ describe('API Guard - Security & Validation Unit Tests', () => {
     };
     mockRes = {
       status: jest.fn().mockReturnThis(),
-      json: jest.fn()
+      json: jest.fn().mockReturnThis()
     };
-    nextFunction = jest.fn();
+    nextFunction = jest.fn() as NextFunction;
     
-    // Setup Environment for Auth
+    // Setup Environment for Auth parity with 2026 spec
     process.env.ADMIN_SECRET_TOKEN = 'CORE_SECURE_TOKEN_XYZ';
     
-    // Silence warnings for clean test telemetry
+    // Silence warnings for clean test telemetry during validation failures
     jest.spyOn(console, 'warn').mockImplementation(() => {});
   });
 
@@ -44,21 +47,21 @@ describe('API Guard - Security & Validation Unit Tests', () => {
 
   /**
    * SECTION 1: ADMINISTRATIVE AUTHENTICATION (Daniel's Protocol)
-   * Validates the x-admin-token gatekeeper for sensitive financial ops.
-   *
    */
   describe('Admin Auth Middleware - Access Control', () => {
 
     test('Access: Should grant entry (next()) when a valid x-admin-token is provided', () => {
-      mockReq.headers['x-admin-token'] = 'CORE_SECURE_TOKEN_XYZ';
-      adminAuth(mockReq, mockRes, nextFunction);
+      if (mockReq.headers) mockReq.headers['x-admin-token'] = 'CORE_SECURE_TOKEN_XYZ';
+      
+      adminAuth(mockReq as Request, mockRes as Response, nextFunction);
       
       expect(nextFunction).toHaveBeenCalled();
     });
 
     test('Protection: Should return 403 Forbidden for invalid or missing tokens', () => {
-      mockReq.headers['x-admin-token'] = 'INTRUDER_TOKEN';
-      adminAuth(mockReq, mockRes, nextFunction);
+      if (mockReq.headers) mockReq.headers['x-admin-token'] = 'INTRUDER_TOKEN';
+      
+      adminAuth(mockReq as Request, mockRes as Response, nextFunction);
       
       expect(mockRes.status).toHaveBeenCalledWith(403);
       expect(mockRes.json).toHaveBeenCalledWith(
@@ -69,34 +72,37 @@ describe('API Guard - Security & Validation Unit Tests', () => {
 
   /**
    * SECTION 2: FINANCIAL DATA VALIDATION (Philip's Logic)
-   * Ensures withdrawal percentages are strictly within the 0.01% - 100% range.
-   *
    */
   describe('Withdrawal Validation - Financial Guard', () => {
 
     test('Integrity: Should parse and allow valid withdrawal percentages (e.g., 50%)', () => {
       mockReq.body = { percentage: "50", userWallet: "GBV...ADDR" };
-      validateWithdrawal(mockReq, mockRes, nextFunction);
+      
+      validateWithdrawal(mockReq as Request, mockRes as Response, nextFunction);
 
       expect(nextFunction).toHaveBeenCalled();
-      expect(mockReq.body.percentage).toBe(50); // Verified: String-to-Number parsing
+      // Verified: Middleware must convert string "50" to number 50 for precision math
+      expect(mockReq.body.percentage).toBe(50); 
     });
 
-    test('Safety: Should reject missing metadata or out-of-range percentages (>100% or <=0%)', () => {
-      // Test Case: Over 100%
+    test('Safety: Should reject out-of-range percentages (>100% or <=0%)', () => {
+      // Test Case: Over 100% (Mathematical impossibility for equity release)
       mockReq.body = { percentage: 150, userWallet: "GBV...ADDR" };
-      validateWithdrawal(mockReq, mockRes, nextFunction);
+      validateWithdrawal(mockReq as Request, mockRes as Response, nextFunction);
       expect(mockRes.status).toHaveBeenCalledWith(400);
 
-      // Test Case: Negative/Zero
+      // Test Case: Zero percentage
       mockReq.body.percentage = 0;
-      validateWithdrawal(mockReq, mockRes, nextFunction);
+      validateWithdrawal(mockReq as Request, mockRes as Response, nextFunction);
       expect(mockRes.status).toHaveBeenLastCalledWith(400);
     });
 
     test('Compliance: Should return 400 if the mandatory userWallet is missing', () => {
-      mockReq.body = { percentage: 10 }; // Missing wallet
-      validateWithdrawal(mockReq, mockRes, nextFunction);
+      // Daniel's requirement: No transaction can proceed without a destination address
+      mockReq.body = { percentage: 10 }; 
+      
+      validateWithdrawal(mockReq as Request, mockRes as Response, nextFunction);
+      
       expect(mockRes.status).toHaveBeenCalledWith(400);
     });
   });
