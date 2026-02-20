@@ -1,39 +1,41 @@
 {
   "compilerOptions": {
-    /* Basic Options */
-    "target": "ES2020",                                  /* Set the JavaScript language version for emitted JavaScript and include compatible library declarations. */
-    "module": "ESNext",                                  /* Specify what module code is generated. Using ESNext to align with "type": "module". */
-    "lib": ["ESNext", "DOM"],                            /* Specify a set of bundled library declaration files that describe the target runtime environment. */
-    "moduleResolution": "node",                          /* Specify how TypeScript looks up a file from a given module specifier. */
+    /* Language and Environment */
+    "target": "ES2020",                                  /* Modern target for high-performance Node.js environments. */
+    "module": "NodeNext",                                /* Required for "type": "module" in package.json to resolve imports correctly. */
+    "lib": ["ESNext", "DOM"],                            /* Includes modern JS features and DOM types if needed for shared utils. */
+    "moduleResolution": "NodeNext",                      /* Aligns with modern Node.js ESM resolution strategy. */
     
     /* Path Configurations */
-    "rootDir": "./",                                     /* Specify the root folder within your source files. */
-    "outDir": "./dist",                                  /* Specify an output folder for all emitted files. */
-    "baseUrl": ".",                                      /* Specify the base directory to resolve non-relative module names. */
+    "rootDir": "./",                                     /* The root folder for source files. */
+    "outDir": "./dist",                                  /* Compiled JavaScript will be emitted here. */
+    "baseUrl": ".",                                      /* Base directory to resolve non-relative module names. */
     
     /* Strict Type-Checking Options (Audit-Ready) */
-    "strict": true,                                      /* Enable all strict type-checking options to ensure maximum code reliability. */
-    "noImplicitAny": true,                               /* Enable error reporting for expressions and declarations with an implied 'any' type. */
-    "strictNullChecks": true,                            /* When type checking, take into account 'null' and 'undefined'. */
+    "strict": true,                                      /* Enables all strict type-checking for Philip & Daniel's audit compliance. */
+    "noImplicitAny": true,                               /* Prevents accidental 'any' types that could mask financial logic bugs. */
+    "strictNullChecks": true,                            /* Ensures null/undefined safety in sensitive IPO calculations. */
+    "noFallthroughCasesInSwitch": true,                  /* Prevents logic errors in switch statements (e.g., in manual_trigger.ts). */
     
     /* Interoperability & Compatibility */
-    "esModuleInterop": true,                             /* Emit additional JavaScript to ease support for importing CommonJS modules. */
-    "skipLibCheck": true,                                /* Skip type checking all .d.ts files to speed up compilation. */
-    "forceConsistentCasingInFileNames": true,            /* Ensure that casing is correct in imports for cross-platform stability (Linux/Windows). */
+    "esModuleInterop": true,                             /* Enables seamless imports of CommonJS modules into ESM. */
+    "skipLibCheck": true,                                /* Skips type checking of node_modules to accelerate build speed. */
+    "forceConsistentCasingInFileNames": true,            /* Critical for Windows/Linux parity (Termux development). */
+    "allowSyntheticDefaultImports": true,                /* Eases transition for legacy CJS library imports. */
     
     /* Advanced Functionality */
-    "resolveJsonModule": true,                           /* Allow importing .json files, which is essential for reading package.json or config files. */
-    "allowJs": true,                                     /* Allow JavaScript files to be a part of your program. Essential for gradual migration. */
-    "sourceMap": true                                    /* Create source map files for emitted JavaScript files to aid debugging. */
+    "resolveJsonModule": true,                           /* Necessary for reading configuration and metadata from .json files. */
+    "allowJs": true,                                     /* Supports gradual migration and legacy JS utility integration. */
+    "sourceMap": true,                                   /* Enables mapping .js files back to .ts for accurate debugging. */
+    "isolatedModules": true                              /* Ensures each file is transpilable independently. */
   },
   "include": [
-    "**/*.ts",                                           /* Include all TypeScript files in the project. */
-    "server.ts"                                          /* Explicitly include the entry point orchestrator. */
+    "**/*.ts",                                           /* Includes all TypeScript files throughout the project. */
+    "server.ts"                                          /* Explicitly monitors the core application entry point. */
   ],
   "exclude": [
-    "node_modules",                                      /* Exclude dependency directories. */
-    "dist",                                              /* Exclude the output directory. */
-    "test"                                               /* Exclude test files for now to focus on core logic migration. */
+    "node_modules",                                      /* Ignored to focus solely on internal MapCap logic. */
+    "dist",                                              /* Ignored to prevent recursive build loops. */
+    "test"                                               /* Excluded from production build to minimize build size. */
   ]
 }
-
