@@ -1,15 +1,14 @@
 /**
- * Payment Operations & Pi Network Integrity - Unified Suite v1.7.5
+ * Payment Operations & Pi Network Integrity - Unified Suite v1.7.5 (TS)
  * -------------------------------------------------------------------------
  * Lead Architect: EslaM-X | AppDev @Map-of-Pi
  * Project: MapCap Ecosystem | Spec: Daniel's Financial Audit Standards
  * -------------------------------------------------------------------------
- * ARCHITECTURAL ROLE:
- * This suite validates the Investment Processing Pipeline and its underlying 
- * Pi Network configuration. It ensures strict idempotency (anti-duplicate) 
- * for transactions and validates the immutable constants required for 
- * secure A2UaaS (App-to-User) operations.
- * -------------------------------------------------------------------------
+ * TS CONVERSION LOG:
+ * - Implemented Partial<Request/Response> for type-safe Express mocking.
+ * - Formalized transaction and investor model spies for audit simulation.
+ * - Synchronized Pi Network V2 configuration assertions.
+ * - Maintained "Ledger synchronization successful" string for Frontend parity.
  */
 
 import PaymentController from '../../../src/controllers/payment.controller.js';
@@ -17,9 +16,11 @@ import PiConfig from '../../../src/config/pi_network.js';
 import Transaction from '../../../src/models/Transaction.js';
 import Investor from '../../../src/models/investor.model.js';
 import { jest } from '@jest/globals';
+import { Request, Response } from 'express';
 
 describe('Payment & Pi Network Integration - Unit Tests', () => {
-  let mockReq, mockRes;
+  let mockReq: Partial<Request>;
+  let mockRes: Partial<Response>;
 
   beforeEach(() => {
     mockReq = {
@@ -31,20 +32,21 @@ describe('Payment & Pi Network Integration - Unit Tests', () => {
     };
     mockRes = {
       status: jest.fn().mockReturnThis(),
-      json: jest.fn()
+      json: jest.fn().mockReturnThis()
     };
 
     // Database Mocking for Daniel's Audit simulation
     jest.spyOn(Transaction, 'findOne').mockResolvedValue(null);
-    jest.spyOn(Transaction, 'create').mockResolvedValue({ _id: 'mock_tx_id' });
+    jest.spyOn(Transaction, 'create').mockResolvedValue({ _id: 'mock_tx_id' } as any);
     jest.spyOn(Investor, 'findOneAndUpdate').mockResolvedValue({ 
       piAddress: 'GBV...PIONEER_ADDR', 
       totalPiContributed: 500 
-    });
+    } as any);
   });
 
   afterEach(() => {
     jest.restoreAllMocks();
+    jest.clearAllMocks();
   });
 
   /**
@@ -62,6 +64,7 @@ describe('Payment & Pi Network Integration - Unit Tests', () => {
     });
 
     test('Security: Pi configuration object must be frozen to prevent tampering', () => {
+      // Compliance: Preventing runtime modification of sensitive API keys or endpoints
       expect(Object.isFrozen(PiConfig)).toBe(true);
     });
   });
@@ -72,11 +75,10 @@ describe('Payment & Pi Network Integration - Unit Tests', () => {
   describe('Investment Processing & Idempotency', () => {
 
     /**
-     * Requirement: Successful investment must update both Transaction and Investor models.
-     * UPDATED: Matches "Ledger synchronization successful." from Controller Response.
+     * Success Logic: Ensures atomic updates to both Transactions and Investor records.
      */
     test('Success: Should process new investment and return 200 to the Frontend', async () => {
-      await PaymentController.processInvestment(mockReq, mockRes);
+      await PaymentController.processInvestment(mockReq as Request, mockRes as Response);
 
       expect(Transaction.create).toHaveBeenCalled();
       expect(Investor.findOneAndUpdate).toHaveBeenCalled();
@@ -89,26 +91,28 @@ describe('Payment & Pi Network Integration - Unit Tests', () => {
     });
 
     /**
-     * Requirement: Anti-Duplicate Security (Idempotency Guard).
-     * UPDATED: Matches "Duplicate Entry" from Controller Response.
+     * Anti-Duplicate Security: Crucial for financial integrity.
      */
     test('Security: Should block duplicate transactions (Idempotency Guard)', async () => {
-      jest.spyOn(Transaction, 'findOne').mockResolvedValue({ piTxId: 'TXID_2026_MAPCAP_SYNC' });
+      jest.spyOn(Transaction, 'findOne').mockResolvedValue({ piTxId: 'TXID_2026_MAPCAP_SYNC' } as any);
 
-      await PaymentController.processInvestment(mockReq, mockRes);
+      await PaymentController.processInvestment(mockReq as Request, mockRes as Response);
 
       expect(mockRes.status).toHaveBeenCalledWith(409);
-      expect(mockRes.json).toHaveBeenCalledWith(
-        expect.objectContaining({ message: expect.stringContaining("Duplicate Entry") })
-      );
+      const lastCall = (mockRes.json as jest.Mock).mock.calls[0][0];
+      expect(lastCall.message).toContain("Duplicate Entry");
     });
 
+    /**
+     * Validation Gate: Blocks requests missing mandatory blockchain metadata.
+     */
     test('Validation: Should reject requests with missing financial metadata', async () => {
       mockReq.body = { piAddress: 'GBV...ADDR' };
 
-      await PaymentController.processInvestment(mockReq, mockRes);
+      await PaymentController.processInvestment(mockReq as Request, mockRes as Response);
 
       expect(mockRes.status).toHaveBeenCalledWith(400);
     });
   });
 });
+
