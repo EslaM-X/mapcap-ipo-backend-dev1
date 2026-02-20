@@ -1,5 +1,5 @@
 /**
- * Manual Trigger - Administrative Command Center v1.3.5
+ * Manual Trigger - Administrative Command Center v1.7.5 (TS)
  * ---------------------------------------------------------
  * Lead Architect: EslaM-X | AppDev @Map-of-Pi
  * Project: MapCap Ecosystem | Spec: Daniel's Admin Protocol
@@ -8,7 +8,6 @@
  * A standalone CLI utility for manual orchestration of high-stakes 
  * financial jobs. This tool fulfills Philip's requirement for 
  * post-IPO settlement before liquidity is transitioned to the LP.
- * ---------------------------------------------------------
  */
 
 import Investor from '../models/investor.model.js';
@@ -21,13 +20,22 @@ import { writeAuditLog } from '../config/logger.js';
 dotenv.config();
 
 /**
+ * @enum AdminAction
+ * Standardized manual commands for CLI orchestration.
+ */
+enum AdminAction {
+    WHALE_REFUND = 'WHALE_REFUND',
+    PULSE_CHECK = 'PULSE_CHECK'
+}
+
+/**
  * @function runManualAction
  * @desc Parses CLI arguments to execute targeted administrative tasks.
- * Usage: node src/jobs/manual_trigger.js --action=[WHALE_REFUND | PULSE_CHECK]
+ * Usage: node dist/jobs/manual_trigger.js --action=WHALE_REFUND
  */
-const runManualAction = async () => {
-    const actionArg = process.argv.find(arg => arg.startsWith('--action='));
-    const action = actionArg ? actionArg.split('=')[1] : null;
+const runManualAction = async (): Promise<void> => {
+    const actionArg: string | undefined = process.argv.find(arg => arg.startsWith('--action='));
+    const action: string | null = actionArg ? actionArg.split('=')[1] : null;
 
     if (!action) {
         console.error("❌ Usage Error: Define an action flag. Example: --action=WHALE_REFUND");
@@ -38,21 +46,21 @@ const runManualAction = async () => {
 
     try {
         // SECURE HANDSHAKE: Database Connection
+        if (!process.env.MONGO_URI) throw new Error("MONGO_URI is missing in .env");
+        
         await mongoose.connect(process.env.MONGO_URI);
         console.log("✅ [DATABASE] Ledger synchronization successful.");
 
-        switch (action) {
-            case 'WHALE_REFUND':
+        switch (action as AdminAction) {
+            case AdminAction.WHALE_REFUND:
                 /**
                  * POST-IPO SETTLEMENT EXECUTION:
-                 * This manually triggers the 10% ceiling enforcement. 
-                 * It calculates the final pool and trims excess balances 
-                 * only when explicitly commanded by the Administrator.
+                 * Manually triggers the 10% ceiling enforcement.
                  */
                 console.log("🚀 [TASK] Initiating Post-IPO Final Whale Settlement...");
                 
                 const allInvestors = await Investor.find({ totalPiContributed: { $gt: 0 } });
-                const totalPiPool = allInvestors.reduce((sum, inv) => sum + inv.totalPiContributed, 0);
+                const totalPiPool: number = allInvestors.reduce((sum, inv) => sum + inv.totalPiContributed, 0);
                 
                 if (totalPiPool === 0) {
                     console.warn("⚠️ [ABORT] Liquidity Pool is currently empty. No action required.");
@@ -67,9 +75,9 @@ const runManualAction = async () => {
                 console.log(`✅ [SUCCESS] Settlement Complete. Capped ${result.refundCount} whale accounts.`);
                 break;
 
-            case 'PULSE_CHECK':
+            case AdminAction.PULSE_CHECK:
                 // Real-time metrics for Philip's "Water-Level" verification
-                const count = await Investor.countDocuments();
+                const count: number = await Investor.countDocuments();
                 const aggregation = await Investor.aggregate([{ $group: { _id: null, total: { $sum: "$totalPiContributed" } } }]);
                 
                 console.log(`📊 [AUDIT] Registered Pioneers: ${count}`);
@@ -80,7 +88,7 @@ const runManualAction = async () => {
                 console.error(`❌ [ERROR] Unsupported action: ${action}.`);
         }
 
-    } catch (error) {
+    } catch (error: any) {
         writeAuditLog('CRITICAL', `MANUAL_ENGINE_FAILURE: ${error.message}`);
         console.error("--- [FATAL_EXCEPTION] ---", error.message);
     } finally {
