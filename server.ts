@@ -30,6 +30,7 @@ import ResponseHelper from './src/utils/response.helper.js';
 /**
  * ROUTING LAYERS
  * Strategic route mapping preserved to maintain backward compatibility.
+ * All route files are resolved with .js extension for NodeNext compliance.
  */
 import ipoRoutes from './src/routes/ipo.routes.js';
 import adminRoutes from './src/routes/admin/admin.routes.js';
@@ -48,6 +49,7 @@ app.use(morgan('combined', { stream: auditLogStream }));
 app.use(express.json());
 
 // Enhanced CORS to support Admin Dashboard and Mobile App requests
+// Preserving access for the Pi Network ecosystem participants.
 app.use(cors({
     origin: '*', 
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -68,7 +70,10 @@ const connectDB = async (): Promise<void> => {
         console.log(`✅ [DATABASE] Ledger Connection: SUCCESS (${process.env.NODE_ENV || 'dev'})`);
         writeAuditLog('INFO', 'Database Connection Established.');
 
-        // Initialize Automation Engines only in live environments (Dev/Prod)
+        /**
+         * INITIALIZE AUTOMATION ENGINES
+         * Triggers Cron jobs for Dividends, Vesting, and Price updates.
+         */
         if (process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'development') {
             CronScheduler.init();
         }
@@ -86,6 +91,7 @@ if (process.env.NODE_ENV !== 'test') {
  * 3. CORE ROUTE ARCHITECTURE
  * Multi-prefix support for Frontend stability and API versioning.
  * This structure ensures both legacy /api and new /api/v1 calls remain active.
+ * CRITICAL: Do not remove legacy routes to avoid breaking existing Frontend builds.
  */
 app.use('/api/v1/ipo', ipoRoutes);
 app.use('/api/v1/admin', adminRoutes);
