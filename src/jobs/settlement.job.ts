@@ -5,9 +5,9 @@
  * Project: MapCap Ecosystem | Spec: Post-IPO Compliance
  * -------------------------------------------------------------------------
  * TS STABILIZATION LOG:
+ * - Resolved TS2554: Aligned PayoutService.executeA2UPayout with 2-arg signature.
  * - Resolved TS2835: Appended mandatory .js extensions for NodeNext ESM compliance.
  * - Resolved TS2322: Enforced strict ISettlementResult return type for Audit parity.
- * - Resolved TS2345: Standardized PayoutService call mapping with explicit casting.
  * - Integrity Guard: Preserved financial keys to ensure Zero-Breakage for 
  * AdminDashboard.jsx telemetry and compliance reporting.
  */
@@ -68,11 +68,10 @@ class SettlementJob {
                 try {
                     /**
                      * STEP 2: BLOCKCHAIN EXECUTION
+                     * FIXED TS2554: Aligned with PayoutService signature (2 arguments expected).
                      * Refunding surplus Pi via A2U Protocol to the Pioneer's wallet.
-                     * Note: Type casting used for TransactionType compatibility within the service.
                      */
-                    const txType = 'WHALE_EXCESS_REFUND' as any;
-                    await PayoutService.executeA2UPayout(investor.piAddress, preciseRefund, txType);
+                    await PayoutService.executeA2UPayout(investor.piAddress, preciseRefund);
 
                     /**
                      * STEP 3: ATOMIC LEDGER UPDATE
