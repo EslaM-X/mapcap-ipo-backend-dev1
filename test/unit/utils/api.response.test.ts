@@ -1,31 +1,34 @@
 /**
- * API Response & Error Handling Unit Tests - Standardization v1.5.0
+ * API Response & Error Handling Unit Tests - Standardization v1.7.5 (TS)
  * -------------------------------------------------------------------------
  * Lead Architect: EslaM-X | AppDev @Map-of-Pi
  * Project: MapCap Ecosystem | Spec: Philip Jennings & Daniel Compliance
  * -------------------------------------------------------------------------
- * ARCHITECTURAL ROLE:
- * Validates the consistency of the Global API Output and Error Interception.
- * Ensures that Success/Error payloads are predictable for Frontend sync,
- * audit-ready for Daniel, and resilient against data leaks in production.
- * -------------------------------------------------------------------------
+ * TS CONVERSION LOG:
+ * - Implemented Partial<Request> and Partial<Response> for type-safe Express mocking.
+ * - Formalized Trace ID validation (ERR- prefix check).
+ * - Enforced strict production security checks (Stack trace suppression).
+ * - Validated global status code propagation (403, 500, etc.).
  */
 
 import ResponseHelper from '../../../src/utils/response.helper.js';
 import errorMiddleware from '../../../src/middlewares/error.middleware.js';
 import { jest } from '@jest/globals';
+import { Request, Response, NextFunction } from 'express';
 
 describe('Global API Consistency - Response & Error Resilience', () => {
-  let mockReq, mockRes, mockNext;
+  let mockReq: Partial<Request>;
+  let mockRes: Partial<Response>;
+  let mockNext: NextFunction;
 
   beforeEach(() => {
     mockReq = { originalUrl: '/api/v1/pulse/metrics' };
     mockRes = {
-      statusCode: 200, // Initial default status
+      statusCode: 200, // Initial default status for Express
       status: jest.fn().mockReturnThis(),
-      json: jest.fn()
+      json: jest.fn().mockReturnThis()
     };
-    mockNext = jest.fn();
+    mockNext = jest.fn() as NextFunction;
     
     // Suppression of console error logs to maintain clean test telemetry
     jest.spyOn(console, 'error').mockImplementation(() => {});
@@ -33,12 +36,13 @@ describe('Global API Consistency - Response & Error Resilience', () => {
 
   afterEach(() => {
     jest.restoreAllMocks();
+    // Resetting environment variable to avoid side effects between tests
+    delete process.env.NODE_ENV;
   });
 
   /**
    * SECTION 1: RESPONSE HELPER (Standard Success/Error)
-   * Requirement: Philip's UI Spec - All responses must be JSON objects 
-   * with a mandatory 'success' flag and 'timestamp' for sorting.
+   * Requirement: Philip's UI Spec - Standardized JSON for Pulse Dashboard sync.
    */
   describe('ResponseHelper - Output Formatting', () => {
 
@@ -46,7 +50,7 @@ describe('Global API Consistency - Response & Error Resilience', () => {
       const message = "Pulse Stats Updated";
       const data = { spotPrice: 4.3636 };
 
-      ResponseHelper.success(mockRes, message, data);
+      ResponseHelper.success(mockRes as Response, message, data);
 
       expect(mockRes.status).toHaveBeenCalledWith(200);
       expect(mockRes.json).toHaveBeenCalledWith(expect.objectContaining({
@@ -62,12 +66,12 @@ describe('Global API Consistency - Response & Error Resilience', () => {
       const errorMessage = "Invalid Wallet Format";
       const statusCode = 400;
 
-      ResponseHelper.error(mockRes, errorMessage, statusCode);
+      ResponseHelper.error(mockRes as Response, errorMessage, statusCode);
 
       expect(mockRes.status).toHaveBeenCalledWith(400);
-      const responseBody = mockRes.json.mock.calls[0][0];
+      const responseBody = (mockRes.json as jest.Mock).mock.calls[0][0];
 
-      // Requirement: Trace ID is vital for Daniel's audit/debugging
+      // Audit Requirement: Trace ID is vital for Daniel's debugging without leaking system internals
       expect(responseBody.success).toBe(false);
       expect(responseBody.error.trace_id).toMatch(/^ERR-/);
       expect(responseBody.error.code).toBe(400);
@@ -76,15 +80,14 @@ describe('Global API Consistency - Response & Error Resilience', () => {
 
   /**
    * SECTION 2: ERROR MIDDLEWARE (Global Exception Catching)
-   * Requirement: Resilience Spec - High-availability must convert runtime 
-   * crashes into clean JSON responses without leaking server secrets.
+   * Requirement: Resilience Spec - High-availability exception normalization.
    */
   describe('Error Middleware - Global Resilience & Privacy', () => {
 
     test('Capture: Should normalize unhandled exceptions to a 500 JSON response', () => {
       const error = new Error('Unexpected Pi SDK Timeout');
       
-      errorMiddleware(error, mockReq, mockRes, mockNext);
+      errorMiddleware(error, mockReq as Request, mockRes as Response, mockNext);
 
       expect(mockRes.status).toHaveBeenCalledWith(500);
       expect(mockRes.json).toHaveBeenCalledWith(
@@ -99,9 +102,9 @@ describe('Global API Consistency - Response & Error Resilience', () => {
       process.env.NODE_ENV = 'production';
       const error = new Error('Database Password Failure');
 
-      errorMiddleware(error, mockReq, mockRes, mockNext);
+      errorMiddleware(error, mockReq as Request, mockRes as Response, mockNext);
 
-      const responseJson = mockRes.json.mock.calls[0][0];
+      const responseJson = (mockRes.json as jest.Mock).mock.calls[0][0];
       
       // Daniel's Compliance: Do NOT leak internal code paths to the public API
       expect(responseJson.message).toBe('Database Password Failure');
@@ -109,10 +112,10 @@ describe('Global API Consistency - Response & Error Resilience', () => {
     });
 
     test('Propagation: Should maintain the existing HTTP status code (e.g., 403 Forbidden)', () => {
-      mockRes.statusCode = 403;
+      (mockRes as any).statusCode = 403;
       const error = new Error('Administrative Privileges Required');
 
-      errorMiddleware(error, mockReq, mockRes, mockNext);
+      errorMiddleware(error, mockReq as Request, mockRes as Response, mockNext);
 
       expect(mockRes.status).toHaveBeenCalledWith(403);
     });
