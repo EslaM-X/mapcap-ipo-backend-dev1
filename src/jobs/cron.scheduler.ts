@@ -2,7 +2,7 @@
  * Cron Scheduler - MapCap IPO Automation Engine v1.7.5 (TS)
  * -------------------------------------------------------------------------
  * Lead Architect: EslaM-X | AppDev @Map-of-Pi
- * Project: MapCap Ecosystem | Spec: Philip Jennings & Daniel
+ * Project: MapCap Ecosystem | Spec: Philip Jennings & Daniel Compliance
  * -------------------------------------------------------------------------
  * ARCHITECTURAL ROLE: 
  * Centralized orchestrator for automated Financial Snapshots, Whale 
@@ -10,16 +10,16 @@
  * -------------------------------------------------------------------------
  * TS STABILIZATION LOG:
  * - Resolved TS2835: Appended mandatory .js extensions for ESM compatibility.
- * - Resolved TS2554 & TS2551: Standardized SettlementJob method arguments 
- * and interface property references.
- * - Integrity: Locked to UTC timezone to ensure global financial synchronization.
+ * - Resolved TS2307: Fixed module resolution for internal relative paths.
+ * - Integrity Guard: Maintains 1:1 synchronization with Frontend metrics 
+ * by preserving the exact execution logic and timing.
  */
 
 import cron from 'node-cron';
 
 /**
  * INTERNAL MODULE IMPORTS
- * Explicit .js extensions are required for successful module resolution 
+ * Explicit .js extensions are mandatory for successful module resolution 
  * in the NodeNext ECMAScript environment.
  */
 import Investor from '../models/investor.model.js';
@@ -42,7 +42,7 @@ class CronScheduler {
          * TASK 1: DAILY SPOT PRICE RECALIBRATION
          * Frequency: Midnight UTC (0 0 * * *)
          * Purpose: Updates the scarcity-based 'Value 2' (Spot Price) daily 
-         * to reflect the current ecosystem liquidity.
+         * to reflect the current ecosystem liquidity on the Frontend.
          */
         cron.schedule('0 0 * * *', async () => {
             writeAuditLog('INFO', '[CRON_START] Daily Price Recalibration Sequence initiated.');
