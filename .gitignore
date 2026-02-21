@@ -1,8 +1,6 @@
 # --- [DEPENDENCY DIRECTORIES] ---
 node_modules/
 jspm_packages/
-package-lock.json
-yarn.lock
 
 # --- [ENVIRONMENT VARIABLES] ---
 # Very critical: Never commit the actual .env to version control
