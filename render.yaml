@@ -1,0 +1,47 @@
+/**
+ * RENDER INFRASTRUCTURE AS CODE (IaC) - v1.7.0 (TypeScript Optimized)
+ * -------------------------------------------------------------------------
+ * Project: MapCap Ecosystem | Scalable Web3 Pipeline
+ * Spec: High-Availability Deployment for Pi Network Integration
+ * -------------------------------------------------------------------------
+ * TS MIGRATION: 
+ * - Build command updated to compile TypeScript via 'tsc'.
+ * - Start command updated to execute from the distribution directory.
+ */
+
+services:
+  - type: web
+    name: mapcap-ipo-api
+    env: node
+    plan: free # Adjust to 'starter' or 'pro' for production scalability
+    
+    # INSTALLATION & COMPILATION: 
+    # Ensures all dependencies are locked and TS is compiled to JS before deployment.
+    buildCommand: npm install && npm run build
+    
+    # EXECUTION: 
+    # Launches the compiled Pulse Engine from the 'dist' folder for maximum performance.
+    startCommand: node dist/server.js
+    
+    envVars:
+      - key: NODE_ENV
+        value: production
+      
+      # DATABASE: Must be manually linked in Render Dashboard for security
+      - key: MONGO_URI
+        sync: false 
+      
+      # SECURITY: Ensure this matches the key used in Frontend/Admin Auth
+      - key: JWT_SECRET
+        generateValue: true
+
+      # ARCHITECTURE: Standardizing the port for Express persistence
+      - key: PORT
+        value: 10000
+
+    /**
+     * HEALTH CHECK CONFIGURATION:
+     * Monitors the Root Pulse ('/') endpoint. 
+     * Essential for maintaining the "Exceptional Technical Leadership" standards.
+     */
+    healthCheckPath: /
