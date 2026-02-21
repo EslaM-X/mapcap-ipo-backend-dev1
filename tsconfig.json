@@ -1,0 +1,41 @@
+{
+  "compilerOptions": {
+    /* Language and Environment */
+    "target": "ES2020",                                  /* Target modern Node.js environments for optimal MapCap performance. */
+    "module": "NodeNext",                                /* Required for "type": "module" parity and ESM compatibility. */
+    "lib": ["ESNext", "DOM"],                            /* Access to modern JavaScript features and shared DOM types if needed. */
+    "moduleResolution": "NodeNext",                      /* Mandatory to resolve explicit .js extensions used in TypeScript imports. */
+    
+    /* Path Configurations */
+    "rootDir": "./",                                     /* Maintains project structure starting from the backend root. */
+    "outDir": "./dist",                                  /* Compiles production-ready JavaScript into the distribution folder. */
+    "baseUrl": ".",                                      /* Enables absolute path resolution starting from the project root. */
+    
+    /* Financial Audit & Strict Type-Checking (Compliance Standards) */
+    "strict": true,                                      /* Enforces a robust type-safety baseline for all financial logic. */
+    "noImplicitAny": true,                               /* Eliminates hidden 'any' types to prevent calculation logic leaks. */
+    "strictNullChecks": true,                            /* Essential for Pi balance validation to prevent null-value errors. */
+    "noFallthroughCasesInSwitch": true,                  /* Prevents logical errors in job dispatchers and manual triggers. */
+    
+    /* Interoperability & System Compatibility */
+    "esModuleInterop": true,                             /* Bridges the gap between ESM and CommonJS for libraries like Mongoose. */
+    "skipLibCheck": true,                                /* Accelerates build times by skipping type-checks for node_modules. */
+    "forceConsistentCasingInFileNames": true,            /* Ensures build stability between Windows/Linux deployment environments. */
+    "allowSyntheticDefaultImports": true,                /* Allows cleaner import syntax for legacy dependency modules. */
+    
+    /* Project Metadata & Debugging */
+    "resolveJsonModule": true,                           /* Permits direct importing of package.json and config files. */
+    "allowJs": true,                                     /* Allows gradual migration of legacy utility files without breaking the build. */
+    "sourceMap": true,                                   /* Critical for mapping production errors back to original TS source code. */
+    "isolatedModules": true                              /* Aligns with modern transpilers for faster, independent file processing. */
+  },
+  "include": [
+    "**/*.ts",                                           /* Recursively scans all TypeScript source files for compilation. */
+    "server.ts"                                          /* Explicitly tracks the central entry point for the backend engine. */
+  ],
+  "exclude": [
+    "node_modules",                                      /* Protects external dependencies from being re-compiled. */
+    "dist",                                              /* Prevents the compiler from scanning its own output. */
+    "test"                                               /* Excludes test suites from the production distribution bundle. */
+  ]
+}
