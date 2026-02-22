@@ -26,65 +26,66 @@ jobs:
       group: vercel-${{ github.event.pull_request.number || github.ref }}
       cancel-in-progress: true
 
+    # Global environment variables for the job
     env:
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-      VERCEL_PROJECT_DEV: ${{ secrets.VERCEL_DEV_PROJECT_ID }}
-      VERCEL_PROJECT_STAGING: ${{ secrets.VERCEL_STAGING_PROJECT_ID }}
-      VERCEL_PROJECT_PROD: ${{ secrets.VERCEL_PROD_PROJECT_ID }}
-      VERCEL_SCOPE: map-of-pi
+      # Mapping the project ID to the main production secret we configured
+      VERCEL_PROJECT_PROD: ${{ secrets.VERCEL_PROJECT_ID }}
+      # Dynamic scope using the User/Org ID to avoid "Scope not found" errors
+      VERCEL_SCOPE: ${{ secrets.VERCEL_ORG_ID }}
 
     steps:
-      # 1️⃣ Checkout repository
+      # 1️⃣ Checkout repository to the runner
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2️⃣ Set up Node.js
+      # 2️⃣ Initialize Node.js environment
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      # 3️⃣ Install dependencies
+      # 3️⃣ Install project dependencies using Clean Install (npm ci)
       - name: Install dependencies
         run: npm ci
 
-      # 4️⃣ Install Vercel CLI
+      # 4️⃣ Install Vercel CLI globally on the runner
       - name: Install Vercel CLI
         run: npm install -g vercel
 
-      # 5️⃣ Deploy Preview to Vercel for Dev
+      # 5️⃣ Handle Preview Deployment for Dev Environment
       - name: Deploy Preview to Vercel for Dev
         if: github.event_name == 'pull_request' &&  github.event.pull_request.base.ref == 'staging' && github.event.pull_request.head.ref == 'dev'
         run: |
-          # Preview deploy on dev
-          echo VERCEL_PROJECT_ID=$VERCEL_PROJECT_DEV >> $GITHUB_ENV
+          # Use Prod Project ID for Dev previews as a fallback or specific Dev ID if exists
+          echo VERCEL_PROJECT_ID=${{ secrets.VERCEL_DEV_PROJECT_ID || secrets.VERCEL_PROJECT_ID }} >> $GITHUB_ENV
           PREVIEW_URL=$(vercel deploy --token $VERCEL_TOKEN --scope $VERCEL_SCOPE --yes)
           echo "PREVIEW_URL=$PREVIEW_URL" >> $GITHUB_ENV
           echo "ENV_NAME=Dev" >> $GITHUB_ENV
           echo "🔍 Dev Preview deployed: $PREVIEW_URL"
 
-      # 6️⃣ Deploy Preview to Vercel for Staging
+      # 6️⃣ Handle Preview Deployment for Staging Environment
       - name: Deploy Preview to Vercel for Staging
         if: github.event_name == 'pull_request' &&  github.event.pull_request.base.ref == 'main' && github.event.pull_request.head.ref == 'staging'
         run: |
-          # Preview deploy on staging
-          echo VERCEL_PROJECT_ID=$VERCEL_PROJECT_STAGING >> $GITHUB_ENV
+          echo VERCEL_PROJECT_ID=${{ secrets.VERCEL_STAGING_PROJECT_ID || secrets.VERCEL_PROJECT_ID }} >> $GITHUB_ENV
           PREVIEW_URL=$(vercel deploy --token $VERCEL_TOKEN --scope $VERCEL_SCOPE --yes)
           echo "PREVIEW_URL=$PREVIEW_URL" >> $GITHUB_ENV
           echo "ENV_NAME=Staging" >> $GITHUB_ENV
           echo "🔍 Staging Preview deployed: $PREVIEW_URL"
 
-      # 7️⃣ Deploy Production to Vercel for Main
+      # 7️⃣ Handle Production Deployment for Main Branch
       - name: Deploy Production to Vercel for Main
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
-          # Production deploy on main
+          # Inject the production project ID into environment
           echo VERCEL_PROJECT_ID=$VERCEL_PROJECT_PROD >> $GITHUB_ENV
+          # Deploying to production with the correct scope and token
           PROD_URL=$(vercel deploy --prod --token $VERCEL_TOKEN --scope $VERCEL_SCOPE --yes)
           echo "PROD_URL=$PROD_URL" >> $GITHUB_ENV
           echo "🚀 Production deployed: $PROD_URL"
 
-      # 8️⃣ Comment preview URL on PR
+      # 8️⃣ Post-deployment: Comment the Preview URL on the Pull Request
       - name: Comment preview URL on PR
         if: github.event_name == 'pull_request' && env.PREVIEW_URL != ''
         uses: peter-evans/create-or-update-comment@v4
@@ -96,23 +97,21 @@ jobs:
             📊 Project Dashboard: https://vercel.com/${{ env.VERCEL_SCOPE }}/${{ env.VERCEL_PROJECT_ID }}
             📜 Deployment Logs: Open the preview link → click *View Deployment Details*
 
-      # 9️⃣ Log Vercel deployment info to workflow summary
+      # 9️⃣ Final step: Log summary information to the GitHub Actions dashboard
       - name: Show Vercel deployment summary
         run: |
-          echo "🚀 Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "### 🚀 Deployment Summary" >> $GITHUB_STEP_SUMMARY
           if [ "${{ github.ref }}" = "refs/heads/main" ] && [ -n "$PROD_URL" ]; then
-            echo "✅ Production: $PROD_URL" >> $GITHUB_STEP_SUMMARY
+            echo "✅ **Production URL:** $PROD_URL" >> $GITHUB_STEP_SUMMARY
           elif [ -n "$PREVIEW_URL" ]; then
-            echo "✅ Preview: $PREVIEW_URL" >> $GITHUB_STEP_SUMMARY
+            echo "✅ **Preview URL:** $PREVIEW_URL" >> $GITHUB_STEP_SUMMARY
           else
             echo "⚠️ No deployment URL generated." >> $GITHUB_STEP_SUMMARY
           fi
 
           if [ -n "$VERCEL_PROJECT_ID" ]; then
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "📊 Dashboard:" >> $GITHUB_STEP_SUMMARY
-            echo "https://vercel.com/$VERCEL_SCOPE/$VERCEL_PROJECT_ID" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "📜 Deployments:" >> $GITHUB_STEP_SUMMARY
-            echo "https://vercel.com/$VERCEL_SCOPE/$VERCEL_PROJECT_ID/deployments" >> $GITHUB_STEP_SUMMARY
+            echo "#### 📊 Vercel Links" >> $GITHUB_STEP_SUMMARY
+            echo "- [Project Dashboard](https://vercel.com/$VERCEL_SCOPE/$VERCEL_PROJECT_ID)" >> $GITHUB_STEP_SUMMARY
+            echo "- [Deployment History](https://vercel.com/$VERCEL_SCOPE/$VERCEL_PROJECT_ID/deployments)" >> $GITHUB_STEP_SUMMARY
           fi
