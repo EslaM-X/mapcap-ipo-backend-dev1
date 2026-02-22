@@ -1,9 +1,6 @@
 name: MapCap IPO Vercel Deployment
 
 on:
-  pull_request:
-    branches: [staging, main]
-    types: [opened, synchronize, reopened]
   push:
     branches: [main]
   workflow_dispatch:
@@ -12,10 +9,7 @@ jobs:
   deploy:
     name: 🚀 Deploy to Vercel
     runs-on: ubuntu-latest
-    concurrency:
-      group: vercel-${{ github.event.pull_request.number || github.ref }}
-      cancel-in-progress: true
-
+    
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -31,23 +25,18 @@ jobs:
       - name: Install Vercel CLI
         run: npm install -g vercel
 
-      # Production Deploy - Using Env variables instead of arguments
       - name: Deploy Production to Vercel
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          # بنسيب الـ IDs هنا عشان الـ CLI يربطهم ببعض أوتوماتيك
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
         run: |
-          PROD_URL=$(vercel deploy --prod --yes)
+          # وبنبعت الـ Token هنا عشان يتخطى مرحلة الـ Login
+          PROD_URL=$(vercel deploy --prod --yes --token ${{ secrets.VERCEL_TOKEN }})
           echo "PROD_URL=$PROD_URL" >> $GITHUB_ENV
           echo "🚀 Production deployed: $PROD_URL"
 
       - name: Show Vercel deployment summary
         run: |
           echo "### 🚀 Deployment Summary" >> $GITHUB_STEP_SUMMARY
-          if [ -n "$PROD_URL" ]; then
-            echo "✅ **Production URL:** $PROD_URL" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "⚠️ Deployment completed, check Vercel Dashboard for URL." >> $GITHUB_STEP_SUMMARY
-          fi
+          echo "✅ **Production URL:** $PROD_URL" >> $GITHUB_STEP_SUMMARY
