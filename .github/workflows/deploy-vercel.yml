@@ -16,10 +16,6 @@ jobs:
       group: vercel-${{ github.event.pull_request.number || github.ref }}
       cancel-in-progress: true
 
-    env:
-      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }} # Use the same Project ID for all steps
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -35,35 +31,23 @@ jobs:
       - name: Install Vercel CLI
         run: npm install -g vercel
 
-      # 5️⃣ Dev Preview (Simplified - removed --scope)
-      - name: Deploy Preview to Vercel for Dev
-        if: github.event_name == 'pull_request' &&  github.event.pull_request.base.ref == 'staging' && github.event.pull_request.head.ref == 'dev'
-        run: |
-          PREVIEW_URL=$(vercel deploy --token $VERCEL_TOKEN --yes)
-          echo "PREVIEW_URL=$PREVIEW_URL" >> $GITHUB_ENV
-          echo "ENV_NAME=Dev" >> $GITHUB_ENV
-
-      # 6️⃣ Staging Preview (Simplified - removed --scope)
-      - name: Deploy Preview to Vercel for Staging
-        if: github.event_name == 'pull_request' &&  github.event.pull_request.base.ref == 'main' && github.event.pull_request.head.ref == 'staging'
-        run: |
-          PREVIEW_URL=$(vercel deploy --token $VERCEL_TOKEN --yes)
-          echo "PREVIEW_URL=$PREVIEW_URL" >> $GITHUB_ENV
-          echo "ENV_NAME=Staging" >> $GITHUB_ENV
-
-      # 7️⃣ Production Deploy (Simplified - removed --scope)
-      - name: Deploy Production to Vercel for Main
+      # Production Deploy - Using Env variables instead of arguments
+      - name: Deploy Production to Vercel
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
         run: |
-          PROD_URL=$(vercel deploy --prod --token $VERCEL_TOKEN --yes)
+          PROD_URL=$(vercel deploy --prod --yes)
           echo "PROD_URL=$PROD_URL" >> $GITHUB_ENV
           echo "🚀 Production deployed: $PROD_URL"
 
       - name: Show Vercel deployment summary
         run: |
           echo "### 🚀 Deployment Summary" >> $GITHUB_STEP_SUMMARY
-          if [ "${{ github.ref }}" = "refs/heads/main" ] && [ -n "$PROD_URL" ]; then
+          if [ -n "$PROD_URL" ]; then
             echo "✅ **Production URL:** $PROD_URL" >> $GITHUB_STEP_SUMMARY
-          elif [ -n "$PREVIEW_URL" ]; then
-            echo "✅ **Preview URL:** $PREVIEW_URL" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ Deployment completed, check Vercel Dashboard for URL." >> $GITHUB_STEP_SUMMARY
           fi
